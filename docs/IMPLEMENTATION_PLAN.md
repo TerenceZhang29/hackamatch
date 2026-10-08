@@ -54,7 +54,7 @@ The framework leaves some choices open. These are the defaults the plan uses; ea
 | DB access | Supabase SQL migrations + `supabase-js` with generated types. No ORM | — |
 | Validation | `zod` for every server-action and route-handler input, and every LLM output | — |
 | LLM | Claude API via `@anthropic-ai/sdk`. Extraction uses `LLM_MODEL_FAST` (default `claude-haiku-5-5`); reason lines and coffee-chat drafts use the same model. Structured output via a forced tool call with a JSON schema | `LLM_MODEL_FAST`, `LLM_PROVIDER=anthropic|fake` |
-| Embeddings | Voyage AI `voyage-3.5` (1024 dims) behind an `Embedder` interface; vectors stored in `vector(1024)` columns | `EMBEDDINGS_PROVIDER=voyage|fake`, `EMBEDDING_DIM` |
+| Embeddings | Voyage AI `voyage-4-lite` (about $0.02 per 1M tokens, reportedly with a 200M-token free allowance across the voyage-4 models; campus-scale use stays well inside it) behind an `Embedder` interface. Request 1024-dimension output explicitly; vectors stored in `vector(1024)` columns. Use the regular embeddings endpoint, not the Batch API, because free tokens reportedly don't apply to batch jobs | `EMBEDDINGS_PROVIDER=voyage|fake`, `EMBEDDING_MODEL`, `EMBEDDING_DIM` |
 | Email | Resend + React Email templates | `EMAIL_PROVIDER=resend|fake` |
 | Scheduler | Vercel Cron calling protected route handlers | `CRON_SECRET` |
 | Time zone | All "daily" logic uses `America/New_York` | `APP_TIMEZONE` |
@@ -488,7 +488,7 @@ Outcome: a student can sign up in under 60 s, appear on the board with inferred 
 - **Pillar:** Inferred profiles
 - **Files:** `src/lib/embeddings/{index.ts,voyage.ts,fake.ts}`, `src/server/embed.ts`.
 - **Spec:**
-  - `embed(texts: string[], kind: 'document'|'query'): Promise<number[][]>`; Voyage implementation batches up to 64 texts per request; fake implementation produces a deterministic unit vector of `EMBEDDING_DIM` from a seeded hash of tokens, so similar texts share dimensions (bag-of-words hashing).
+  - `embed(texts: string[], kind: 'document'|'query'): Promise<number[][]>`; Voyage implementation calls the embeddings endpoint with `model: EMBEDDING_MODEL` (default `voyage-4-lite`), `input_type` set from `kind`, and `output_dimension: EMBEDDING_DIM` (default 1024), batching up to 64 texts per request and asserting every returned vector has length `EMBEDDING_DIM`; fake implementation produces a deterministic unit vector of `EMBEDDING_DIM` from a seeded hash of tokens, so similar texts share dimensions (bag-of-words hashing).
   - `src/server/embed.ts`: `profileEmbeddingText(user, profile)` = `"Role: … Intents: … Skills: … Stack: … Domains: … About: <raw_bio> <github summary>"`; `ideaEmbeddingText(idea)` = `"Idea: <raw_text> Domain: … Needs: …"`. `embedProfile(userId)` and `embedIdea(ideaId)` read, embed, and write the vector plus `embedded_at`.
 - **Acceptance criteria:** fake vectors for "react health app" and "health app built in react" have cosine > 0.7; for "react health app" vs "hardware climate sensor" < 0.3.
 - **Tests:** unit tests for the fake embedder properties and text builders.
@@ -878,6 +878,7 @@ Each ticket here should be expanded into its own detailed plan when started; the
 | `LLM_MODEL_FAST` | llm | default `claude-haiku-5-5` |
 | `EMBEDDINGS_PROVIDER` | embeddings | `voyage` \| `fake` |
 | `VOYAGE_API_KEY` | embeddings | |
+| `EMBEDDING_MODEL` | embeddings | default `voyage-4-lite`; switching to another voyage-4 model (`voyage-4`, `voyage-4-large`) keeps the same embedding space, switching families requires re-embedding everything |
 | `EMBEDDING_DIM` | embeddings, migrations | `1024`; changing it requires a migration |
 | `EMAIL_PROVIDER` | notify | `resend` \| `fake` |
 | `RESEND_API_KEY`, `EMAIL_FROM` | notify | |
