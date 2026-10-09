@@ -137,7 +137,7 @@ Rules:
 ├── tests/
 │   ├── unit/
 │   └── e2e/
-├── middleware.ts                 Supabase session refresh + route guards
+├── src/middleware.ts             Supabase session refresh + route guards (lives in src/ because the app uses a src directory)
 ├── vercel.json                   cron schedule
 └── .env.example
 ```
@@ -418,7 +418,7 @@ Outcome: a student can sign up in under 60 s, appear on the board with inferred 
 ### P1-01 Project scaffold
 - **Depends on:** —
 - **Pillar:** Platform
-- **Files:** `package.json`, `tsconfig.json`, `next.config.ts`, `tailwind.config.ts`, `postcss.config.mjs`, `eslint.config.mjs`, `.prettierrc`, `vitest.config.ts`, `playwright.config.ts`, `.env.example`, `.gitignore`, `src/app/layout.tsx`, `src/app/page.tsx` (placeholder), `src/lib/config.ts`, `README.md`, `.github/workflows/ci.yml`.
+- **Files:** `package.json`, `.npmrc`, `tsconfig.json`, `next.config.ts`, `postcss.config.mjs` (Tailwind 4 is configured in CSS, so there is no `tailwind.config.ts`), `eslint.config.mjs`, `.prettierrc`, `vitest.config.ts`, `playwright.config.ts`, `.env.example`, `.gitignore`, `src/app/layout.tsx`, `src/app/globals.css`, `src/app/page.tsx` (placeholder), `src/instrumentation.ts` (validates config at boot), `src/lib/config.ts`, `README.md`, `.github/workflows/ci.yml`.
 - **Spec:**
   - Next.js 15 App Router with TypeScript `strict: true`, Tailwind, ESLint (next + `no-restricted-imports` for the service client, see §2.1), Prettier.
   - Scripts: `dev`, `build`, `start`, `lint`, `typecheck` (`tsc --noEmit`), `test` (vitest run), `test:e2e` (playwright), `db:start` (`supabase start`), `db:reset` (`supabase db reset`), `db:types` (`supabase gen types typescript --local > src/types/db.ts`).
@@ -434,7 +434,7 @@ Outcome: a student can sign up in under 60 s, appear on the board with inferred 
 ### P1-02 Database schema and Supabase setup
 - **Depends on:** P1-01
 - **Pillar:** Platform
-- **Files:** `supabase/config.toml`, `supabase/migrations/0001_init.sql`, `supabase/migrations/0002_rls.sql`, `supabase/migrations/0003_public_board_fns.sql`, `supabase/seed.sql`, `src/types/db.ts`, `src/lib/supabase/{server,browser,service,middleware}.ts`, `middleware.ts`.
+- **Files:** `supabase/config.toml`, `supabase/migrations/0001_init.sql`, `supabase/migrations/0002_rls.sql`, `supabase/migrations/0003_public_board_fns.sql`, `supabase/seed.sql`, `src/types/db.ts`, `src/lib/supabase/{server,browser,service,middleware}.ts`, `src/middleware.ts`.
 - **Spec:**
   - Implement §3 exactly (tables, enums, triggers, `app_settings`, `active_pool`, RLS, public board functions).
   - `seed.sql`: 3 events (one 3 weeks out, one 8 weeks out, one past), 12 users across roles with profiles filled using deterministic fake embeddings (`[0.0, …]` is not acceptable — use the fake embedder's output generated once and pasted, or have `scripts/seed-dev.ts` fill embeddings after `db reset`), 6 ideas, 1 admin (`admin@cornell.edu`).

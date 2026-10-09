@@ -1,0 +1,30 @@
+# dependencies
+node_modules/
+
+# next.js
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+
+# testing
+coverage/
+playwright-report/
+test-results/
+.tmp/
+
+# env files (keep .env.example)
+.env
+.env*.local
+
+# supabase
+supabase/.branches/
+supabase/.temp/
+
+# phase 0 data (contains student emails)
+data/
+
+# misc
+.DS_Store
+*.log
+.vercel
