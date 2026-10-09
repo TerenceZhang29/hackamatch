@@ -1,0 +1,12 @@
+<!--
+  The link goes to the app's /auth/confirm page, which verifies the token hash
+  when the user presses its button. {{ .RedirectTo }} always ends with a
+  ?next= query (see src/app/login/actions.ts), so parameters are appended with &.
+  Keep this file in sync with the template on the hosted Supabase project.
+-->
+<h2>Sign in to HackaMatch</h2>
+<p>
+  <a href="{{ .RedirectTo }}&token_hash={{ .TokenHash }}&type=email">Sign in</a>
+</p>
+<p>The link works once and expires in an hour. It opens on any device.</p>
+<p>If you didn't ask for this, you can ignore this email.</p>

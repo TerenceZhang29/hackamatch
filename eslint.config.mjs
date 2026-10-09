@@ -10,6 +10,7 @@ const compat = new FlatCompat({ baseDirectory: dirname(fileURLToPath(import.meta
 // import it. See docs/IMPLEMENTATION_PLAN.md §2.1.
 const SERVICE_CLIENT_ALLOWED = [
   "src/lib/supabase/service.ts",
+  "src/lib/analytics.ts",
   "src/app/api/cron/**",
   "src/app/r/**",
   "src/app/admin/**",

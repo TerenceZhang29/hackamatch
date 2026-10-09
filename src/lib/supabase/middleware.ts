@@ -5,7 +5,8 @@ import type { Database } from "@/types/db";
 
 /**
  * Refreshes the Supabase session cookie on every request so Server Components
- * see a valid session. Route guards are added in P1-03.
+ * see a valid session. Returns the response to send (carrying any refreshed
+ * cookies) and the signed-in user's id, or null when logged out.
  */
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -34,7 +35,7 @@ export async function updateSession(request: NextRequest) {
 
   // Validates the JWT and triggers a refresh when needed. Must run before the
   // response is returned and with nothing in between.
-  await supabase.auth.getClaims();
+  const { data } = await supabase.auth.getClaims();
 
-  return response;
+  return { response, userId: data?.claims.sub ?? null };
 }

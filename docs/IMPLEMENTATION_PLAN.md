@@ -1,6 +1,7 @@
 # HackaMatch — Implementation Plan
 
 Source of truth for product intent: [`docs/FRAMEWORK.md`](./FRAMEWORK.md).
+Ticket status and decisions made along the way: [`docs/PROGRESS.md`](./PROGRESS.md).
 This document turns that framework into phased, ticket-sized work that any coding agent can pick up without extra context.
 
 ---
@@ -106,7 +107,7 @@ Rules:
 │   ├── app/
 │   │   ├── page.tsx              public board (ideas + builders)
 │   │   ├── login/page.tsx
-│   │   ├── auth/callback/route.ts
+│   │   ├── auth/confirm/page.tsx one-button landing page for magic links
 │   │   ├── onboarding/page.tsx   single page, multi-step client component
 │   │   ├── ideas/new/page.tsx
 │   │   ├── ideas/[id]/page.tsx
@@ -451,19 +452,25 @@ Outcome: a student can sign up in under 60 s, appear on the board with inferred 
 ### P1-03 Magic-link auth restricted to Cornell
 - **Depends on:** P1-02
 - **Pillar:** Onboarding
-- **Files:** `src/app/login/page.tsx`, `src/app/login/actions.ts`, `src/app/auth/callback/route.ts`, `src/lib/auth.ts`, `src/app/logout/route.ts`.
+- **Files:** `src/app/login/page.tsx`, `src/app/login/LoginForm.tsx` (client), `src/app/login/actions.ts`, `src/app/auth/confirm/page.tsx`, `src/app/auth/confirm/actions.ts`, `src/lib/auth.ts`, `src/lib/auth-helpers.ts` (pure helpers: `sanitizeNext`, `isAllowedEmailDomain`, `isProtectedPath`), `src/app/logout/route.ts` (POST only), `src/middleware.ts`, `supabase/templates/{magic_link,confirmation}.html`, `supabase/config.toml`, placeholder `src/app/onboarding/page.tsx` and `src/app/matches/page.tsx` (replaced by P1-06 and P1-11), and `src/lib/analytics.ts` (`track` and the event-name union, pulled forward from P1-15 because sign-in needs it).
 - **Spec:**
-  - `/login`: one email input + submit. Server action validates with zod: email format and domain in `app_settings.allowed_email_domains` (friendly error "Use your @cornell.edu email"). Calls `supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: `${APP_URL}/auth/callback?next=…` } })`. Shows "Check your inbox" state.
+  - `/login`: one email input + submit. Server action validates with zod: email format and domain in `app_settings.allowed_email_domains` (friendly error "Use your @cornell.edu email"). Calls `supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: `${APP_URL}/auth/confirm?next=…` } })`; `next` is always present (empty when none was given) so the email template can append to the URL with `&`. Shows "Check your inbox" state.
   - Accept `?next=` (relative paths only) so a CTA on an idea card returns the user there after login.
-  - `/auth/callback`: exchanges the code, records `analytics_events('magic_link_clicked')`, sets `users.onboarding_started_at` if null, then redirects to `/onboarding` if `onboarded_at is null`, else to `next` or `/matches`.
+  - **Token-hash link (works on any device).** Custom Supabase email templates make the emailed link point at the app, not at Supabase: `{{ .RedirectTo }}&token_hash={{ .TokenHash }}&type=email`. Two templates carry it: `magic_link` (returning users) and `confirmation` (first-time users when "Confirm email" is on, the hosted default). No verifier is stored in the browser, so a link requested on a laptop can be opened on a phone.
+  - `/auth/confirm` is a page with one button, "Continue to HackaMatch". Loading the page verifies nothing. Pressing the button posts to a server action that validates input with zod, calls `supabase.auth.verifyOtp({ token_hash, type: "email" })`, records `analytics_events('magic_link_clicked')`, sets `users.onboarding_started_at` if null, then redirects to `/onboarding` if `onboarded_at is null` (as `/onboarding?next=…` when a `next` was given, so P1-06 can return the user there after "Join the pool"), else to `next` or `/matches`. A missing, used or expired token redirects to `/login?error=link`, keeping `next`.
+  - **Why a button:** mail scanners and link previews fetch links with a plain GET. If the GET signed the user in, the scanner would use up the single-use token and the student's own click would fail. Verifying only on POST leaves the token for the person. It also keeps `magic_link_clicked` and `onboarding_started_at` tied to a human action.
+  - The Supabase Auth redirect allow-list must contain `${APP_URL}/auth/confirm**` (the `**` admits the `?next=` query); locally this is `additional_redirect_urls` in `supabase/config.toml`. If the URL is not allow-listed, Supabase substitutes the site URL and the emailed link breaks.
   - `src/lib/auth.ts`: `getUser()`, `requireUser()` (redirects to `/login?next=…`), `requireOnboarded()`, `requireAdmin()`, `requireOrganizer()`.
   - Middleware: refresh session; protect `/me`, `/matches/**`, `/ideas/new`, `/organizer/**`, `/admin/**`.
   - Every authenticated request updates `users.last_active_at` at most once per hour (compare before writing).
 - **Acceptance criteria:**
   - Non-Cornell email is rejected before any email is sent.
-  - Clicking the magic link (captured from local Inbucket in e2e) lands a new user on `/onboarding`, and a returning onboarded user on `/matches`.
+  - Opening the magic link (captured from the local mail catcher in e2e) and pressing the button lands a new user on `/onboarding`, and a returning onboarded user on `/matches`.
+  - A link requested in one browser signs the user in when opened in another.
+  - Fetching the link with a plain GET first (as a mail scanner would) does not use it up.
+  - A used or invalid link shows a "request a new one" message on `/login`.
   - `?next=https://evil.com` is ignored.
-- **Tests:** unit test for `next` sanitization and domain check; e2e login flow.
+- **Tests:** unit test for `next` sanitization and domain check; e2e login flow, including the cross-browser, scanner-prefetch and used-link cases.
 
 ### P1-04 LLM wrapper, prompts, and taxonomy
 - **Depends on:** P1-01
@@ -616,6 +623,7 @@ Outcome: a student can sign up in under 60 s, appear on the board with inferred 
 - **Depends on:** P1-02
 - **Pillar:** Platform
 - **Files:** `src/lib/analytics.ts`.
+- **Status:** `track`, the event-name union, and the swallow-errors unit test landed with P1-03. Remaining: `scripts/check-analytics.ts` and the CI grep check.
 - **Spec:** `track(name, props, userId?)` inserts into `analytics_events` with the service client, never throws (log and swallow). Canonical event names (export as a const union): `board_viewed`, `cta_clicked`, `magic_link_requested`, `magic_link_clicked`, `onboarding_step_completed`, `pool_joined`, `idea_posted`, `interest_expressed`, `passed`, `mutual_match`, `team_formed`, `digest_sent`, `digest_link_clicked`, `paused`. Other tickets call `track` at the matching points.
 - **Acceptance criteria:** every name above is emitted somewhere in the Phase 1 code by the end of the phase (grep check in CI script `scripts/check-analytics.ts`).
 - **Tests:** unit test that `track` swallows DB errors.
@@ -662,7 +670,7 @@ Outcome: a student can sign up in under 60 s, appear on the board with inferred 
 - **Depends on:** P1-19
 - **Pillar:** Platform
 - **Files:** `docs/runbooks/deploy.md`, `vercel.json`.
-- **Spec:** Create the Supabase project (enable pgvector), run migrations, set Auth site URL and redirect URLs, configure custom SMTP for Supabase Auth via Resend so magic links come from the app's domain, verify the sending domain (SPF/DKIM/DMARC). Vercel project with env vars from §9, preview deployments pointed at a separate Supabase project. Run `import-phase0.ts` against prod. Runbook includes rollback steps and how to make someone admin (SQL snippet).
+- **Spec:** Create the Supabase project (enable pgvector), run migrations, set Auth site URL and redirect URLs (`${APP_URL}/auth/confirm**`, see P1-03), install the two email templates from `supabase/templates/` (Magic Link and Confirm signup) on the hosted project, configure custom SMTP for Supabase Auth via Resend so magic links come from the app's domain, verify the sending domain (SPF/DKIM/DMARC). Vercel project with env vars from §9, preview deployments pointed at a separate Supabase project. Run `import-phase0.ts` against prod. Runbook includes rollback steps and how to make someone admin (SQL snippet).
 - **Acceptance criteria:** a real `@cornell.edu` address completes onboarding on production; magic-link and mutual emails land in a Cornell Outlook inbox (not spam).
 
 **Phase 1 gate:** 10+ teams (`teams` rows) at the pilot event. Query in `docs/runbooks/metrics.sql`.

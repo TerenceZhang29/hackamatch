@@ -56,11 +56,19 @@ Seeded accounts (see `supabase/seed.sql`) include `admin@cornell.edu` (admin and
 - Row-level security is on for every table. New tables get no `anon`/`authenticated` access until a migration grants it.
 - Logged-out pages read the public board through the `public_board_ideas` and `public_board_people` SQL functions, which expose only safe columns.
 
+## Sign-in
+
+- Sign-in is by magic link at `/login`, limited to the email domains in the `app_settings` table (`cornell.edu` by default). Locally, open the link from Mailpit.
+- The emailed link opens `/auth/confirm` on any device. That page signs the user in only when its button is pressed, so mail scanners that fetch the link can't use it up.
+- The email templates live in `supabase/templates/` and are registered in `supabase/config.toml`. The hosted Supabase project needs the same two templates and `${APP_URL}/auth/confirm**` on its redirect allow-list.
+- `src/middleware.ts` redirects signed-out visitors away from `/me`, `/matches`, `/ideas/new`, `/organizer` and `/admin`. Pages and server actions also call `requireUser()`, `requireOnboarded()`, `requireAdmin()` or `requireOrganizer()` from `src/lib/auth.ts`.
+- `?next=` accepts same-site relative paths only (`sanitizeNext` in `src/lib/auth-helpers.ts`).
+
 ## Configuration
 
 All environment variables are declared and validated in `src/lib/config.ts` and documented in `.env.example`. The server validates them at boot (`src/instrumentation.ts`), so a misconfigured deploy fails immediately.
 
 ## Conventions
 
-- The service-role Supabase client bypasses row-level security. ESLint only allows importing it from `src/app/api/cron/**`, `src/app/r/**`, `src/app/admin/**`, `src/server/**`, `scripts/**`, and `tests/**`.
+- The service-role Supabase client bypasses row-level security. ESLint only allows importing it from `src/app/api/cron/**`, `src/app/r/**`, `src/app/admin/**`, `src/server/**`, `scripts/**`, `tests/**`, and `src/lib/analytics.ts`.
 - Every ticket must pass `pnpm lint`, `pnpm format:check`, `pnpm typecheck`, and `pnpm test` (see the Definition of Done in the implementation plan).
