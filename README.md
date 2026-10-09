@@ -11,30 +11,50 @@ Next.js 15 (App Router, TypeScript) · Tailwind CSS 4 · Supabase (Auth, Postgre
 
 ## Local setup
 
-Prerequisites: Node 22+, [pnpm](https://pnpm.io/installation) 10 (`corepack enable` picks the pinned version), and, from P1-02 on, Docker plus the [Supabase CLI](https://supabase.com/docs/guides/local-development/cli/getting-started).
+Prerequisites: Node 22+, [pnpm](https://pnpm.io/installation) 10 (`corepack enable` picks the pinned version), and Docker (for the local Supabase stack; the Supabase CLI itself is a dev dependency).
 
 ```bash
 pnpm install
-cp .env.example .env.local   # fill in Supabase keys from `supabase status` once P1-02 lands
-pnpm db:start                # from P1-02: starts local Supabase in Docker
-pnpm db:reset                # from P1-02: applies migrations and seed data
-pnpm dev                     # http://localhost:3000
+pnpm db:start   # starts local Supabase in Docker, applies migrations and seed data
+pnpm db:env     # writes .env.local with the local Supabase URL and keys
+pnpm dev        # http://localhost:3000
 ```
 
 Outside production, the LLM, embeddings, and email providers default to `fake` implementations, so no API keys are needed for local development or tests.
 
+Local services once `pnpm db:start` is running:
+
+| Service                             | URL                                                       |
+| ----------------------------------- | --------------------------------------------------------- |
+| Supabase API                        | http://127.0.0.1:54321                                    |
+| Postgres                            | `postgresql://postgres:postgres@127.0.0.1:54322/postgres` |
+| Supabase Studio                     | http://127.0.0.1:54323                                    |
+| Mailpit (catches magic-link emails) | http://127.0.0.1:54324                                    |
+
+Seeded accounts (see `supabase/seed.sql`) include `admin@cornell.edu` (admin and organizer), idea people such as `mp101@cornell.edu`, and builders such as `sc201@cornell.edu`. Sign in with a magic link and open it from Mailpit.
+
 ## Scripts
 
-| Script                                    | What it does                                                               |
-| ----------------------------------------- | -------------------------------------------------------------------------- |
-| `pnpm dev`                                | Start the dev server                                                       |
-| `pnpm build` / `pnpm start`               | Production build / serve it                                                |
-| `pnpm lint`                               | ESLint (fails on warnings)                                                 |
-| `pnpm format` / `pnpm format:check`       | Prettier write / check                                                     |
-| `pnpm typecheck`                          | Generate Next route types, then `tsc --noEmit`                             |
-| `pnpm test`                               | Unit tests (Vitest)                                                        |
-| `pnpm test:e2e`                           | End-to-end tests (Playwright; starts the app itself)                       |
-| `pnpm db:start` / `db:reset` / `db:types` | Local Supabase, reset with migrations + seed, regenerate `src/types/db.ts` |
+| Script                              | What it does                                                           |
+| ----------------------------------- | ---------------------------------------------------------------------- |
+| `pnpm dev`                          | Start the dev server                                                   |
+| `pnpm build` / `pnpm start`         | Production build / serve it                                            |
+| `pnpm lint`                         | ESLint (fails on warnings)                                             |
+| `pnpm format` / `pnpm format:check` | Prettier write / check                                                 |
+| `pnpm typecheck`                    | Generate Next route types, then `tsc --noEmit`                         |
+| `pnpm test`                         | Unit tests (Vitest)                                                    |
+| `pnpm test:db`                      | Database tests (schema, triggers, RLS) against local Supabase          |
+| `pnpm test:e2e`                     | End-to-end tests (Playwright; starts the app itself)                   |
+| `pnpm db:start`                     | Start local Supabase                                                   |
+| `pnpm db:env`                       | Write `.env.local` from the running local Supabase                     |
+| `pnpm db:reset`                     | Recreate the local database from migrations + seed                     |
+| `pnpm db:types`                     | Regenerate `src/types/db.ts` from the local schema (commit the result) |
+
+## Database
+
+- Migrations live in `supabase/migrations/` and are append-only. Create one with `pnpm exec supabase migration new <name>`, then run `pnpm db:reset`, `pnpm db:types`, and `pnpm test:db`.
+- Row-level security is on for every table. New tables get no `anon`/`authenticated` access until a migration grants it.
+- Logged-out pages read the public board through the `public_board_ideas` and `public_board_people` SQL functions, which expose only safe columns.
 
 ## Configuration
 

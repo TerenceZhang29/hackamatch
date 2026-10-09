@@ -29,7 +29,8 @@ Every ticket has:
 ### 0.3 Global Definition of Done (applies to every ticket)
 
 - `pnpm typecheck`, `pnpm lint`, and `pnpm test` pass.
-- New SQL lives in a new, numbered migration under `supabase/migrations/`; never edit a merged migration.
+- New SQL lives in a new migration under `supabase/migrations/` created with `pnpm exec supabase migration new <name>` (files are named `<UTC timestamp>_<name>.sql`); never edit a merged migration. New tables get no `anon`/`authenticated` access by default (see the RLS migration), so each migration grants exactly what its policies need.
+- If the ticket touches the database, `pnpm test:db` passes against a fresh `pnpm db:reset`.
 - Regenerate DB types (`pnpm db:types`) whenever the schema changes and commit the result.
 - No secrets in code; every new env var is added to `.env.example` and §9.
 - Every user-facing page works at 375 px width and has no field the ticket did not ask for.
@@ -95,7 +96,7 @@ Rules:
 ├── docs/                         FRAMEWORK.md, IMPLEMENTATION_PLAN.md, runbooks
 ├── supabase/
 │   ├── config.toml
-│   ├── migrations/               0001_init.sql, 0002_..., numbered, append-only
+│   ├── migrations/               <timestamp>_init.sql, <timestamp>_rls.sql, ... append-only
 │   └── seed.sql                  local dev seed (fake users, ideas, events)
 ├── scripts/
 │   ├── import-phase0.ts          CSV → users/ideas/matches (P1-16)
@@ -148,7 +149,7 @@ Rules:
 
 The framework's six entities (User, Profile, Idea, Event, Match, Team) are kept. Supporting tables are added for things the framework implies but does not list: event interests (join table instead of an array, for querying), per-pair event votes (the shared pair page), team members (join table instead of an array), notification log (cadence caps), match runs (job idempotency), and analytics events (metrics).
 
-The initial migration `supabase/migrations/0001_init.sql` must create the following. Column names are normative; agents may add indexes but not rename columns.
+The initial migration `supabase/migrations/20261009000001_init.sql` must create the following. Column names are normative; agents may add indexes but not rename columns.
 
 ```sql
 create extension if not exists vector;
@@ -339,7 +340,7 @@ create index profiles_embedding_hnsw on profiles using hnsw (embedding vector_co
 create index ideas_embedding_hnsw    on ideas    using hnsw (embedding vector_cosine_ops);
 ```
 
-Also in `0001_init.sql`:
+Also in the init migration:
 
 - **Email-domain guard:** a `before insert` trigger on `users` that raises unless `split_part(cornell_email, '@', 2)` is in the allowed list. Read the list from a one-row `app_settings(allowed_email_domains text[])` table seeded with `{'cornell.edu'}` so it can change without a deploy.
 - **Auto-provision:** an `after insert on auth.users` trigger (security definer) that inserts the matching `users` row and an empty `profiles` row.
@@ -434,16 +435,16 @@ Outcome: a student can sign up in under 60 s, appear on the board with inferred 
 ### P1-02 Database schema and Supabase setup
 - **Depends on:** P1-01
 - **Pillar:** Platform
-- **Files:** `supabase/config.toml`, `supabase/migrations/0001_init.sql`, `supabase/migrations/0002_rls.sql`, `supabase/migrations/0003_public_board_fns.sql`, `supabase/seed.sql`, `src/types/db.ts`, `src/lib/supabase/{server,browser,service,middleware}.ts`, `src/middleware.ts`.
+- **Files:** `supabase/config.toml`, `supabase/migrations/20261009000001_init.sql`, `supabase/migrations/20261009000002_rls.sql`, `supabase/migrations/20261009000003_public_board_fns.sql`, `supabase/seed.sql`, `src/types/db.ts`, `src/lib/supabase/{server,browser,service,middleware}.ts`, `src/middleware.ts`.
 - **Spec:**
   - Implement §3 exactly (tables, enums, triggers, `app_settings`, `active_pool`, RLS, public board functions).
-  - `seed.sql`: 3 events (one 3 weeks out, one 8 weeks out, one past), 12 users across roles with profiles filled using deterministic fake embeddings (`[0.0, …]` is not acceptable — use the fake embedder's output generated once and pasted, or have `scripts/seed-dev.ts` fill embeddings after `db reset`), 6 ideas, 1 admin (`admin@cornell.edu`).
+  - `seed.sql`: 3 events (one 3 weeks out, one 8 weeks out, one past), 12 users across roles with profile tags filled, 6 ideas, 1 admin (`admin@cornell.edu`). Embeddings stay null in `seed.sql`; `scripts/seed-dev.ts` (P1-16) fills them with the fake embedder from P1-05 after `db reset`.
   - Supabase clients per `@supabase/ssr` conventions: `server.ts` (cookies, user-scoped), `browser.ts`, `service.ts` (service role, `import 'server-only'`), `middleware.ts` (session refresh).
   - `config.toml`: enable email OTP/magic link, set site URL and redirect URLs for local dev; local Inbucket/Mailpit enabled for capturing magic links.
 - **Acceptance criteria:**
   - `pnpm db:reset` applies all migrations and seed with no errors.
   - Inserting an auth user with `x@gmail.com` fails; with `x@cornell.edu` creates `users` + `profiles` rows.
-  - As `anon`, selecting from `users` returns 0 rows, while `public_board_ideas(20, 0)` returns seeded open ideas without `raw_text`.
+  - As `anon`, selecting from `users` is denied (no table privilege), while `public_board_ideas(20, 0)` returns seeded open ideas without `raw_text`.
   - As user A, selecting `matches` returns only matches containing A.
 - **Tests:** SQL-level tests in `tests/db/*.test.ts` (Vitest + local Supabase) covering each acceptance bullet.
 
@@ -709,7 +710,7 @@ Outcome: every evening each active user receives 3–5 matches with a one-line r
 ### P2-01 Matching data plumbing
 - **Depends on:** Phase 1
 - **Pillar:** Pushed matches
-- **Files:** `supabase/migrations/0004_matching.sql`, `src/lib/matching/types.ts`, `src/lib/matching/candidates.ts`.
+- **Files:** `supabase/migrations/<timestamp>_matching.sql`, `src/lib/matching/types.ts`, `src/lib/matching/candidates.ts`.
 - **Spec:** Add `app_settings.match_weights jsonb`, `app_settings.matching_enabled boolean default true`. Add SQL function `match_candidates(k int)` returning `(user_id, candidate_id, idea_id, semantic)` implementing candidate generation + hard filters 1–6 in one query (CTEs). `candidates.ts` calls it and loads the profile/idea/event-interest data needed for scoring in batch (no N+1).
 - **Acceptance criteria:** on `seed-dev` data, every returned pair satisfies all hard filters (assert in test by re-checking in TS); query runs < 2 s for 1,000 seeded users locally.
 - **Tests:** DB tests for each hard filter with hand-built fixtures.
@@ -783,7 +784,7 @@ Outcome: every evening each active user receives 3–5 matches with a one-line r
 ### P2-10 Organizer event dashboard
 - **Depends on:** P2-08
 - **Pillar:** Organizers
-- **Files:** `src/app/organizer/events/[id]/dashboard/page.tsx`, `supabase/migrations/0005_event_view.sql`.
+- **Files:** `src/app/organizer/events/[id]/dashboard/page.tsx`, `supabase/migrations/<timestamp>_event_view.sql`.
 - **Spec:** SQL function `event_pool_view(event_id)` (security definer, checks caller is the organizer or admin) returning each person who tagged the event: display name, role, tags, # matches, # mutual matches, team status for this event (on a team / mutual but no team / still looking). Page shows counts at the top (tagged, on a team, still looking), a filter "still looking", and CSV export. Organizers can feature an idea tagged to their event. No contact info is shown to organizers (privacy rule: contact only on mutual interest).
 - **Acceptance criteria:** organizer of event X cannot load event Y's dashboard; counts match a hand-computed fixture.
 
@@ -796,7 +797,7 @@ Outcome: every evening each active user receives 3–5 matches with a one-line r
 ### P2-12 Metrics dashboard
 - **Depends on:** P1-15, P2-05
 - **Pillar:** Platform
-- **Files:** `src/app/admin/metrics/page.tsx`, `supabase/migrations/0006_metrics.sql`, `docs/runbooks/metrics.sql`.
+- **Files:** `src/app/admin/metrics/page.tsx`, `supabase/migrations/<timestamp>_metrics.sql`, `docs/runbooks/metrics.sql`.
 - **Spec:** SQL views/functions for each framework metric, filterable by event and date range:
   - **Teams formed** = count of `teams` per `event_id`.
   - **Onboarding completion** = users with `onboarded_at` / users with `onboarding_started_at`.
