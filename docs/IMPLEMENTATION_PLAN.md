@@ -2,6 +2,7 @@
 
 Source of truth for product intent: [`docs/FRAMEWORK.md`](./FRAMEWORK.md).
 Ticket status and decisions made along the way: [`docs/PROGRESS.md`](./PROGRESS.md).
+Prompt changes and their live-test results: [`docs/PROMPT_TUNING.md`](./PROMPT_TUNING.md).
 This document turns that framework into phased, ticket-sized work that any coding agent can pick up without extra context.
 
 ---
@@ -55,7 +56,7 @@ The framework leaves some choices open. These are the defaults the plan uses; ea
 | Package manager | pnpm | — |
 | DB access | Supabase SQL migrations + `supabase-js` with generated types. No ORM | — |
 | Validation | `zod` for every server-action and route-handler input, and every LLM output | — |
-| LLM | Claude API via `@anthropic-ai/sdk`. Extraction uses `LLM_MODEL_FAST` (default `claude-haiku-5-5`); reason lines and coffee-chat drafts use the same model. Structured output via a forced tool call with a JSON schema | `LLM_MODEL_FAST`, `LLM_PROVIDER=anthropic|fake` |
+| LLM | Claude API via `@anthropic-ai/sdk`. Extraction uses `LLM_MODEL_FAST` (default `claude-haiku-5-5`); reason lines and coffee-chat drafts use the same model. Structured output via a forced tool call with a JSON schema. Gemini (`GEMINI_MODEL`, default `gemini-3.5-flash-lite`) is an alternative provider with a free tier, using a JSON response format over the Interactions API | `LLM_MODEL_FAST`, `GEMINI_MODEL`, `LLM_PROVIDER=anthropic|gemini|fake` |
 | Embeddings | Voyage AI `voyage-4-lite` (about $0.02 per 1M tokens, reportedly with a 200M-token free allowance across the voyage-4 models; campus-scale use stays well inside it) behind an `Embedder` interface. Request 1024-dimension output explicitly; vectors stored in `vector(1024)` columns. Use the regular embeddings endpoint, not the Batch API, because free tokens reportedly don't apply to batch jobs | `EMBEDDINGS_PROVIDER=voyage|fake`, `EMBEDDING_MODEL`, `EMBEDDING_DIM` |
 | Email | Resend + React Email templates | `EMAIL_PROVIDER=resend|fake` |
 | Scheduler | Vercel Cron calling protected route handlers | `CRON_SECRET` |
@@ -882,9 +883,11 @@ Each ticket here should be expanded into its own detailed plan when started; the
 | `APP_URL` | links in emails, auth redirect | e.g. `https://hackamatch.app` |
 | `APP_TIMEZONE` | daily logic | default `America/New_York` |
 | `ALLOWED_EMAIL_DOMAINS` | login form (UI hint) | DB `app_settings` is authoritative |
-| `LLM_PROVIDER` | llm | `anthropic` \| `fake` |
+| `LLM_PROVIDER` | llm | `anthropic` \| `gemini` \| `fake` |
 | `ANTHROPIC_API_KEY` | llm | |
-| `LLM_MODEL_FAST` | llm | default `claude-haiku-5-5` |
+| `LLM_MODEL_FAST` | llm | default `claude-haiku-5-5`; used when `LLM_PROVIDER=anthropic` |
+| `GEMINI_API_KEY` | llm | required when `LLM_PROVIDER=gemini` |
+| `GEMINI_MODEL` | llm | default `gemini-3.5-flash-lite`; used when `LLM_PROVIDER=gemini` |
 | `EMBEDDINGS_PROVIDER` | embeddings | `voyage` \| `fake` |
 | `VOYAGE_API_KEY` | embeddings | |
 | `EMBEDDING_MODEL` | embeddings | default `voyage-4-lite`; switching to another voyage-4 model (`voyage-4`, `voyage-4-large`) keeps the same embedding space, switching families requires re-embedding everything |

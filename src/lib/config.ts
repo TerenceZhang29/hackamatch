@@ -9,7 +9,7 @@ import { z } from "zod";
  * first request that needs the missing value.
  */
 
-const LLM_PROVIDERS = ["anthropic", "fake"] as const;
+const LLM_PROVIDERS = ["anthropic", "gemini", "fake"] as const;
 const EMBEDDINGS_PROVIDERS = ["voyage", "fake"] as const;
 const EMAIL_PROVIDERS = ["resend", "fake"] as const;
 
@@ -41,6 +41,8 @@ const envSchema = z
     LLM_PROVIDER: z.enum(LLM_PROVIDERS).optional(),
     ANTHROPIC_API_KEY: optionalString,
     LLM_MODEL_FAST: z.string().default("claude-haiku-5-5"),
+    GEMINI_API_KEY: optionalString,
+    GEMINI_MODEL: z.string().default("gemini-3.5-flash-lite"),
 
     EMBEDDINGS_PROVIDER: z.enum(EMBEDDINGS_PROVIDERS).optional(),
     VOYAGE_API_KEY: optionalString,
@@ -76,6 +78,7 @@ const envSchema = z
     };
 
     requireIf(env.LLM_PROVIDER === "anthropic", "ANTHROPIC_API_KEY", "when LLM_PROVIDER=anthropic");
+    requireIf(env.LLM_PROVIDER === "gemini", "GEMINI_API_KEY", "when LLM_PROVIDER=gemini");
     requireIf(
       env.EMBEDDINGS_PROVIDER === "voyage",
       "VOYAGE_API_KEY",

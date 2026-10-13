@@ -37,6 +37,25 @@ describe("parseConfig", () => {
     expect(config.SHOW_EXISTING_TEAMS).toBe(false);
   });
 
+  it("requires GEMINI_API_KEY only when the Gemini provider is selected", () => {
+    expect(() => parseConfig({ ...base, LLM_PROVIDER: "gemini" })).toThrow(/GEMINI_API_KEY/);
+
+    const config = parseConfig({ ...base, LLM_PROVIDER: "gemini", GEMINI_API_KEY: "g-test" });
+    expect(config.LLM_PROVIDER).toBe("gemini");
+    expect(config.GEMINI_MODEL).toBe("gemini-3.5-flash-lite");
+
+    // Selecting Gemini in production lifts the Anthropic key requirement.
+    const { ANTHROPIC_API_KEY: _omit, ...withoutAnthropic } = prodSecrets;
+    expect(() =>
+      parseConfig({
+        ...base,
+        ...withoutAnthropic,
+        LLM_PROVIDER: "gemini",
+        GEMINI_API_KEY: "g-test",
+      }),
+    ).not.toThrow();
+  });
+
   it("uses real providers in production and requires their keys", () => {
     expect(() => parseConfig({ ...base, NODE_ENV: "production" })).toThrow(/ANTHROPIC_API_KEY/);
 

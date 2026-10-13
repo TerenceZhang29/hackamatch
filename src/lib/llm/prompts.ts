@@ -3,9 +3,10 @@ import { slugsOf } from "@/lib/taxonomy/skills";
 /**
  * Prompts for profile and idea extraction. Bump `PROMPT_VERSION` whenever the
  * wording changes, so stored extractions can be traced to the prompt that
- * produced them.
+ * produced them, and log the change and its live-test results in
+ * docs/PROMPT_TUNING.md.
  */
-export const PROMPT_VERSION = "2026-10-13.1";
+export const PROMPT_VERSION = "2026-10-13.2";
 
 export const PROFILE_TOOL = "record_profile";
 export const IDEA_TOOL = "record_idea";
@@ -31,7 +32,7 @@ domains (problem areas):
 ${slugsOf("domains").join(", ")}`;
 
 const IDEA_RULES = `For an idea:
-- pitch: at most 20 words. Describe the problem and who has it. Leave out any detail that sounds like the author's secret sauce (a novel method, a specific data source, a partner).
+- pitch: at most 20 words. Describe the problem and who has it, using only what the text says. Do not add users, features or use cases the text does not mention; if the text is thin, restate it plainly and let clarifying_question ask for more. Leave out any detail that sounds like the author's secret sauce (a novel method, a specific data source, a partner).
 - domain: the one best-fitting domain tag, or null if none fits.
 - skills_needed: skills tags for the work the idea needs that a teammate could bring.
 - scope: "weekend" for something a hackathon team could demo, "few_weeks" for a side project, "ongoing" for a company or long-running effort.
@@ -46,9 +47,9 @@ ${TAXONOMY_RULES}
 
 For the person:
 - summary: at most 15 words, third person, no names. Say what they do or want, concretely.
-- skills, stack, domains: only what the text supports. A named framework implies its skill (React implies frontend). Do not pad.
+- skills, stack, domains: only what the text states. A named framework implies its skill (React implies frontend), but never add a stack tag the text does not name (React does not add javascript). Do not pad.
 - experience_level: "beginner", "intermediate" or "advanced", inferred from evidence such as years, shipped projects or repositories. Use "intermediate" when unclear.
-- idea: fill this in only when the role is "idea" or "both" and the text describes a product or project to build. Otherwise null. A builder listing skills has no idea.
+- idea: null unless the role is "idea" or "both" and the text names a specific thing the person wants to build ("an app that...", "a tool for..."). Skills, a job title or an interest in an area ("likes climate projects") are not an idea: return null. Never invent an idea the person did not describe.
 
 ${IDEA_RULES}
 

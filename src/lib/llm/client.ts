@@ -3,14 +3,11 @@ import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import { getConfig } from "@/lib/config";
 import { fakeLlm } from "./fake";
+import { createGeminiLlm } from "./gemini";
+import { DEFAULT_MAX_TOKENS, DEFAULT_TIMEOUT_MS, MAX_ATTEMPTS, describeIssues } from "./shared";
 import { LlmError, type LlmClient, type StructuredRequest } from "./types";
 
 export { LlmError, type LlmClient, type StructuredRequest } from "./types";
-
-const DEFAULT_MAX_TOKENS = 1024;
-const DEFAULT_TIMEOUT_MS = 20_000;
-/** One request, plus one retry when the output fails validation. */
-const MAX_ATTEMPTS = 2;
 
 function toInputSchema(schema: z.ZodType): Anthropic.Tool.InputSchema {
   const { $schema: _, ...jsonSchema } = z.toJSONSchema(schema);
@@ -18,12 +15,6 @@ function toInputSchema(schema: z.ZodType): Anthropic.Tool.InputSchema {
     throw new LlmError("llm.structured needs an object schema");
   }
   return jsonSchema as Anthropic.Tool.InputSchema;
-}
-
-function describeIssues(error: z.ZodError): string {
-  return error.issues
-    .map((issue) => `${issue.path.join(".") || "(root)"}: ${issue.message}`)
-    .join("; ");
 }
 
 /**
@@ -109,19 +100,27 @@ export function createAnthropicLlm(client: Pick<Anthropic, "messages">, model: s
   };
 }
 
+function createLlm(): LlmClient {
+  const config = getConfig();
+  switch (config.LLM_PROVIDER) {
+    case "anthropic":
+      return createAnthropicLlm(
+        new Anthropic({ apiKey: config.ANTHROPIC_API_KEY }),
+        config.LLM_MODEL_FAST,
+      );
+    case "gemini":
+      // Config validation guarantees the key; this only narrows the type.
+      if (!config.GEMINI_API_KEY) throw new LlmError("GEMINI_API_KEY is not set");
+      return createGeminiLlm({ apiKey: config.GEMINI_API_KEY, model: config.GEMINI_MODEL });
+    case "fake":
+      return fakeLlm;
+  }
+}
+
 let cached: LlmClient | undefined;
 
 function getLlm(): LlmClient {
-  if (!cached) {
-    const config = getConfig();
-    cached =
-      config.LLM_PROVIDER === "anthropic"
-        ? createAnthropicLlm(
-            new Anthropic({ apiKey: config.ANTHROPIC_API_KEY }),
-            config.LLM_MODEL_FAST,
-          )
-        : fakeLlm;
-  }
+  cached ??= createLlm();
   return cached;
 }
 

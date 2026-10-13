@@ -1,6 +1,6 @@
 # HackaMatch — Progress
 
-Ticket status and the decisions made while building. Specs live in [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md); update this file whenever a ticket changes state.
+Ticket status and the decisions made while building. Specs live in [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md); update this file whenever a ticket changes state. Prompt changes and their live-test results are logged in [`PROMPT_TUNING.md`](./PROMPT_TUNING.md).
 
 Last updated: 2026-10-13
 
@@ -11,8 +11,8 @@ Last updated: 2026-10-13
 | P1-01 Project scaffold | Done | Commit `0846317` |
 | P1-02 Database schema and Supabase setup | Done | Commit `b78202c` |
 | P1-03 Magic-link auth restricted to Cornell | Done | Token-hash link with a confirm button (see below) |
-| P1-04 LLM wrapper, prompts, and taxonomy | Done, not yet run against Claude | Tested with the fake provider and a mocked SDK only (see below) |
-| P1-05 Embeddings wrapper | Done, not yet run against Voyage | Tested with the fake embedder and a mocked `fetch` only (see below) |
+| P1-04 LLM wrapper, prompts, and taxonomy | Done | Gemini provider verified live on 2026-10-13. Claude provider tested against mocks only (see below) |
+| P1-05 Embeddings wrapper | Done | Verified against the real Voyage API on 2026-10-13 (see below) |
 | P1-06 Onboarding flow | Not started | Unblocked. A placeholder `/onboarding` page exists |
 | P1-07 GitHub and LinkedIn import | Not started | Unblocked |
 | P1-08 Profile page and settings | Not started | |
@@ -82,7 +82,26 @@ Chosen by the project owner on 2026-10-09.
 
 ### Not yet verified
 
-No paid API call has been made. The Claude path is covered by unit tests against a mocked SDK client, and the Voyage path by unit tests against a mocked `fetch`. Before the pilot, run one real extraction and one real embedding (needs `ANTHROPIC_API_KEY`, `VOYAGE_API_KEY` and the owner's approval of the cost, which is a fraction of a cent) and read the output for prompt quality.
+No real Claude call has been made. The Claude path is covered by unit tests against a mocked SDK client only. If Claude will be used for the pilot, run one real extraction first (needs `ANTHROPIC_API_KEY` and the owner's approval) and read the output for prompt quality.
+
+### Gemini provider (added 2026-10-13)
+
+Added at the owner's request as a no-cost alternative to Claude: `LLM_PROVIDER=gemini`, `GEMINI_API_KEY`, `GEMINI_MODEL` (default `gemini-3.5-flash-lite`). The Anthropic provider is unchanged and remains the production default.
+
+- Uses Google's Interactions API (`POST /v1beta/interactions`, `response_format` with a JSON schema, `store: false`).
+- **Verified live 2026-10-13** with four calls through `extractProfile` / `extractIdea` on `gemini-3.5-flash-lite`, approved by the owner. All four were accepted, validated on the first attempt, and took 1.0 to 1.4 s. About 900 tokens in and 100 out per call. Every tag returned was in the taxonomy, and the word limits held.
+- The first prompt version invented an idea for a `both` user who described none, and padded tags and pitches. Prompt version `2026-10-13.2` fixed all three on re-run. Two smaller tagging misses are still open (an idea's needs read as the person's skills; a job title not turned into a skill); details are in [`PROMPT_TUNING.md`](./PROMPT_TUNING.md).
+- A rate-limit response (429) is not retried. `extractProfile` throws `LlmError`, which P1-06 already handles by filling tags in the background.
+- Gemini accepts a subset of JSON Schema, so `toGeminiSchema` rewrites nullable values as type lists and drops other keywords; zod still validates the full schema.
+
+### Voyage: verified 2026-10-13
+
+Two real calls through `createVoyageEmbedder` (`voyage-4-lite`, 1024 dimensions), approved by the owner; 13 tokens billed in total.
+
+- Document call with three texts returned three unit vectors of 1024 numbers, in order.
+- Cosine: "react health app" vs "health app built in react" = 0.980; vs "hardware climate sensor" = 0.494.
+- Query call returned a 1024-number vector; "react developer for a health app" scored 0.777 against the react text and 0.202 against the hardware text.
+- Real vectors for unrelated short texts still score around 0.5 on document-to-document comparison, far above the fake embedder's near 0. Matching thresholds (P2-02) must be tuned on real embeddings, not on the fake.
 
 ### Choices that differ from the plan
 
