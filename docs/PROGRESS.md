@@ -2,7 +2,7 @@
 
 Ticket status and the decisions made while building. Specs live in [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md); update this file whenever a ticket changes state.
 
-Last updated: 2026-10-09
+Last updated: 2026-10-13
 
 ## Phase 1 — MVP
 
@@ -11,10 +11,10 @@ Last updated: 2026-10-09
 | P1-01 Project scaffold | Done | Commit `0846317` |
 | P1-02 Database schema and Supabase setup | Done | Commit `b78202c` |
 | P1-03 Magic-link auth restricted to Cornell | Done | Token-hash link with a confirm button (see below) |
-| P1-04 LLM wrapper, prompts, and taxonomy | Not started | Unblocked |
-| P1-05 Embeddings wrapper | Not started | Unblocked |
-| P1-06 Onboarding flow | Not started | Needs P1-03, P1-04, P1-05. A placeholder `/onboarding` page exists |
-| P1-07 GitHub and LinkedIn import | Not started | Needs P1-04 |
+| P1-04 LLM wrapper, prompts, and taxonomy | Done, not yet run against Claude | Tested with the fake provider and a mocked SDK only (see below) |
+| P1-05 Embeddings wrapper | Done, not yet run against Voyage | Tested with the fake embedder and a mocked `fetch` only (see below) |
+| P1-06 Onboarding flow | Not started | Unblocked. A placeholder `/onboarding` page exists |
+| P1-07 GitHub and LinkedIn import | Not started | Unblocked |
 | P1-08 Profile page and settings | Not started | |
 | P1-09 Post an idea | Not started | |
 | P1-10 Public board | Not started | |
@@ -75,3 +75,27 @@ Chosen by the project owner on 2026-10-09.
 
 - The `confirmation` template is not exercised locally, because local Supabase has email confirmations off and sends `magic_link` to first-time users too. Check it on the hosted project during P1-20.
 - Whether Cornell's mail system fetches links on delivery is still unconfirmed.
+
+## P1-04 and P1-05: LLM and embeddings wrappers
+
+**Implemented 2026-10-13.**
+
+### Not yet verified
+
+No paid API call has been made. The Claude path is covered by unit tests against a mocked SDK client, and the Voyage path by unit tests against a mocked `fetch`. Before the pilot, run one real extraction and one real embedding (needs `ANTHROPIC_API_KEY`, `VOYAGE_API_KEY` and the owner's approval of the cost, which is a fraction of a cent) and read the output for prompt quality.
+
+### Choices that differ from the plan
+
+- **JSON schema comes from zod itself.** The plan named `zod-to-json-schema`; the project is on zod 4, which has `z.toJSONSchema` built in, so no extra dependency was added.
+- **Extra files.** `src/lib/llm/types.ts` and `src/lib/embeddings/types.ts` hold the shared interface and error class, so the fake providers do not import the real ones.
+- **`timeoutMs` is one deadline for the whole call,** including the validation retry, so onboarding's 8 s budget (P1-06) cannot be doubled by a retry.
+- **A refusal is not retried;** a response with no tool call is retried once with the same request.
+- **Embedding text leaves out empty sections** rather than emitting bare labels.
+- **`embedProfile` takes the GitHub summary as an optional argument.** The schema has no column for it, so only the onboarding call that has just imported it can include it; a later re-embed will not. Decide in P1-07 whether to store it.
+
+### Things the next tickets should know
+
+- The forced tool call works on the Haiku family (the `LLM_MODEL_FAST` default). Current Opus and Sonnet models reject a forced `tool_choice`, so changing `LLM_MODEL_FAST` to one of them needs a change in `src/lib/llm/client.ts`.
+- The fake LLM answers only the tools `record_profile` and `record_idea`. P2-04 (reason lines) must add a rule to `src/lib/llm/fake.ts`.
+- The taxonomy has 167 slugs (48 skills, 77 stack, 42 domains). Slugs are stored in the database, so renaming one needs a data migration.
+
