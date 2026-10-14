@@ -22,7 +22,7 @@ Last updated: 2026-10-14
 | P1-12 Notifications foundation | Done | Email via `send()`, signed one-click links, atomic mutual reveal (see below) |
 | P1-13 Shared pair page and "We teamed up" | Done | Pair page, event picks, one team per match and event |
 | P1-14 Admin tools | Done | Users, ideas, events, hand-made matches; 404 for non-admins |
-| P1-15 Analytics events | Partly done | `track`, the event-name union and its unit test landed with P1-03. Remaining: `scripts/check-analytics.ts` and the CI check |
+| P1-15 Analytics events | Done | `pnpm check:analytics` in CI; `digest_sent` waits for P2-06 |
 | P1-16 Phase 0 import and seeding | Not started | No `data/phase0/` files in the repo yet |
 | P1-17 Event pages and tagging | Not started | |
 | P1-18 Security and privacy hardening | Not started | |
@@ -281,3 +281,14 @@ The P1-12 commit failed CI at `pnpm install --frozen-lockfile`: pinning the new 
 ### Test helper fix
 
 `signIn` in `tests/e2e/auth.ts` now waits for the confirm page to finish before returning; tests that touched the database right after signing in could otherwise race the sign-in POST.
+
+## P1-15: analytics check
+
+**Completed 2026-10-14.**
+
+- `scripts/check-analytics.mts` (`pnpm check:analytics`, run in CI after the typecheck) fails if any name in `ANALYTICS_EVENTS` never appears as a string literal in `src/` outside `src/lib/analytics.ts`.
+- Every Phase 1 event is emitted. `digest_sent` is listed in the script's `NOT_YET` table for P2-06; the script fails once it is emitted and still listed, so the table cannot go stale.
+
+### Choice made without the owner
+
+- **`digest_link_clicked` is recorded when someone answers from any emailed one-click link** (inbound interest, admin intro, and later digests), with the answer in its props. It is recorded on the button press, not on page load, because mail scanners load links. The plan only named it for digests; this makes Phase 1 email clicks measurable too.

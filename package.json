@@ -21,7 +21,8 @@
     "db:start": "supabase start",
     "db:env": "node scripts/local-env.mjs",
     "db:reset": "supabase db reset",
-    "db:types": "supabase gen types typescript --local > src/types/db.ts && prettier --write src/types/db.ts"
+    "db:types": "supabase gen types typescript --local > src/types/db.ts && prettier --write src/types/db.ts",
+    "check:analytics": "node scripts/check-analytics.mts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.133.0",

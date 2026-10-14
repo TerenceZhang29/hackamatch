@@ -32,6 +32,9 @@ export async function respondFromToken(formData: FormData): Promise<void> {
   const { matchId, userId } = verified.payload;
 
   await recordResponse(matchId, userId, response);
+  // Counted when the person acts on the emailed link, not when it is fetched
+  // (mail scanners fetch links too). Digests (P2-06) use the same links.
+  await track("digest_link_clicked", { action: response }, userId);
   redirect(`/r/${encodeURIComponent(token)}?done=1`);
 }
 
