@@ -827,7 +827,15 @@ export type Database = {
       is_organizer: { Args: Record<PropertyKey, never>; Returns: boolean };
       is_team_member: { Args: { p_team_id: string }; Returns: boolean };
       public_board_ideas: {
-        Args: { p_event_slug?: string; p_limit?: number; p_offset?: number };
+        Args: {
+          p_domain?: string;
+          p_event_slug?: string;
+          p_exclude_user_ids?: string[];
+          p_intent?: Database["public"]["Enums"]["user_intent"];
+          p_limit?: number;
+          p_offset?: number;
+          p_skill?: string;
+        };
         Returns: {
           created_at: string;
           domain: string;
@@ -842,14 +850,20 @@ export type Database = {
       };
       public_board_people: {
         Args: {
+          p_domain?: string;
+          p_event_slug?: string;
+          p_exclude_user_ids?: string[];
+          p_intent?: Database["public"]["Enums"]["user_intent"];
           p_limit?: number;
           p_offset?: number;
           p_role?: Database["public"]["Enums"]["user_role"];
+          p_skill?: string;
         };
         Returns: {
           display_name: string;
           domains: string[];
           experience_level: Database["public"]["Enums"]["experience_level"];
+          intents: Database["public"]["Enums"]["user_intent"][];
           role: Database["public"]["Enums"]["user_role"];
           skills: string[];
           stack: string[];
@@ -871,6 +885,20 @@ export type Database = {
           scope: Database["public"]["Enums"]["idea_scope"];
           skills_needed: string[];
           status: Database["public"]["Enums"]["idea_status"];
+        }[];
+      };
+      public_person: {
+        Args: { p_id: string };
+        Returns: {
+          display_name: string;
+          domains: string[];
+          experience_level: Database["public"]["Enums"]["experience_level"];
+          intents: Database["public"]["Enums"]["user_intent"][];
+          role: Database["public"]["Enums"]["user_role"];
+          skills: string[];
+          stack: string[];
+          summary: string;
+          user_id: string;
         }[];
       };
     };

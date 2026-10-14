@@ -17,7 +17,7 @@ Last updated: 2026-10-14
 | P1-07 GitHub and LinkedIn import | Done | GitHub summary now stored in `profiles.github_summary` (see below) |
 | P1-08 Profile page and settings | Done | `/me`: sentence, tags, role, events, ideas, pause, delete |
 | P1-09 Post an idea | Done | `/ideas/new` with preview; `/ideas/[id]` owner and public views; `public_idea` SQL function |
-| P1-10 Public board | Not started | |
+| P1-10 Public board | Done | Board with tabs, filters, load more; `/join` and `/people/[id]` |
 | P1-11 Interested / Pass from the board | Not started | A placeholder `/matches` page exists |
 | P1-12 Notifications foundation | Not started | Unblocked |
 | P1-13 Shared pair page and "We teamed up" | Not started | |
@@ -193,3 +193,19 @@ Two real calls through `createVoyageEmbedder` (`voyage-4-lite`, 1024 dimensions)
 ### Gotcha
 
 `pnpm exec supabase migration new <name>` reads SQL from standard input when it is not run in a terminal, so in scripts it waits forever. Run it with `< /dev/null`, or create the file by hand with a UTC timestamp prefix.
+
+## P1-10: public board
+
+**Implemented 2026-10-14.**
+
+- `/` is the board: Ideas and Builders tabs (Builders includes `both`), featured first then newest, 20 at a time with "Load more" (`?n=40`, capped at 100). Filters for hackathon, area, skill and "looking for" are a plain GET form, so they work without JavaScript and every filtered view has a shareable URL; empty fields are redirected away so URLs stay short.
+- Logged out: the hero and "Join with your Cornell email". Every card's "Interested" goes through `/join`, which records `cta_clicked` and sends the visitor to sign in with `next` set to that card. Logged in but not onboarded: cards say "Finish joining to connect". Onboarded: the card action slot is left for P1-11, and the board hides the viewer's own cards and everyone they already have a match with.
+- Migration `20261014060000_board_filters.sql` replaces `public_board_ideas` and `public_board_people` with versions that take domain, skill, intent, event and an exclusion list of user ids, adds `intents` to people rows, and adds `public_person(id)`.
+- `/people/[id]` shows one builder's public card (a 404 when they are paused or not in the pool); `board_viewed` is recorded after each render.
+
+### Choices made without the owner
+
+- **The exclusion list is a parameter of the public SQL functions** rather than read from the caller's session. It can only remove rows, so passing arbitrary ids reveals nothing, and the functions stay callable by `anon`.
+- **Builder cards link to `/people/[id]`,** the "card" the plan's logged-out flow returns to; the plan listed the route in the repository layout but no ticket specified it.
+- **`/join` is a GET that records a click.** Links to it set `prefetch={false}` so Next.js prefetching never counts as a click.
+- **The board's skill filter matches a person's skills or stack,** and an idea's skills needed.

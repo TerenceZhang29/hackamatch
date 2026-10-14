@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 test("home page renders without horizontal scroll", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "HackaMatch" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "HackaMatch" })).toBeVisible();
 
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,

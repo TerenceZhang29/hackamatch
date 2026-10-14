@@ -145,3 +145,28 @@ export async function eventually<T>(
   }
   return value;
 }
+
+/**
+ * Creates a user directly in the database, skipping sign-in: an auth user
+ * (the trigger adds users and profiles rows), optionally onboarded.
+ */
+export async function createUser(
+  email: string,
+  opts: { name?: string; role?: "idea" | "builder" | "both"; onboarded?: boolean } = {},
+) {
+  const id = randomUUID();
+  await query(
+    `insert into auth.users (instance_id, id, aud, role, email, raw_user_meta_data, email_confirmed_at)
+     values ('00000000-0000-0000-0000-000000000000', $1, 'authenticated', 'authenticated', $2,
+             jsonb_build_object('name', $3::text), now())`,
+    [id, email, opts.name ?? null],
+  );
+  if (opts.onboarded ?? true) {
+    await query(
+      `update public.users set role = $2, intents = '{hackathon}', raw_bio = 'Test user',
+              onboarded_at = now() where id = $1`,
+      [id, opts.role ?? "builder"],
+    );
+  }
+  return id;
+}
