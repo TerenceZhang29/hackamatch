@@ -3,14 +3,23 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
 import { CardActions, type Viewer } from "@/components/CardActions";
+import { Outcome } from "@/components/Outcome";
+import { PairStatus } from "@/components/PairStatus";
 import { PersonCard } from "@/components/PersonCard";
 import { getUser } from "@/lib/auth";
 import { getPublicPerson } from "@/server/board";
 
 export const metadata: Metadata = { title: "Builder · HackaMatch" };
 
-export default async function PersonPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function PersonPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { id } = await params;
+  const outcome = await searchParams;
   if (!z.uuid().safeParse(id).success) notFound();
   const user = await getUser();
   if (user?.id === id) redirect("/me");
@@ -24,9 +33,26 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
       <Link href="/?tab=people" className="text-sm underline">
         ← All builders
       </Link>
+      <Outcome params={outcome} />
       <PersonCard
         person={person}
-        actions={<CardActions viewer={viewer} cardPath={`/people/${id}`} />}
+        actions={
+          <CardActions
+            viewer={viewer}
+            cardPath={`/people/${id}`}
+            onboarded={
+              user ? (
+                <PairStatus
+                  viewerId={user.id}
+                  otherId={id}
+                  kind="person"
+                  targetId={id}
+                  returnTo={`/people/${id}`}
+                />
+              ) : null
+            }
+          />
+        }
       />
     </main>
   );

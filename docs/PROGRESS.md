@@ -18,7 +18,7 @@ Last updated: 2026-10-14
 | P1-08 Profile page and settings | Done | `/me`: sentence, tags, role, events, ideas, pause, delete |
 | P1-09 Post an idea | Done | `/ideas/new` with preview; `/ideas/[id]` owner and public views; `public_idea` SQL function |
 | P1-10 Public board | Done | Board with tabs, filters, load more; `/join` and `/people/[id]` |
-| P1-11 Interested / Pass from the board | Not started | A placeholder `/matches` page exists |
+| P1-11 Interested / Pass from the board | Done | Board, idea and person pages; `/matches` sections; atomic `respond_to_pair` |
 | P1-12 Notifications foundation | Done | Email via `send()`, signed one-click links, atomic mutual reveal (see below) |
 | P1-13 Shared pair page and "We teamed up" | Not started | |
 | P1-14 Admin tools | Not started | Needs P1-03 |
@@ -228,3 +228,22 @@ Two real calls through `createVoyageEmbedder` (`voyage-4-lite`, 1024 dimensions)
 - **Changing an answer after a reveal does not hide contact details** that were already emailed.
 - **Resend is called with `fetch`,** not the Resend SDK, to avoid a dependency for one endpoint.
 - **Vitest now uses the automatic JSX runtime** (`esbuild.jsx = "automatic"`), matching Next.js, so templates render in unit tests.
+
+## P1-11: Interested / Pass
+
+**Implemented 2026-10-14.**
+
+- Board cards, idea pages and person pages have Interested / Pass for onboarded members. They are plain form posts to a server action (they work without JavaScript) that redirect back with the outcome in the URL (`?sent=1`, `?passed=1`, `?matched=<id>`, `?error=limit`).
+- `respond_to_pair` (migration `20261014070000_respond_to_pair.sql`) inserts the pair's match with the actor's answer, or updates only the actor's side, in one statement; two people answering each other at the same moment get one row (tested on two real connections). Server-only: not executable by signed-in users. `interests_today` counts today's Interested answers in `APP_TIMEZONE`.
+- `answerFromBoard`: the first Interested emails the other person (capped at 3 "interested" emails per recipient per local day; beyond that the match waits on `/matches` with a "New" badge); a second Interested reveals the match through the P1-12 path. More than 15 Interested in a day is refused with a friendly message.
+- `/matches` has Waiting on you, Mutual and Sent. Matches the viewer passed on are hidden; the other person's answer is never shown before a reveal.
+
+### Choices made without the owner
+
+- **A card's target is its person:** Interested on an idea card matches the viewer with the idea's owner, recording the idea on the match. One match per pair stays the rule, so a later interest in a second idea from the same person reuses the pair's match.
+- **"New" means created in the last 24 hours** while still waiting on the viewer. There is no read tracking yet.
+- **Idea and person pages show where the viewer stands** ("You said you're interested", "You passed", or a link to the mutual match) instead of buttons once they have answered.
+
+### CI incident
+
+The P1-12 commit failed CI at `pnpm install --frozen-lockfile`: pinning the new React Email versions also stripped the `^` from the existing `@anthropic-ai/sdk` range, so `package.json` no longer matched the lockfile. Fixed in `c6ba88d`. The pre-push checks now include a frozen install.

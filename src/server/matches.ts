@@ -11,6 +11,7 @@ import {
 } from "@/lib/notify/templates/InboundInterest";
 import { Mutual, mutualSubject } from "@/lib/notify/templates/Mutual";
 import { createServiceClient } from "@/lib/supabase/service";
+import { localDateString } from "@/lib/time";
 import type { Enums, Tables } from "@/types/db";
 
 /**
@@ -235,5 +236,212 @@ export async function sendInboundInterest(
     subject: inboundInterestSubject(props),
     email: createElement(InboundInterest, props),
     payload: { match_id: match.id, variant },
+  });
+}
+
+/** Max people one user can say Interested to per local day (P1-11). */
+export const DAILY_INTEREST_LIMIT = 15;
+/** Max "someone is interested" emails one user receives per local day; the rest wait on /matches. */
+export const DAILY_INBOUND_EMAIL_LIMIT = 3;
+
+export type BoardTarget = { kind: "person"; userId: string } | { kind: "idea"; ideaId: string };
+
+export type BoardAnswerResult =
+  | { ok: true; matchId: string; revealed: boolean }
+  | { ok: false; error: "limit" | "unavailable" | "self" };
+
+/** Resolves a board card to the person behind it, if they are in the pool and the idea is open. */
+async function resolveTarget(
+  target: BoardTarget,
+): Promise<{ userId: string; ideaId: string | null } | null> {
+  const supabase = createServiceClient();
+  let userId: string;
+  let ideaId: string | null = null;
+  if (target.kind === "idea") {
+    const { data: idea } = await supabase
+      .from("ideas")
+      .select("owner_id, status")
+      .eq("id", target.ideaId)
+      .maybeSingle();
+    if (!idea || idea.status !== "open") return null;
+    userId = idea.owner_id;
+    ideaId = target.ideaId;
+  } else {
+    userId = target.userId;
+  }
+  const { data: user } = await supabase
+    .from("users")
+    .select("onboarded_at, paused_until")
+    .eq("id", userId)
+    .maybeSingle();
+  const paused = user?.paused_until && new Date(user.paused_until).getTime() > Date.now();
+  if (!user?.onboarded_at || paused) return null;
+  return { userId, ideaId };
+}
+
+/** How many "someone is interested" emails a user has been sent today. */
+async function inboundEmailsToday(userId: string): Promise<number> {
+  const { count, error } = await createServiceClient()
+    .from("notification_log")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("kind", "inbound_interest")
+    .eq("status", "sent")
+    .eq("local_date", localDateString(getConfig().APP_TIMEZONE));
+  if (error) throw new Error(`inboundEmailsToday: ${error.message}`);
+  return count ?? 0;
+}
+
+/**
+ * Interested or Pass on a board card (a person, or an idea's owner). Creates
+ * the pair's match or updates only the actor's side, atomically. A first
+ * "interested" emails the other person (up to the daily email cap); a second
+ * one reveals the match.
+ */
+export async function answerFromBoard(
+  actorId: string,
+  target: BoardTarget,
+  response: MatchResponse,
+): Promise<BoardAnswerResult> {
+  const supabase = createServiceClient();
+  const resolved = await resolveTarget(target);
+  if (!resolved) return { ok: false, error: "unavailable" };
+  if (resolved.userId === actorId) return { ok: false, error: "self" };
+
+  if (response === "interested") {
+    const { data: count, error } = await supabase.rpc("interests_today", {
+      p_user: actorId,
+      p_timezone: getConfig().APP_TIMEZONE,
+    });
+    if (error) throw new Error(`answerFromBoard: ${error.message}`);
+    if (count >= DAILY_INTEREST_LIMIT) return { ok: false, error: "limit" };
+  }
+
+  const { data, error } = await supabase.rpc("respond_to_pair", {
+    p_actor: actorId,
+    p_target: resolved.userId,
+    // Generated types mark every argument non-null; SQL accepts null for "no idea".
+    p_idea: resolved.ideaId as string,
+    p_response: response,
+    p_source: "board",
+  });
+  if (error) throw new Error(`answerFromBoard: ${error.message}`);
+  const row = data[0];
+  if (!row) throw new Error("answerFromBoard: no match returned");
+
+  await track(
+    response === "interested" ? "interest_expressed" : "passed",
+    { match_id: row.match_id, source: "board" },
+    actorId,
+  );
+  if (response === "pass") return { ok: true, matchId: row.match_id, revealed: false };
+
+  const revealed = await revealIfMutual(row.match_id);
+  if (revealed) return { ok: true, matchId: row.match_id, revealed: true };
+
+  // The other side hasn't answered yet: tell them, unless they've had enough email today.
+  const match = await getMatch(row.match_id);
+  const otherId = resolved.userId;
+  const otherSide = match ? sideOf(match, otherId) : null;
+  const otherAnswer = match && otherSide ? match[`${otherSide}_response`] : null;
+  if (
+    match &&
+    otherAnswer === "pending" &&
+    (await inboundEmailsToday(otherId)) < DAILY_INBOUND_EMAIL_LIMIT
+  ) {
+    await sendInboundInterest(match, otherId, "interest");
+  }
+  return { ok: true, matchId: row.match_id, revealed: false };
+}
+
+/** The match between two users, if any. */
+export async function getPairMatch(x: string, y: string): Promise<Match | null> {
+  const [a, b] = canonicalPair(x, y);
+  const { data, error } = await createServiceClient()
+    .from("matches")
+    .select("*")
+    .eq("user_a", a)
+    .eq("user_b", b)
+    .maybeSingle();
+  if (error) throw new Error(`getPairMatch: ${error.message}`);
+  return data;
+}
+
+export type MatchSection = "waiting" | "mutual" | "sent";
+
+export interface MatchListItem {
+  id: string;
+  section: MatchSection;
+  otherId: string;
+  otherName: string;
+  otherSummary: string | null;
+  otherTags: string[];
+  ideaPitch: string | null;
+  ideaIsMine: boolean;
+  reason: string | null;
+  isNew: boolean;
+  createdAt: string;
+}
+
+const NEW_FOR_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * A user's matches, grouped for /matches. Matches they passed on are left
+ * out. The other person's answer is never part of the result unless the match
+ * is revealed (when it is "interested" by definition).
+ */
+export async function listMatchesForUser(userId: string): Promise<MatchListItem[]> {
+  const supabase = createServiceClient();
+  const { data: matches, error } = await supabase
+    .from("matches")
+    .select("*")
+    .or(`user_a.eq.${userId},user_b.eq.${userId}`)
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(`listMatchesForUser: ${error.message}`);
+
+  const visible = matches.filter((m) => {
+    const mine = sideOf(m, userId) === "a" ? m.a_response : m.b_response;
+    return m.revealed_at !== null || mine !== "pass";
+  });
+  if (visible.length === 0) return [];
+
+  const otherIds = [...new Set(visible.map((m) => otherUserId(m, userId)))];
+  const ideaIds = [...new Set(visible.map((m) => m.idea_id).filter((id): id is string => !!id))];
+  const [{ data: users }, { data: profiles }, { data: ideas }] = await Promise.all([
+    supabase.from("users").select("id, name").in("id", otherIds),
+    supabase.from("profiles").select("user_id, summary, skills, stack").in("user_id", otherIds),
+    ideaIds.length
+      ? supabase.from("ideas").select("id, pitch, owner_id").in("id", ideaIds)
+      : Promise.resolve({ data: [] as { id: string; pitch: string | null; owner_id: string }[] }),
+  ]);
+  const names = new Map((users ?? []).map((u) => [u.id, u.name]));
+  const profileById = new Map((profiles ?? []).map((p) => [p.user_id, p]));
+  const ideaById = new Map((ideas ?? []).map((i) => [i.id, i]));
+  const { displayName } = await import("@/lib/display-name");
+
+  return visible.map((m) => {
+    const side = sideOf(m, userId)!;
+    const mine = side === "a" ? m.a_response : m.b_response;
+    const otherId = otherUserId(m, userId);
+    const profile = profileById.get(otherId);
+    const idea = m.idea_id ? ideaById.get(m.idea_id) : undefined;
+    const section: MatchSection = m.revealed_at
+      ? "mutual"
+      : mine === "pending"
+        ? "waiting"
+        : "sent";
+    return {
+      id: m.id,
+      section,
+      otherId,
+      otherName: displayName(names.get(otherId)),
+      otherSummary: profile?.summary ?? null,
+      otherTags: [...(profile?.stack ?? []), ...(profile?.skills ?? [])].slice(0, 6),
+      ideaPitch: idea?.pitch ?? null,
+      ideaIsMine: idea?.owner_id === userId,
+      reason: side === "a" ? m.reason_for_a : m.reason_for_b,
+      isNew: section === "waiting" && Date.now() - new Date(m.created_at).getTime() < NEW_FOR_MS,
+      createdAt: m.created_at,
+    };
   });
 }

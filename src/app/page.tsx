@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
+import { CardAnswerButtons } from "@/components/AnswerButtons";
 import { BoardFilters } from "@/components/BoardFilters";
 import { CardActions, type Viewer } from "@/components/CardActions";
 import { IdeaCard } from "@/components/IdeaCard";
+import { Outcome } from "@/components/Outcome";
 import { PersonCard } from "@/components/PersonCard";
 import { track } from "@/lib/analytics";
 import { getUser } from "@/lib/auth";
@@ -86,6 +88,8 @@ export default async function BoardPage({
         </nav>
       </header>
 
+      <Outcome params={params} />
+
       {deleted ? (
         <p
           role="status"
@@ -153,7 +157,19 @@ export default async function BoardPage({
               <IdeaCard
                 idea={idea}
                 eventName={idea.event_id ? eventNames.get(idea.event_id) : null}
-                actions={<CardActions viewer={viewer} cardPath={`/ideas/${idea.id}`} />}
+                actions={
+                  <CardActions
+                    viewer={viewer}
+                    cardPath={`/ideas/${idea.id}`}
+                    onboarded={
+                      <CardAnswerButtons
+                        kind="idea"
+                        targetId={idea.id}
+                        returnTo={boardHref(state)}
+                      />
+                    }
+                  />
+                }
               />
             </li>
           ))}
@@ -161,7 +177,19 @@ export default async function BoardPage({
             <li key={person.user_id}>
               <PersonCard
                 person={person}
-                actions={<CardActions viewer={viewer} cardPath={`/people/${person.user_id}`} />}
+                actions={
+                  <CardActions
+                    viewer={viewer}
+                    cardPath={`/people/${person.user_id}`}
+                    onboarded={
+                      <CardAnswerButtons
+                        kind="person"
+                        targetId={person.user_id}
+                        returnTo={boardHref(state)}
+                      />
+                    }
+                  />
+                }
               />
             </li>
           ))}

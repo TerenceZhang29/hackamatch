@@ -3,6 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 import { IdeaTags } from "@/components/IdeaTags";
+import { Outcome } from "@/components/Outcome";
+import { PairStatus } from "@/components/PairStatus";
 import { getUser } from "@/lib/auth";
 import { loginPath } from "@/lib/auth-helpers";
 import { slugsOf } from "@/lib/taxonomy/skills";
@@ -17,8 +19,15 @@ const STATUS_NOTES = {
   archived: "Archived: only you can see this idea.",
 } as const;
 
-export default async function IdeaPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function IdeaPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { id } = await params;
+  const outcome = await searchParams;
   if (!z.uuid().safeParse(id).success) notFound();
   const user = await getUser();
 
@@ -77,6 +86,7 @@ export default async function IdeaPage({ params }: { params: Promise<{ id: strin
           <p className="text-sm text-neutral-500">{STATUS_NOTES[idea.status]}</p>
         ) : null}
       </header>
+      <Outcome params={outcome} />
       <IdeaTags domain={idea.domain} scope={idea.scope} skillsNeeded={idea.skills_needed} />
       {fullText ? (
         <section className="flex flex-col gap-2">
@@ -84,9 +94,18 @@ export default async function IdeaPage({ params }: { params: Promise<{ id: strin
           <p className="whitespace-pre-line">{fullText}</p>
         </section>
       ) : null}
-      {user ? (
-        // Interested / Pass lands in P1-11.
-        <div id="idea-actions" />
+      {user?.onboarded_at ? (
+        <PairStatus
+          viewerId={user.id}
+          otherId={idea.owner_id}
+          kind="idea"
+          targetId={idea.id}
+          returnTo={`/ideas/${id}`}
+        />
+      ) : user ? (
+        <Link href="/onboarding" className="self-start text-sm underline">
+          Finish joining to connect
+        </Link>
       ) : (
         <Link
           href={loginPath(`/ideas/${id}`)}

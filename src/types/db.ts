@@ -823,6 +823,7 @@ export type Database = {
     };
     Functions: {
       display_name: { Args: { p_name: string }; Returns: string };
+      interests_today: { Args: { p_timezone: string; p_user: string }; Returns: number };
       is_admin: { Args: Record<PropertyKey, never>; Returns: boolean };
       is_organizer: { Args: Record<PropertyKey, never>; Returns: boolean };
       is_team_member: { Args: { p_team_id: string }; Returns: boolean };
@@ -899,6 +900,19 @@ export type Database = {
           stack: string[];
           summary: string;
           user_id: string;
+        }[];
+      };
+      respond_to_pair: {
+        Args: {
+          p_actor: string;
+          p_idea: string;
+          p_response: Database["public"]["Enums"]["match_response"];
+          p_source: Database["public"]["Enums"]["match_source"];
+          p_target: string;
+        };
+        Returns: {
+          created: boolean;
+          match_id: string;
         }[];
       };
     };
