@@ -915,6 +915,13 @@ export type Database = {
           match_id: string;
         }[];
       };
+      team_up: {
+        Args: { p_actor: string; p_event: string; p_match: string };
+        Returns: {
+          created: boolean;
+          team_id: string;
+        }[];
+      };
     };
     Enums: {
       experience_level: "beginner" | "intermediate" | "advanced";

@@ -20,6 +20,8 @@ export async function signIn(page: Page, email: string, loginUrl = "/login") {
 export async function openMagicLink(page: Page, link: string) {
   await page.goto(link);
   await page.getByRole("button", { name: "Continue to HackaMatch" }).click();
+  // Wait for the sign-in to finish (or fail), so callers start from a settled page.
+  await page.waitForURL((url) => !url.pathname.startsWith("/auth/confirm"));
 }
 
 /** Requests a magic link without opening it, and returns the link. */

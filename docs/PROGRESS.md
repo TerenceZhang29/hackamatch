@@ -20,7 +20,7 @@ Last updated: 2026-10-14
 | P1-10 Public board | Done | Board with tabs, filters, load more; `/join` and `/people/[id]` |
 | P1-11 Interested / Pass from the board | Done | Board, idea and person pages; `/matches` sections; atomic `respond_to_pair` |
 | P1-12 Notifications foundation | Done | Email via `send()`, signed one-click links, atomic mutual reveal (see below) |
-| P1-13 Shared pair page and "We teamed up" | Not started | |
+| P1-13 Shared pair page and "We teamed up" | Done | Pair page, event picks, one team per match and event |
 | P1-14 Admin tools | Done | Users, ideas, events, hand-made matches; 404 for non-admins |
 | P1-15 Analytics events | Partly done | `track`, the event-name union and its unit test landed with P1-03. Remaining: `scripts/check-analytics.ts` and the CI check |
 | P1-16 Phase 0 import and seeding | Not started | No `data/phase0/` files in the repo yet |
@@ -262,3 +262,22 @@ The P1-12 commit failed CI at `pnpm install --frozen-lockfile`: pinning the new 
 - **People are picked by typing a name or email** with suggestions (an HTML `datalist`), rather than a custom searchable select, so the form needs no JavaScript.
 - **Admin pause is "until turned back on"**, and unpause clears it.
 - **Lists show the newest 500 rows,** enough for the pilot; pagination can come later.
+
+## P1-13: shared pair page and "We teamed up"
+
+**Implemented 2026-10-14.**
+
+- `/matches/[id]` opens only for the two people in a revealed match (a 404 for anyone else, and before the reveal). It shows both people (the other person's Cornell email, GitHub and LinkedIn), the full idea text, a suggested first message with a Copy button, and "Matches never expire, and you both stay in the pool."
+- Upcoming hackathons: each is a toggle for the viewer; the other person's pick shows as "Maya would", and events both picked are highlighted "You both want this". Picks are `match_event_votes`.
+- "We teamed up" asks "For which event?" (events both picked come first and are preselected; "No event / side project" is last). It creates the team with both members, stamps `teamed_up_at` and records `team_formed`, through the server-only `team_up` SQL function and a unique index on (match, event), so repeated or simultaneous presses make one team (migration `20261014080000_team_up.sql`).
+- Either member can add a teammate by Cornell email, but only someone they have a revealed match with. Once a team exists, the idea owner is offered "Mark this idea as filled".
+- With `SHOW_EXISTING_TEAMS` on, an event shows "Maya already has a team for this" when the other person is on a team for it through another match.
+
+### Choices made without the owner
+
+- **The suggested message on the page is the template,** not a fresh LLM call on each page view. The mutual email carries the LLM-written one; storing it would need a new column, and a template costs nothing to show.
+- **"No event" counts as one event** for the one-team rule, so a pair can have one side-project team plus one team per event.
+
+### Test helper fix
+
+`signIn` in `tests/e2e/auth.ts` now waits for the confirm page to finish before returning; tests that touched the database right after signing in could otherwise race the sign-in POST.
