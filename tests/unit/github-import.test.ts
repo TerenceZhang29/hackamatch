@@ -19,7 +19,7 @@ const jsonResponse = (body: unknown, status = 200) =>
 
 /** A fetch that answers the two GitHub endpoints from the recorded fixtures. */
 function fixtureFetch() {
-  return vi.fn(async (url: string | URL | Request) => {
+  return vi.fn(async (url: string | URL | Request, _init?: RequestInit) => {
     const path = new URL(String(url)).pathname;
     return path.endsWith("/repos") ? jsonResponse(repos) : jsonResponse(user);
   });
