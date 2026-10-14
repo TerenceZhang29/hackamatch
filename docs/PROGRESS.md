@@ -15,7 +15,7 @@ Last updated: 2026-10-14
 | P1-05 Embeddings wrapper | Done | Verified against the real Voyage API on 2026-10-13 (see below) |
 | P1-06 Onboarding flow | Done | Three-step flow; slow-LLM fallback fills tags in the background (see below) |
 | P1-07 GitHub and LinkedIn import | Done | GitHub summary now stored in `profiles.github_summary` (see below) |
-| P1-08 Profile page and settings | Not started | |
+| P1-08 Profile page and settings | Done | `/me`: sentence, tags, role, events, ideas, pause, delete |
 | P1-09 Post an idea | Not started | |
 | P1-10 Public board | Not started | |
 | P1-11 Interested / Pass from the board | Not started | A placeholder `/matches` page exists |
@@ -160,3 +160,16 @@ Two real calls through `createVoyageEmbedder` (`voyage-4-lite`, 1024 dimensions)
 
 - Unit tests run against recorded GitHub responses in `tests/fixtures/github/`; the acceptance case (GitHub link, empty sentence, non-empty stack tags) runs there with the fake LLM.
 - E2E covers the LinkedIn paste and a rejected non-profile GitHub link. No e2e test calls the real GitHub API.
+
+## P1-08: profile page and settings
+
+**Implemented 2026-10-14.**
+
+`/me` has: the sentence (saving re-infers the summary and tags, with the same 8 s budget and background fallback as onboarding, then re-embeds); tags (saving sets `user_edited` only on a real change); role and intents; hackathons (each toggle saves at once); the user's ideas with Open / Filled / Archived; notifications (email address shown, pause for a week / a month / until turned back on, or resume); and account deletion.
+
+### Choices made without the owner
+
+- **Notification channel is shown, not editable.** The plan says email only for now, so the section names the address and offers pause; a channel picker can come with SMS (P3-04).
+- **Deleting needs the word "delete" typed,** then signs the user out and deletes the auth user; everything else cascades. The plan said "confirms" without saying how.
+- **Pause logic lives in `src/lib/pause.ts`** (pure, unit tested). "Until I turn it back on" stores `9999-12-31`, as the plan says.
+- **Re-extraction after a sentence edit never adds an idea** for an onboarded user who already has one (same rule as the late background run in P1-06).

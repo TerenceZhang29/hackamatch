@@ -45,7 +45,7 @@ export async function onboard(
 ) {
   await page.getByRole("button", { name: answers.role }).click();
   await page.getByRole("button", { name: "Continue" }).click();
-  await page.getByRole("textbox").fill(answers.sentence);
+  await page.getByRole("textbox").first().fill(answers.sentence);
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(page.getByRole("heading", { name: "Here's what we got" })).toBeVisible();
   await page.getByRole("button", { name: "Join the pool" }).click();

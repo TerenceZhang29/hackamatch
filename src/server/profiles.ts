@@ -302,3 +302,45 @@ export async function isOnboarded(userId: string): Promise<boolean> {
   if (error) throw new Error(`isOnboarded: ${error.message}`);
   return data.onboarded_at !== null;
 }
+
+/** The profile row a user sees on /me. */
+export async function getOwnProfile(userId: string) {
+  const { data, error } = await createServiceClient()
+    .from("profiles")
+    .select("summary, skills, stack, domains, experience_level, user_edited, extracted_at")
+    .eq("user_id", userId)
+    .single();
+  if (error) throw new Error(`getOwnProfile: ${error.message}`);
+  return data;
+}
+
+/** Updates the one sentence. Extraction and embedding are the caller's job. */
+export async function updateSentence(userId: string, sentence: string) {
+  const { error } = await createServiceClient()
+    .from("users")
+    .update({ raw_bio: sentence })
+    .eq("id", userId);
+  if (error) throw new Error(`updateSentence: ${error.message}`);
+}
+
+export async function updateRoleAndIntents(userId: string, role: Role, intents: Intent[]) {
+  const { error } = await createServiceClient()
+    .from("users")
+    .update({ role, intents })
+    .eq("id", userId);
+  if (error) throw new Error(`updateRoleAndIntents: ${error.message}`);
+}
+
+export async function setPausedUntil(userId: string, pausedUntil: string | null) {
+  const { error } = await createServiceClient()
+    .from("users")
+    .update({ paused_until: pausedUntil })
+    .eq("id", userId);
+  if (error) throw new Error(`setPausedUntil: ${error.message}`);
+}
+
+/** Deletes the auth user; every row of theirs cascades from it. */
+export async function deleteAccount(userId: string) {
+  const { error } = await createServiceClient().auth.admin.deleteUser(userId);
+  if (error) throw new Error(`deleteAccount: ${error.message}`);
+}

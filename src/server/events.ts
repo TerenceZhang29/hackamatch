@@ -41,3 +41,23 @@ export async function addEventInterests(userId: string, eventIds: readonly strin
     );
   if (error) throw new Error(`addEventInterests: ${error.message}`);
 }
+
+/** Removes the user's interest in one event. */
+export async function removeEventInterest(userId: string, eventId: string) {
+  const { error } = await createServiceClient()
+    .from("event_interests")
+    .delete()
+    .eq("user_id", userId)
+    .eq("event_id", eventId);
+  if (error) throw new Error(`removeEventInterest: ${error.message}`);
+}
+
+/** Ids of the events a user has said they are interested in. */
+export async function listEventInterestIds(userId: string): Promise<string[]> {
+  const { data, error } = await createServiceClient()
+    .from("event_interests")
+    .select("event_id")
+    .eq("user_id", userId);
+  if (error) throw new Error(`listEventInterestIds: ${error.message}`);
+  return data.map((row) => row.event_id).filter((id): id is string => id !== null);
+}
