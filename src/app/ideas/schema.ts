@@ -16,7 +16,7 @@ export const previewSchema = z.object({ text: ideaText });
 
 export const postIdeaSchema = z.object({
   text: ideaText,
-  eventId: z.uuid().nullable().default(null),
+  eventId: z.guid().nullable().default(null),
   /** What the preview showed; null when extraction had not finished. */
   preview: z
     .object({
@@ -38,7 +38,7 @@ export const postIdeaSchema = z.object({
 });
 
 export const ideaTagsSchema = z.object({
-  ideaId: z.uuid(),
+  ideaId: z.guid(),
   skillsNeeded: z.array(z.string().trim().min(1).max(60)).max(20),
   domain: z.string().trim().max(60).nullable(),
   scope: z.enum(SCOPES).nullable(),

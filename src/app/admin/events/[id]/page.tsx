@@ -15,7 +15,7 @@ export default async function EditEvent({
 }) {
   await requireAdmin("/admin/events");
   const { id } = await params;
-  if (!z.uuid().safeParse(id).success) notFound();
+  if (!z.guid().safeParse(id).success) notFound();
   const event = await getEvent(id);
   if (!event) notFound();
   const { data: organizer } = event.organizer_id

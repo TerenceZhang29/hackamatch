@@ -28,7 +28,7 @@ export default async function IdeaPage({
 }) {
   const { id } = await params;
   const outcome = await searchParams;
-  if (!z.uuid().safeParse(id).success) notFound();
+  if (!z.guid().safeParse(id).success) notFound();
   const user = await getUser();
 
   const own = user ? await getOwnIdea(user.id, id) : null;

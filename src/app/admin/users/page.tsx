@@ -2,7 +2,7 @@ import { requireAdmin } from "@/lib/auth";
 import { isPaused } from "@/lib/pause";
 import { listUsers } from "@/server/admin";
 import { setUserPause, toggleOrganizer } from "../actions";
-import { AdminShell, button, input, shortDate, table, td, th } from "../ui";
+import { AdminShell, ScrollTable, button, input, shortDate, table, td, th } from "../ui";
 
 export default async function AdminUsers({
   searchParams,
@@ -29,7 +29,7 @@ export default async function AdminUsers({
           Search
         </button>
       </form>
-      <div className="overflow-x-auto">
+      <ScrollTable label="Users">
         <table className={table}>
           <thead>
             <tr>
@@ -84,7 +84,7 @@ export default async function AdminUsers({
             })}
           </tbody>
         </table>
-      </div>
+      </ScrollTable>
     </AdminShell>
   );
 }

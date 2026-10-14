@@ -17,11 +17,15 @@ export function IdeaCard({
   idea,
   eventName,
   actions,
+  headingLevel = 3,
 }: {
   idea: IdeaCardData;
   eventName?: string | null;
   actions?: React.ReactNode;
+  /** The card title's heading level, so it fits the page's outline. */
+  headingLevel?: 2 | 3;
 }) {
+  const Heading = `h${headingLevel}` as const;
   const meta = [
     idea.domain ? tagLabel(idea.domain) : null,
     scopeLabel(idea.scope),
@@ -33,11 +37,11 @@ export function IdeaCard({
         {idea.featured ? "Featured · " : ""}
         {idea.owner_display}
       </p>
-      <h3 className="text-base font-semibold">
+      <Heading className="text-base font-semibold">
         <Link href={`/ideas/${idea.id}`} className="hover:underline">
           {idea.pitch ?? "New idea"}
         </Link>
-      </h3>
+      </Heading>
       {meta.length ? <p className="text-sm text-neutral-500">{meta.join(" · ")}</p> : null}
       <Chips tags={idea.skills_needed} label="Skills needed" />
       {actions}

@@ -60,3 +60,12 @@ export function Notice({ params }: { params: Record<string, string | string[] | 
 export function shortDate(value: string | null): string {
   return value ? value.slice(0, 10) : "–";
 }
+
+/** A table that can scroll sideways on small screens, reachable by keyboard. */
+export function ScrollTable({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div role="region" aria-label={label} tabIndex={0} className="overflow-x-auto">
+      {children}
+    </div>
+  );
+}

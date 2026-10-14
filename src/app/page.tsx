@@ -146,6 +146,7 @@ export default async function BoardPage({
         skills={[...slugsOf("skills"), ...slugsOf("stack")]}
       />
 
+      <h2 className="sr-only">{state.tab === "ideas" ? "Ideas" : "Builders"}</h2>
       {rows.length === 0 ? (
         <p className="py-12 text-center text-neutral-500">
           {hasFilters(state.filters) ? "Nothing matches these filters yet." : "Nothing here yet."}

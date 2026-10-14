@@ -1,7 +1,7 @@
 import { requireAdmin } from "@/lib/auth";
 import { listAllMatches, listEvents, listIdeas, listMatchableUsers } from "@/server/admin";
 import { createMatchAction } from "../actions";
-import { AdminShell, button, input, Notice, shortDate, table, td, th } from "../ui";
+import { AdminShell, ScrollTable, button, input, Notice, shortDate, table, td, th } from "../ui";
 
 export default async function AdminMatches({
   searchParams,
@@ -77,7 +77,7 @@ export default async function AdminMatches({
       </form>
 
       <h2 className="text-lg font-semibold">All matches</h2>
-      <div className="overflow-x-auto">
+      <ScrollTable label="All matches">
         <table className={table}>
           <thead>
             <tr>
@@ -110,7 +110,7 @@ export default async function AdminMatches({
             ))}
           </tbody>
         </table>
-      </div>
+      </ScrollTable>
     </AdminShell>
   );
 }

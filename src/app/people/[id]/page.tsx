@@ -20,7 +20,7 @@ export default async function PersonPage({
 }) {
   const { id } = await params;
   const outcome = await searchParams;
-  if (!z.uuid().safeParse(id).success) notFound();
+  if (!z.guid().safeParse(id).success) notFound();
   const user = await getUser();
   if (user?.id === id) redirect("/me");
 
@@ -33,9 +33,11 @@ export default async function PersonPage({
       <Link href="/?tab=people" className="text-sm underline">
         ← All builders
       </Link>
+      <h1 className="sr-only">{person.display_name}</h1>
       <Outcome params={outcome} />
       <PersonCard
         person={person}
+        headingLevel={2}
         actions={
           <CardActions
             viewer={viewer}

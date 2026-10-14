@@ -1,14 +1,14 @@
 import { requireAdmin } from "@/lib/auth";
 import { listIdeas } from "@/server/admin";
 import { changeIdeaStatusAsAdmin, toggleFeatured } from "../actions";
-import { AdminShell, button, shortDate, table, td, th } from "../ui";
+import { AdminShell, ScrollTable, button, shortDate, table, td, th } from "../ui";
 
 export default async function AdminIdeas() {
   await requireAdmin("/admin/ideas");
   const ideas = await listIdeas();
   return (
     <AdminShell title="Ideas">
-      <div className="overflow-x-auto">
+      <ScrollTable label="Ideas">
         <table className={table}>
           <thead>
             <tr>
@@ -59,7 +59,7 @@ export default async function AdminIdeas() {
             ))}
           </tbody>
         </table>
-      </div>
+      </ScrollTable>
     </AdminShell>
   );
 }

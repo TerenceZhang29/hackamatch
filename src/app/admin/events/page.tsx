@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { formatDateRange } from "@/lib/time";
 import { listEvents } from "@/server/admin";
-import { AdminShell, Notice, table, td, th } from "../ui";
+import { AdminShell, ScrollTable, Notice, table, td, th } from "../ui";
 import { EventForm } from "./EventForm";
 
 export default async function AdminEvents({
@@ -15,7 +15,7 @@ export default async function AdminEvents({
   return (
     <AdminShell title="Events">
       <Notice params={params} />
-      <div className="overflow-x-auto">
+      <ScrollTable label="Events">
         <table className={table}>
           <thead>
             <tr>
@@ -44,7 +44,7 @@ export default async function AdminEvents({
             ))}
           </tbody>
         </table>
-      </div>
+      </ScrollTable>
       <h2 className="text-lg font-semibold">New event</h2>
       <EventForm />
     </AdminShell>

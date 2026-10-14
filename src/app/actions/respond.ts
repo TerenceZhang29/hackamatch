@@ -11,7 +11,7 @@ import { answerFromBoard, recordResponse } from "@/server/matches";
 
 const cardSchema = z.object({
   kind: z.enum(["person", "idea"]),
-  targetId: z.uuid(),
+  targetId: z.guid(),
   response: z.enum(["interested", "pass"]),
   returnTo: z.string().max(2048).optional(),
 });
@@ -50,7 +50,7 @@ export async function answerCard(formData: FormData): Promise<void> {
 }
 
 const matchSchema = z.object({
-  matchId: z.uuid(),
+  matchId: z.guid(),
   response: z.enum(["interested", "pass"]),
 });
 

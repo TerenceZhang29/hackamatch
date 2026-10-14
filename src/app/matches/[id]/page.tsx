@@ -63,7 +63,7 @@ export default async function PairPage({
 }) {
   const { id } = await params;
   const user = await requireOnboarded(`/matches/${id}`);
-  if (!z.uuid().safeParse(id).success) notFound();
+  if (!z.guid().safeParse(id).success) notFound();
   const pair = await getPairPage(id, user.id);
   if (!pair) notFound();
   const query = await searchParams;

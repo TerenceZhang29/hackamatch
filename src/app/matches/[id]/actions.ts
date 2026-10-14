@@ -11,8 +11,8 @@ const form = (data: FormData) => Object.fromEntries(data);
 const page = (matchId: string, query = "") => `/matches/${matchId}${query}`;
 
 const voteSchema = z.object({
-  matchId: z.uuid(),
-  eventId: z.uuid(),
+  matchId: z.guid(),
+  eventId: z.guid(),
   on: z.enum(["true", "false"]),
 });
 
@@ -28,8 +28,8 @@ export async function toggleVote(data: FormData) {
 }
 
 const teamSchema = z.object({
-  matchId: z.uuid(),
-  eventId: z.uuid().or(z.literal("none")),
+  matchId: z.guid(),
+  eventId: z.guid().or(z.literal("none")),
 });
 
 /** "We teamed up", for one event or for a side project with no event. */
@@ -45,8 +45,8 @@ export async function teamUpAction(data: FormData) {
 }
 
 const memberSchema = z.object({
-  matchId: z.uuid(),
-  teamId: z.uuid(),
+  matchId: z.guid(),
+  teamId: z.guid(),
   email: z.string().trim().max(254),
 });
 
@@ -60,7 +60,7 @@ export async function addMemberAction(data: FormData) {
   redirect(page(matchId, result.ok ? "?added=1" : `?error=${encodeURIComponent(result.error)}`));
 }
 
-const filledSchema = z.object({ matchId: z.uuid(), ideaId: z.uuid() });
+const filledSchema = z.object({ matchId: z.guid(), ideaId: z.guid() });
 
 /** Lets the idea owner close their idea once the team is set. */
 export async function markIdeaFilled(data: FormData) {

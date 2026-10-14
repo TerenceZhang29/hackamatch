@@ -159,3 +159,12 @@ test("an unknown or archived idea is a 404 for others", async ({ page }) => {
   const bad = await page.goto(`/ideas/not-a-uuid`);
   expect(bad!.status()).toBe(404);
 });
+
+test("seeded ideas open, whatever the UUID variant of their id", async ({ page }) => {
+  // supabase/seed.sql ids such as …-c000-… are valid for Postgres but not RFC-variant UUIDs.
+  const response = await page.goto("/ideas/00000000-0000-4000-c000-000000000001");
+  expect(response!.status()).toBe(200);
+  await expect(
+    page.getByRole("heading", { name: "Let nurses swap shifts in minutes instead of days." }),
+  ).toBeVisible();
+});

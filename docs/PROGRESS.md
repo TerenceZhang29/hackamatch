@@ -26,7 +26,7 @@ Last updated: 2026-10-14
 | P1-16 Phase 0 import and seeding | Done (scripts) | Import and `seed:dev` ready; real data not imported (no Phase 0 files yet) |
 | P1-17 Event pages and tagging | Done | `/e/[slug]` share page; join links preselect the event in onboarding |
 | P1-18 Security and privacy hardening | Done | CSP and headers, Postgres rate limits, audit in [`docs/security.md`](./security.md) |
-| P1-19 E2E suite and accessibility pass | Not started | |
+| P1-19 E2E suite and accessibility pass | Done | Full journey and axe checks on every page; fixed seeded-id 404s |
 | P1-20 Production deploy and pilot readiness | Not started | Must install the two auth email templates and the `/auth/confirm**` redirect pattern on the hosted Supabase project |
 
 Phases 2 and 3 have not started.
@@ -120,7 +120,7 @@ Two real calls through `createVoyageEmbedder` (`voyage-4-lite`, 1024 dimensions)
 
 ## P1-06: onboarding
 
-**Implemented 2026-10-14**, in the unattended run of P1-06 to P1-19 (see the summary at the end of this file once that run finishes).
+**Implemented 2026-10-14**, in the unattended run of P1-06 to P1-19 (summary at the end of this file).
 
 ### What landed
 
@@ -337,3 +337,45 @@ Running the import against production with real data, and sending welcome emails
 - **More limits than the plan named.** The plan asked for sign-in and interest limits; the LLM and idea limits were added to cap API spend if an account is abused.
 - **Styles allow `'unsafe-inline'`** in the CSP, because Next.js and React set inline styles; scripts are nonce-only.
 - **The per-IP sign-in limit is configurable** (`LOGIN_RATE_LIMIT_PER_IP`) because e2e signs in many users from one address, and because a campus network may put many students behind one IP; watch for false refusals at the pilot.
+
+## P1-19: e2e suite and accessibility pass
+
+**Implemented 2026-10-14.**
+
+- `tests/e2e/journey.spec.ts`: two students from sign-up to a recorded team entirely through the UI: onboarding, the board filtered by skill, Interested, the inbound email's one-click link, the mutual email, picking a hackathon together on the pair page, "We teamed up", and marking the idea filled.
+- `tests/e2e/a11y.spec.ts`: axe (`@axe-core/playwright`, WCAG 2.1 A/AA plus best practices) on the board, builders tab, login, event, person and idea pages, all three onboarding steps, `/matches`, the pair page, `/me`, the new-idea form, both one-click link pages and every admin page, on desktop and mobile. Serious and critical violations fail the test; at the time of writing there are none of any severity.
+- Fixes it led to: admin tables that scroll sideways are keyboard-focusable regions; card headings follow each page's outline; person pages have an `h1`; a not-found page with a `main` landmark.
+- **Bug fixed:** ids were validated with zod's strict `z.uuid()`, which rejects the seed data's `…-c000-…` ids, so seeded ideas were a 404 and their Interested buttons did nothing. Id checks now use `z.guid()`, which accepts any UUID-shaped value, as Postgres does.
+- The plan's helper names map to `signIn` (`tests/e2e/auth.ts`) and `readOutbox` (`tests/e2e/helpers.ts`).
+
+Suite size at the end of the run: 201 unit tests, 51 database tests, 142 e2e tests (71 per browser project), all passing locally, with no flaky tests in the final two full runs.
+
+## Unattended run of P1-06 to P1-19: summary
+
+**2026-10-14.** The owner asked for P1-06 through P1-19 in order, each pushed to `main`, while they were offline. All fourteen are done. P1-12 went before P1-11 and P1-14 before P1-13, because the plan makes those depend on them.
+
+### Please review
+
+These choices were made without the owner. Each ticket's section above has the reasoning.
+
+1. **The board's Interested on an idea card matches you with the idea's owner,** one match per pair (P1-11).
+2. **More rate limits than the plan named:** LLM-backed requests, idea posts and answers per hour, on top of the sign-in limits (P1-18). The per-IP sign-in limit (`LOGIN_RATE_LIMIT_PER_IP`, default 20 an hour) may need raising if many students share a campus IP.
+3. **`digest_link_clicked` counts answers from any emailed link,** not just digests (P1-15).
+4. **Unknown events in the Phase 0 sheets are reported, not created,** because the sheets have no dates (P1-16).
+5. **The GitHub summary is stored** in `profiles.github_summary` (P1-07).
+6. **Account deletion asks the user to type "delete"** (P1-08).
+7. **The pair page shows the template coffee-chat message;** the LLM-written one is only in the mutual email (P1-13).
+
+### What still needs the owner
+
+- **P1-20 (deploy):** the hosted Supabase and Vercel projects, the sending domain and its DNS records, the secrets, the two auth email templates, and a test send to a real Cornell inbox. That send will also show whether Cornell's mail system opens links on delivery.
+- **A real Claude extraction:** the Claude path is still tested against mocks only.
+- **Phase 0 data:** run `pnpm import:phase0` against production with the real CSVs, then decide on `--send-welcome` (it emails students).
+- **Follow-ups from `docs/security.md`:** the admin search filter, and the per-IP limit on a shared campus network.
+
+### Incidents
+
+CI failed on two commits; every other ticket commit passed, or its run was cancelled because the next push replaced it and that one passed.
+
+- **P1-07 (`9002644`):** a type error in a test file, pushed because a local check step was chained with `;` instead of `&&`. Fixed in the next commit (`5289d7a`). All later pushes went through one script that stops at the first failure.
+- **P1-12 (`1afcee1`):** `pnpm install --frozen-lockfile` broke because pinning the new React Email versions also stripped the `^` from the existing `@anthropic-ai/sdk` range. Fixed in `c6ba88d`; the pre-push checks now include a frozen install.

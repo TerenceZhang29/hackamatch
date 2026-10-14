@@ -13,10 +13,10 @@ import { ideaTagsSchema } from "../schema";
 export type IdeaActionResult = { ok: true } | { ok: false; error: string };
 
 const statusSchema = z.object({
-  ideaId: z.uuid(),
+  ideaId: z.guid(),
   status: z.enum(["open", "filled", "archived"]),
 });
-const answerSchema = z.object({ ideaId: z.uuid(), answer: z.string().trim().min(1).max(300) });
+const answerSchema = z.object({ ideaId: z.guid(), answer: z.string().trim().min(1).max(300) });
 
 function reembed(ideaId: string) {
   after(async () => {

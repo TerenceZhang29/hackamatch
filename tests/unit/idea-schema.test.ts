@@ -43,5 +43,9 @@ describe("idea schemas", () => {
     expect(ideaTagsSchema.safeParse(base).success).toBe(true);
     expect(ideaTagsSchema.safeParse({ ...base, scope: "forever" }).success).toBe(false);
     expect(ideaTagsSchema.safeParse({ ...base, ideaId: "nope" }).success).toBe(false);
+    // Postgres accepts any UUID-shaped id, including the seed data's non-RFC-variant ones.
+    expect(
+      ideaTagsSchema.safeParse({ ...base, ideaId: "00000000-0000-4000-c000-000000000001" }).success,
+    ).toBe(true);
   });
 });

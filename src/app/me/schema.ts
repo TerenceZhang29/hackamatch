@@ -27,12 +27,12 @@ export const roleSchema = z.object({
 });
 
 export const eventInterestSchema = z.object({
-  eventId: z.uuid(),
+  eventId: z.guid(),
   interested: z.boolean(),
 });
 
 export const ideaStatusSchema = z.object({
-  ideaId: z.uuid(),
+  ideaId: z.guid(),
   status: z.enum(["open", "filled", "archived"]),
 });
 

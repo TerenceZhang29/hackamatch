@@ -26,7 +26,7 @@ const optional = z
 export async function toggleOrganizer(data: FormData) {
   await requireAdmin();
   const { userId, value } = z
-    .object({ userId: z.uuid(), value: z.enum(["true", "false"]) })
+    .object({ userId: z.guid(), value: z.enum(["true", "false"]) })
     .parse(form(data));
   await setOrganizer(userId, value === "true");
   revalidatePath("/admin/users");
@@ -35,7 +35,7 @@ export async function toggleOrganizer(data: FormData) {
 export async function setUserPause(data: FormData) {
   await requireAdmin();
   const { userId, choice } = z
-    .object({ userId: z.uuid(), choice: z.enum(["indefinite", "resume"]) })
+    .object({ userId: z.guid(), choice: z.enum(["indefinite", "resume"]) })
     .parse(form(data));
   await setPausedUntil(userId, pausedUntilFor(choice));
   revalidatePath("/admin/users");
@@ -44,7 +44,7 @@ export async function setUserPause(data: FormData) {
 export async function toggleFeatured(data: FormData) {
   await requireAdmin();
   const { ideaId, value } = z
-    .object({ ideaId: z.uuid(), value: z.enum(["true", "false"]) })
+    .object({ ideaId: z.guid(), value: z.enum(["true", "false"]) })
     .parse(form(data));
   await setIdeaFeatured(ideaId, value === "true");
   revalidatePath("/admin/ideas");
@@ -54,7 +54,7 @@ export async function toggleFeatured(data: FormData) {
 export async function changeIdeaStatusAsAdmin(data: FormData) {
   await requireAdmin();
   const { ideaId, status } = z
-    .object({ ideaId: z.uuid(), status: z.enum(["open", "filled", "archived"]) })
+    .object({ ideaId: z.guid(), status: z.enum(["open", "filled", "archived"]) })
     .parse(form(data));
   await setIdeaStatusAsAdmin(ideaId, status);
   revalidatePath("/admin/ideas");

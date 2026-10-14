@@ -75,8 +75,8 @@ const tagList = z.array(z.string().trim().min(1).max(60)).max(TAG_MAX);
 
 export const joinPoolInputSchema = z.object({
   tags: z.object({ skills: tagList, stack: tagList, domains: tagList }),
-  eventIds: z.array(z.uuid()).max(20).default([]),
-  ideaId: z.uuid().nullable().default(null),
+  eventIds: z.array(z.guid()).max(20).default([]),
+  ideaId: z.guid().nullable().default(null),
   clarifyingAnswer: z
     .string()
     .trim()
