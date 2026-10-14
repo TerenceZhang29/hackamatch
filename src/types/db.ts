@@ -573,6 +573,25 @@ export type Database = {
           },
         ];
       };
+      rate_limits: {
+        Row: {
+          count: number;
+          key: string;
+          window_start: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          count?: number;
+          key: string;
+          window_start: string;
+        };
+        Update: {
+          count?: number;
+          key?: string;
+          window_start?: string;
+        };
+        Relationships: [];
+      };
       team_members: {
         Row: {
           joined_at: string;
@@ -823,6 +842,10 @@ export type Database = {
     };
     Functions: {
       display_name: { Args: { p_name: string }; Returns: string };
+      hit_rate_limit: {
+        Args: { p_key: string; p_max: number; p_window_seconds: number };
+        Returns: boolean;
+      };
       interests_today: { Args: { p_timezone: string; p_user: string }; Returns: number };
       is_admin: { Args: Record<PropertyKey, never>; Returns: boolean };
       is_organizer: { Args: Record<PropertyKey, never>; Returns: boolean };

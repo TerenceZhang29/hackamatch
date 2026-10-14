@@ -70,7 +70,12 @@ const eventSchema = z
       .or(z.literal("").transform(() => null)),
     name: z.string().trim().min(3, "Name the event").max(120),
     description: optional,
-    url: optional.pipe(z.url().max(500).nullable()),
+    url: optional.pipe(
+      z
+        .url({ protocol: /^https?$/, error: "The website must be an http(s) link" })
+        .max(500)
+        .nullable(),
+    ),
     startDate: z.iso.date("Pick a start date"),
     endDate: z.iso.date("Pick an end date"),
     teamSizeMin: z.coerce.number().int().min(1).max(20),

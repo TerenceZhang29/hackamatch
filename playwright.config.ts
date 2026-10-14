@@ -28,6 +28,8 @@ export default defineConfig({
       RESPONSE_TOKEN_SECRET:
         process.env.RESPONSE_TOKEN_SECRET || "e2e-response-token-secret-not-for-production",
       CRON_SECRET: process.env.CRON_SECRET || "e2e-cron-secret",
+      // Every e2e request comes from one IP; the per-IP sign-in limit would stop the suite.
+      LOGIN_RATE_LIMIT_PER_IP: "100000",
     },
   },
 });

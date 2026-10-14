@@ -58,6 +58,7 @@ const envSchema = z
 
     GITHUB_TOKEN: optionalString,
     SHOW_EXISTING_TEAMS: z.stringbool().default(false),
+    LOGIN_RATE_LIMIT_PER_IP: z.coerce.number().int().positive().default(20),
   })
   .transform((env) => {
     // Real providers are the default in production; fakes everywhere else, so

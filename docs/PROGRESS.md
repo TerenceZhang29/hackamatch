@@ -25,7 +25,7 @@ Last updated: 2026-10-14
 | P1-15 Analytics events | Done | `pnpm check:analytics` in CI; `digest_sent` waits for P2-06 |
 | P1-16 Phase 0 import and seeding | Done (scripts) | Import and `seed:dev` ready; real data not imported (no Phase 0 files yet) |
 | P1-17 Event pages and tagging | Done | `/e/[slug]` share page; join links preselect the event in onboarding |
-| P1-18 Security and privacy hardening | Not started | |
+| P1-18 Security and privacy hardening | Done | CSP and headers, Postgres rate limits, audit in [`docs/security.md`](./security.md) |
 | P1-19 E2E suite and accessibility pass | Not started | |
 | P1-20 Production deploy and pilot readiness | Not started | Must install the two auth email templates and the `/auth/confirm**` redirect pattern on the hosted Supabase project |
 
@@ -323,3 +323,17 @@ Running the import against production with real data, and sending welcome emails
 ### Choice made without the owner
 
 - **Opening a `?join=1` link while signed in tags the event on a GET.** Only a signed-in member's own request does this (mail scanners are never signed in), and it is what lets a sign-in round trip finish the join without another click.
+
+## P1-18: security and privacy hardening
+
+**Implemented 2026-10-14.** The audit checklist is [`docs/security.md`](./security.md).
+
+- Content-Security-Policy with a per-request nonce (`src/middleware.ts`, `src/lib/csp.ts`) plus static headers in `next.config.ts`; the whole e2e suite runs under it.
+- Rate limits in Postgres (`rate_limits` table and server-only `hit_rate_limit`, migration `20261014090000_rate_limits.sql`): sign-in emails 5 per address and `LOGIN_RATE_LIMIT_PER_IP` (default 20) per IP per hour; LLM-backed requests 30 per user per hour; ideas 20 per user per day; Interested / Pass 60 per user per hour. The limiter fails open if Postgres can't be reached.
+- Event websites in the admin form must be `http(s)` links.
+
+### Choices made without the owner
+
+- **More limits than the plan named.** The plan asked for sign-in and interest limits; the LLM and idea limits were added to cap API spend if an account is abused.
+- **Styles allow `'unsafe-inline'`** in the CSP, because Next.js and React set inline styles; scripts are nonce-only.
+- **The per-IP sign-in limit is configurable** (`LOGIN_RATE_LIMIT_PER_IP`) because e2e signs in many users from one address, and because a campus network may put many students behind one IP; watch for false refusals at the pilot.

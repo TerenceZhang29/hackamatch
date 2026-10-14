@@ -5,6 +5,7 @@ const MESSAGES: Record<string, string> = {
   limit: "You've said Interested to 15 people today. Come back tomorrow.",
   unavailable: "That person or idea isn't available any more.",
   self: "That's you!",
+  busy: "That's a lot of answers in a short time. Wait a few minutes and try again.",
 };
 
 type Params = Record<string, string | string[] | undefined>;

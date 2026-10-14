@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireOnboarded } from "@/lib/auth";
 import { sanitizeNext } from "@/lib/auth-helpers";
+import { LIMITS } from "@/lib/rate-limit";
+import { allow } from "@/server/rate-limit";
 import { answerFromBoard, recordResponse } from "@/server/matches";
 
 const cardSchema = z.object({
@@ -33,6 +35,7 @@ export async function answerCard(formData: FormData): Promise<void> {
   if (!parsed.success) redirect("/");
   const { kind, targetId, response } = parsed.data;
   const back = sanitizeNext(parsed.data.returnTo) ?? "/";
+  if (!(await allow(LIMITS.answers, user.id))) redirect(withOutcome(back, "error", "busy"));
 
   const result = await answerFromBoard(
     user.id,

@@ -4,6 +4,9 @@ import { z } from "zod";
 import { track } from "@/lib/analytics";
 import { isAllowedEmailDomain, normalizeEmail, sanitizeNext } from "@/lib/auth-helpers";
 import { getConfig } from "@/lib/config";
+import { clientIp, LIMITS } from "@/lib/rate-limit";
+import { allow } from "@/server/rate-limit";
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 
 export type LoginState =
@@ -50,6 +53,20 @@ export async function requestMagicLink(
   // Reject before any email is sent.
   if (!isAllowedEmailDomain(email, allowedDomains)) {
     return { status: "error", message: DOMAIN_ERROR, email: typedEmail };
+  }
+
+  // Checked after the domain, so bad addresses don't use up anyone's allowance.
+  const ip = clientIp(await headers());
+  const [emailOk, ipOk] = await Promise.all([
+    allow(LIMITS.loginEmail, email),
+    allow(LIMITS.loginIp, ip, config.LOGIN_RATE_LIMIT_PER_IP),
+  ]);
+  if (!emailOk || !ipOk) {
+    return {
+      status: "error",
+      message: "Too many sign-in emails. Wait a while and try again.",
+      email: typedEmail,
+    };
   }
 
   // `next` is always present, even when empty: the email templates append

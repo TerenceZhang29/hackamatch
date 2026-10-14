@@ -7,6 +7,8 @@ import { track } from "@/lib/analytics";
 import { requireOnboarded } from "@/lib/auth";
 import { LlmError } from "@/lib/llm/types";
 import { pausedUntilFor } from "@/lib/pause";
+import { LIMITS } from "@/lib/rate-limit";
+import { allow } from "@/server/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 import { addEventInterests, filterUpcomingEventIds, removeEventInterest } from "@/server/events";
 import { setIdeaStatus } from "@/server/ideas";
@@ -48,6 +50,9 @@ export async function saveSentence(input: unknown): Promise<ActionResult> {
   const parsed = sentenceSchema.safeParse(input);
   if (!parsed.success) return invalid(parsed.error);
 
+  if (!(await allow(LIMITS.llm, user.id))) {
+    return { ok: false, error: "That's a lot of edits. Wait a few minutes and try again." };
+  }
   await updateSentence(user.id, parsed.data.sentence);
   let notice: string | undefined;
   try {

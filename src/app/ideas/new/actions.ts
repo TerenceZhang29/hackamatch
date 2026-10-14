@@ -6,6 +6,8 @@ import { track } from "@/lib/analytics";
 import { requireOnboarded } from "@/lib/auth";
 import { extractIdea, type ExtractedIdea } from "@/lib/llm/extract-idea";
 import { LlmError } from "@/lib/llm/types";
+import { LIMITS } from "@/lib/rate-limit";
+import { allow } from "@/server/rate-limit";
 import { normalizeTag, normalizeTags } from "@/lib/taxonomy/normalize";
 import { embedIdea } from "@/server/embed";
 import { filterUpcomingEventIds } from "@/server/events";
@@ -22,10 +24,16 @@ export type PreviewResult =
 
 /** Turns the idea text into its public pitch and tags, without saving anything. */
 export async function previewIdea(input: unknown): Promise<PreviewResult> {
-  await requireOnboarded("/ideas/new");
+  const user = await requireOnboarded("/ideas/new");
   const parsed = previewSchema.safeParse(input);
   if (!parsed.success) {
     return { status: "error", message: parsed.error.issues[0]?.message ?? "Check your idea" };
+  }
+  if (!(await allow(LIMITS.llm, user.id))) {
+    return {
+      status: "error",
+      message: "That's a lot of previews. Wait a few minutes and try again.",
+    };
   }
   try {
     return {
@@ -45,6 +53,9 @@ export async function postIdea(input: PostIdeaInput): Promise<{ error: string }>
   const parsed = postIdeaSchema.safeParse(input);
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Check your idea" };
+  }
+  if (!(await allow(LIMITS.ideas, user.id))) {
+    return { error: "You've posted a lot of ideas today. Try again tomorrow." };
   }
   const { text, preview, answer } = parsed.data;
   const [eventId = null] = parsed.data.eventId

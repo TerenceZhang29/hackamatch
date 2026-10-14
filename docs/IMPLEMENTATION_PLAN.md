@@ -898,6 +898,7 @@ Each ticket here should be expanded into its own detailed plan when started; the
 | `CRON_SECRET` | cron routes | |
 | `GITHUB_TOKEN` | GitHub import | optional, raises rate limit |
 | `SHOW_EXISTING_TEAMS` | pair page | `true` \| `false` |
+| `LOGIN_RATE_LIMIT_PER_IP` | login rate limit | default `20` sign-in emails per IP per hour; e2e raises it (P1-18) |
 | `TWILIO_*`, `SLACK_*` | Phase 3 | |
 
 ---

@@ -9,6 +9,8 @@ import { fetchGithubSummary, parseGithubUsername } from "@/lib/imports/github";
 import { cleanLinkedinText, normalizeLinkedinUrl } from "@/lib/imports/linkedin";
 import { sanitizeNext } from "@/lib/auth-helpers";
 import { LlmError } from "@/lib/llm/types";
+import { LIMITS } from "@/lib/rate-limit";
+import { allow } from "@/server/rate-limit";
 import { addEventInterests, filterUpcomingEventIds } from "@/server/events";
 import {
   answerClarifyingQuestion,
@@ -50,6 +52,9 @@ export async function submitSentence(input: SentenceInput): Promise<SentenceResu
   }
 
   const data = parsed.data;
+  if (!(await allow(LIMITS.llm, user.id))) {
+    return { status: "error", message: "That's a lot of tries. Wait a few minutes and try again." };
+  }
 
   // A GitHub profile is optional extra signal, and can replace the sentence.
   const githubUsername = data.githubUrl ? parseGithubUsername(data.githubUrl) : null;
