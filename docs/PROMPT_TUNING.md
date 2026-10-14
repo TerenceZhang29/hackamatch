@@ -33,6 +33,19 @@ For every case also check: the output validates on the first attempt, every tag 
 | `gemini-3.5-flash-lite` | `gemini` | `2026-10-13.2`, cases 1 to 5 | Pass on the idea rule; two tagging misses (see log). Not run on `2026-10-14.1` |
 | `claude-haiku-5-5` | `anthropic` | `2026-10-14.3`, all seven cases, twice | Pass, 7 of 7 (4 on `2026-10-13.2`, 5 on `.1` and `.2`); small issues listed in the test plan's results |
 
+## Backlog: known issues to tune later
+
+Small failures seen on the shipped prompt (`2026-10-14.3`, `claude-haiku-5-5`) that do not fail a standard case. Fix them in a later round: add a case for each one you take on, re-run all cases twice, and move the item to the log with its result.
+
+| # | Issue | Seen in | Example | Likely fix |
+| --- | --- | --- | --- | --- |
+| B1 | The person's domain disagrees with their idea's domain | Case 2, round 3, run 2 | Person `enterprise-saas`, idea `health`, for "A mobile app that helps nurses swap shifts" | Rule: for an idea person, the person's domains include the idea's domain |
+| B2 | Prompt rules leak into the public summary | Case 7, round 3, run 2 | "Student wants a marketplace for reselling textbooks; no personal skills stated." | Rule: the summary describes the person only, never what is missing or how it was tagged |
+| B3 | Awkward summary openings | Cases 2 and 7, rounds 2 and 3 | "Idea person wanting a mobile app for nurses to swap shifts." | Rule with an example of the wanted style, such as "Wants to build …" |
+| B4 | A tag from the wrong group | Case 4, round 3, run 1 | `marketplace` (a domain) in `skills_needed`; `normalize` drops it, so no harm reaches the board | Low priority; already handled in code |
+| B5 | Enum values wrapped in stray quotes | Rounds 1 to 3, 7 times in 42 calls | `experience_level: "\"intermediate\""` | Handled in code by `llmEnum`; no prompt change needed unless the rate grows |
+| B6 | Results vary between runs | All rounds | Case 6 invented an idea in one of two baseline runs | Run more than two samples per case before trusting a fix |
+
 ## Test plans
 
 ### Claude Haiku 5.5: first live test

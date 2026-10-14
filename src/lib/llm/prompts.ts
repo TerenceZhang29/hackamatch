@@ -5,6 +5,10 @@ import { slugsOf } from "@/lib/taxonomy/skills";
  * wording changes, so stored extractions can be traced to the prompt that
  * produced them, and log the change and its live-test results in
  * docs/PROMPT_TUNING.md.
+ *
+ * Known small failures of this version (person domain disagreeing with the
+ * idea's, rule text leaking into summaries, awkward summary openings) are
+ * listed in the backlog in docs/PROMPT_TUNING.md, to tune in a later round.
  */
 export const PROMPT_VERSION = "2026-10-14.3";
 
