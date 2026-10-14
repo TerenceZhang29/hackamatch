@@ -857,6 +857,22 @@ export type Database = {
           user_id: string;
         }[];
       };
+      public_idea: {
+        Args: { p_id: string };
+        Returns: {
+          created_at: string;
+          domain: string;
+          event_id: string;
+          featured: boolean;
+          id: string;
+          owner_display: string;
+          owner_id: string;
+          pitch: string;
+          scope: Database["public"]["Enums"]["idea_scope"];
+          skills_needed: string[];
+          status: Database["public"]["Enums"]["idea_status"];
+        }[];
+      };
     };
     Enums: {
       experience_level: "beginner" | "intermediate" | "advanced";

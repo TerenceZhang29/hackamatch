@@ -16,7 +16,7 @@ Last updated: 2026-10-14
 | P1-06 Onboarding flow | Done | Three-step flow; slow-LLM fallback fills tags in the background (see below) |
 | P1-07 GitHub and LinkedIn import | Done | GitHub summary now stored in `profiles.github_summary` (see below) |
 | P1-08 Profile page and settings | Done | `/me`: sentence, tags, role, events, ideas, pause, delete |
-| P1-09 Post an idea | Not started | |
+| P1-09 Post an idea | Done | `/ideas/new` with preview; `/ideas/[id]` owner and public views; `public_idea` SQL function |
 | P1-10 Public board | Not started | |
 | P1-11 Interested / Pass from the board | Not started | A placeholder `/matches` page exists |
 | P1-12 Notifications foundation | Not started | Unblocked |
@@ -173,3 +173,23 @@ Two real calls through `createVoyageEmbedder` (`voyage-4-lite`, 1024 dimensions)
 - **Deleting needs the word "delete" typed,** then signs the user out and deletes the auth user; everything else cascades. The plan said "confirms" without saying how.
 - **Pause logic lives in `src/lib/pause.ts`** (pure, unit tested). "Until I turn it back on" stores `9999-12-31`, as the plan says.
 - **Re-extraction after a sentence edit never adds an idea** for an onboarded user who already has one (same rule as the late background run in P1-06).
+
+## P1-09: post an idea
+
+**Implemented 2026-10-14.**
+
+- `/ideas/new`: one text box and an optional hackathon. "Preview" runs extraction (8 s budget) and shows the public pitch, area, scope and skills needed, plus the clarifying question as an optional field. "Post" saves and opens `/ideas/[id]`; embedding (and the clarifying answer, or extraction if the preview timed out) runs after the response.
+- `/ideas/[id]`: the owner sees the full text and can answer the clarifying question, edit skills needed, area and scope, and set Open / Filled / Archived. Everyone else sees the pitch and tags only; logged-out visitors get "Sign in to connect" (back to the idea after sign-in). A user with a revealed match on the idea also sees the full text. The Interested / Pass slot is left for P1-11.
+- New SQL function `public_idea(id)` (migration `20261014053816_public_idea.sql`): public columns of one idea, never `raw_text`, hidden when archived or when the owner is paused or not onboarded.
+- A builder who posts an idea becomes `both`. `idea_posted` is recorded.
+
+### Choices made without the owner
+
+- **Filled ideas stay viewable** at their link with "This idea has a team"; archived ones are a 404 for everyone but the owner.
+- **The preview's pitch and tags come back from the browser** when posting (so the user posts what they saw, without a second LLM call). Tags are re-normalized on the server and the pitch is capped at 200 characters; the owner can only affect their own idea's public fields, which they can edit anyway.
+- **If preview extraction times out,** the idea is posted with an empty pitch and extraction finishes in the background; the page shows "Writing your pitch…" until then.
+- `tagLabel` moved to `src/lib/taxonomy/labels.ts` so server components can use it.
+
+### Gotcha
+
+`pnpm exec supabase migration new <name>` reads SQL from standard input when it is not run in a terminal, so in scripts it waits forever. Run it with `< /dev/null`, or create the file by hand with a UTC timestamp prefix.

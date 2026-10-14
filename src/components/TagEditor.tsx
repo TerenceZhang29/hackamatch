@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
+import { tagLabel } from "@/lib/taxonomy/labels";
 
 export type TagGroup = "skills" | "stack" | "domains";
 export type TagValues = Record<TagGroup, string[]>;
@@ -11,31 +12,34 @@ const GROUP_LABELS: Record<TagGroup, string> = {
   domains: "Areas",
 };
 
-/** Shows a slug the way people write it: `ux-design` → `ux design`. */
-export function tagLabel(slug: string): string {
-  return slug.replaceAll("-", " ");
-}
+export { tagLabel };
 
 /**
  * Chips for the three tag groups. Tap × to remove; type to add, with
  * suggestions from the taxonomy. The server normalizes whatever is submitted,
  * so free text that is not in the taxonomy is dropped there.
  */
-export function TagEditor({
+export function TagEditor<G extends TagGroup = TagGroup>({
   value,
   onChange,
   suggestions,
+  groups = Object.keys(GROUP_LABELS) as G[],
+  labels = {},
 }: {
-  value: TagValues;
-  onChange: (value: TagValues) => void;
-  suggestions: Record<TagGroup, string[]>;
+  value: Record<G, string[]>;
+  onChange: (value: Record<G, string[]>) => void;
+  suggestions: Record<G, string[]>;
+  /** Which groups to show; all three by default. */
+  groups?: G[];
+  /** Overrides for group labels, e.g. "Skills needed" on an idea. */
+  labels?: Partial<Record<G, string>>;
 }) {
   return (
     <div className="flex flex-col gap-4">
-      {(Object.keys(GROUP_LABELS) as TagGroup[]).map((group) => (
+      {groups.map((group) => (
         <TagGroupEditor
           key={group}
-          group={group}
+          label={labels[group] ?? GROUP_LABELS[group]}
           tags={value[group]}
           suggestions={suggestions[group]}
           onChange={(tags) => onChange({ ...value, [group]: tags })}
@@ -46,12 +50,12 @@ export function TagEditor({
 }
 
 function TagGroupEditor({
-  group,
+  label,
   tags,
   suggestions,
   onChange,
 }: {
-  group: TagGroup;
+  label: string;
   tags: string[];
   suggestions: string[];
   onChange: (tags: string[]) => void;
@@ -59,7 +63,6 @@ function TagGroupEditor({
   const [draft, setDraft] = useState("");
   const inputId = useId();
   const listId = `${inputId}-list`;
-  const label = GROUP_LABELS[group];
 
   function add() {
     const slug = draft.trim().toLowerCase().replaceAll(/\s+/g, "-");
