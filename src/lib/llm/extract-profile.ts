@@ -2,7 +2,7 @@ import "server-only";
 import { z } from "zod";
 import { normalizeTags } from "@/lib/taxonomy/normalize";
 import { llm } from "./client";
-import { normalizeIdea, rawIdeaSchema, type ExtractedIdea } from "./extract-idea";
+import { llmEnum, normalizeIdea, rawIdeaSchema, type ExtractedIdea } from "./extract-idea";
 import {
   PROFILE_TOOL,
   profileSystemPrompt,
@@ -18,7 +18,7 @@ export const rawProfileSchema = z.object({
   skills: z.array(z.string()),
   stack: z.array(z.string()),
   domains: z.array(z.string()),
-  experience_level: z.enum(EXPERIENCE_LEVELS),
+  experience_level: llmEnum(EXPERIENCE_LEVELS),
   idea: rawIdeaSchema.nullable(),
 });
 

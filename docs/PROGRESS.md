@@ -11,7 +11,7 @@ Last updated: 2026-10-14
 | P1-01 Project scaffold | Done | Commit `0846317` |
 | P1-02 Database schema and Supabase setup | Done | Commit `b78202c` |
 | P1-03 Magic-link auth restricted to Cornell | Done | Token-hash link with a confirm button (see below) |
-| P1-04 LLM wrapper, prompts, and taxonomy | Done | Gemini provider verified live on 2026-10-13. Claude provider tested against mocks only (see below) |
+| P1-04 LLM wrapper, prompts, and taxonomy | Done | Claude (`claude-haiku-5-5`) verified live on 2026-10-14 with prompt `2026-10-14.3`; Gemini verified on 2026-10-13 with an older prompt. See [`PROMPT_TUNING.md`](./PROMPT_TUNING.md) |
 | P1-05 Embeddings wrapper | Done | Verified against the real Voyage API on 2026-10-13 (see below) |
 | P1-06 Onboarding flow | Done | Three-step flow; slow-LLM fallback fills tags in the background (see below) |
 | P1-07 GitHub and LinkedIn import | Done | GitHub summary now stored in `profiles.github_summary` (see below) |
@@ -82,7 +82,7 @@ Chosen by the project owner on 2026-10-09.
 
 ### Not yet verified
 
-No real Claude call has been made. The Claude path is covered by unit tests against a mocked SDK client only. If Claude will be used for the pilot, run one real extraction first (needs `ANTHROPIC_API_KEY` and the owner's approval) and read the output for prompt quality.
+Claude is the pilot provider (owner's choice, 2026-10-14). It was verified live on 2026-10-14: 57 approved calls over a baseline and three prompt rounds, ending with version `2026-10-14.3` passing all seven standard cases twice. Gemini has not been re-run on the current prompt. Details in [`PROMPT_TUNING.md`](./PROMPT_TUNING.md).
 
 ### Gemini provider (added 2026-10-13)
 
@@ -369,7 +369,7 @@ These choices were made without the owner. Each ticket's section above has the r
 ### What still needs the owner
 
 - **P1-20 (deploy):** the hosted Supabase and Vercel projects, the sending domain and its DNS records, the secrets, the two auth email templates, and a test send to a real Cornell inbox. That send will also show whether Cornell's mail system opens links on delivery.
-- **A real Claude extraction:** the Claude path is still tested against mocks only.
+- ~~**A real Claude extraction**~~: done 2026-10-14; see [`PROMPT_TUNING.md`](./PROMPT_TUNING.md).
 - **Phase 0 data:** run `pnpm import:phase0` against production with the real CSVs, then decide on `--send-welcome` (it emails students).
 - **Follow-ups from `docs/security.md`:** the admin search filter, and the per-IP limit on a shared campus network.
 

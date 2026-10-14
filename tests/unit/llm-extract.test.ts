@@ -115,3 +115,22 @@ describe("prompts", () => {
     }
   });
 });
+
+describe("llmEnum", () => {
+  it("accepts a value wrapped in a stray pair of quotes", async () => {
+    const { rawProfileSchema } = await import("@/lib/llm/extract-profile");
+    const base = { summary: "s", skills: [], stack: [], domains: [], idea: null };
+    expect(rawProfileSchema.parse({ ...base, experience_level: '"intermediate"' })).toMatchObject({
+      experience_level: "intermediate",
+    });
+    expect(rawProfileSchema.safeParse({ ...base, experience_level: "expert" }).success).toBe(false);
+  });
+
+  it("still sends the model a plain enum", async () => {
+    const { rawIdeaSchema } = await import("@/lib/llm/extract-idea");
+    const jsonSchema = z.toJSONSchema(rawIdeaSchema) as { properties: Record<string, unknown> };
+    expect(jsonSchema.properties.scope).toMatchObject({
+      enum: ["weekend", "few_weeks", "ongoing"],
+    });
+  });
+});

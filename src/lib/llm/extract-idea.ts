@@ -6,12 +6,23 @@ import { IDEA_TOOL, ideaSystemPrompt, ideaUserPrompt } from "./prompts";
 
 export const IDEA_SCOPES = ["weekend", "few_weeks", "ongoing"] as const;
 
+/**
+ * An enum that also accepts its value wrapped in a stray pair of quotes
+ * (`"\"weekend\""`), a glitch seen from Claude that otherwise costs a retry.
+ */
+export function llmEnum<const T extends readonly [string, ...string[]]>(values: T) {
+  return z.preprocess(
+    (value) => (typeof value === "string" ? value.trim().replace(/^(["'])(.*)\1$/, "$2") : value),
+    z.enum(values),
+  );
+}
+
 /** What the model returns for an idea, before tags are normalized. */
 export const rawIdeaSchema = z.object({
   pitch: z.string().trim().min(1),
   domain: z.string().nullable(),
   skills_needed: z.array(z.string()),
-  scope: z.enum(IDEA_SCOPES),
+  scope: llmEnum(IDEA_SCOPES),
   clarifying_question: z.string().trim().min(1).nullable(),
 });
 
