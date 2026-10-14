@@ -370,7 +370,7 @@ These choices were made without the owner. Each ticket's section above has the r
 
 - **P1-20 (deploy):** the hosted Supabase and Vercel projects, the sending domain and its DNS records, the secrets, the two auth email templates, and a test send to a real Cornell inbox. That send will also show whether Cornell's mail system opens links on delivery.
 - ~~**A real Claude extraction**~~: done 2026-10-14; see [`PROMPT_TUNING.md`](./PROMPT_TUNING.md).
-- **Phase 0 data:** run `pnpm import:phase0` against production with the real CSVs, then decide on `--send-welcome` (it emails students).
+- **Phase 0:** nothing exists yet (no form, ideas, matches or gate result). Plan and owner decisions in [`plans/phase0.md`](./plans/phase0.md).
 - **Follow-ups from `docs/security.md`:** the admin search filter, and the per-IP limit on a shared campus network.
 
 ### Incidents
