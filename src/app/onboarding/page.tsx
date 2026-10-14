@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { sanitizeNext } from "@/lib/auth-helpers";
 import { slugsOf } from "@/lib/taxonomy/skills";
-import { listUpcomingEvents } from "@/server/events";
+import { eventFromJoinPath, listUpcomingEvents } from "@/server/events";
 import { OnboardingFlow } from "./OnboardingFlow";
 
 export const metadata: Metadata = { title: "Join · HackaMatch" };
@@ -21,7 +21,7 @@ export default async function OnboardingPage({
   );
   if (user.onboarded_at) redirect(next ?? "/matches");
 
-  const events = await listUpcomingEvents();
+  const [events, joinEventId] = await Promise.all([listUpcomingEvents(), eventFromJoinPath(next)]);
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-lg flex-col justify-center px-4 py-12">
@@ -33,6 +33,7 @@ export default async function OnboardingPage({
           sentence: user.raw_bio ?? "",
         }}
         events={events}
+        initialEventIds={joinEventId ? [joinEventId] : []}
         next={next}
         suggestions={{
           skills: slugsOf("skills"),

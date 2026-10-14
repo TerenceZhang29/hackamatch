@@ -61,3 +61,58 @@ export async function listEventInterestIds(userId: string): Promise<string[]> {
   if (error) throw new Error(`listEventInterestIds: ${error.message}`);
   return data.map((row) => row.event_id).filter((id): id is string => id !== null);
 }
+
+export type EventDetail = Pick<
+  Tables<"events">,
+  | "id"
+  | "slug"
+  | "name"
+  | "description"
+  | "url"
+  | "start_date"
+  | "end_date"
+  | "team_size_min"
+  | "team_size_max"
+>;
+
+export async function getEventBySlug(slug: string): Promise<EventDetail | null> {
+  const { data, error } = await createServiceClient()
+    .from("events")
+    .select("id, slug, name, description, url, start_date, end_date, team_size_min, team_size_max")
+    .eq("slug", slug)
+    .maybeSingle();
+  if (error) throw new Error(`getEventBySlug: ${error.message}`);
+  return data;
+}
+
+/** How many people in the pool (onboarded, not paused) have tagged an event. */
+export async function countEventInterest(eventId: string): Promise<number> {
+  const { count, error } = await createServiceClient()
+    .from("event_interests")
+    .select("user_id, users!inner(onboarded_at, paused_until)", { count: "exact", head: true })
+    .eq("event_id", eventId)
+    .not("users.onboarded_at", "is", null)
+    .or(`paused_until.is.null,paused_until.lt.${new Date().toISOString()}`, {
+      referencedTable: "users",
+    });
+  if (error) throw new Error(`countEventInterest: ${error.message}`);
+  return count ?? 0;
+}
+
+/** Whether an event has ended, in APP_TIMEZONE. */
+export function hasEnded(event: Pick<Tables<"events">, "end_date">): boolean {
+  return event.end_date < localDateString(getConfig().APP_TIMEZONE);
+}
+
+/**
+ * The event a post-sign-in `next` path points at when it is an event join link
+ * (`/e/<slug>?join=1`), so onboarding can preselect it.
+ */
+export async function eventFromJoinPath(next: string | null): Promise<string | null> {
+  if (!next) return null;
+  const url = new URL(next, "http://internal.invalid");
+  const slug = /^\/e\/([a-z0-9-]+)$/.exec(url.pathname)?.[1];
+  if (!slug || url.searchParams.get("join") !== "1") return null;
+  const event = await getEventBySlug(slug);
+  return event && !hasEnded(event) ? event.id : null;
+}

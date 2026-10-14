@@ -61,11 +61,14 @@ type Extracted =
 export function OnboardingFlow({
   initial,
   events,
+  initialEventIds = [],
   next,
   suggestions,
 }: {
   initial: OnboardingInitial;
   events: PickableEvent[];
+  /** Preselected events, e.g. the one whose share link brought the user here. */
+  initialEventIds?: string[];
   next: string | null;
   suggestions: Record<TagGroup, string[]>;
 }) {
@@ -82,7 +85,7 @@ export function OnboardingFlow({
   const canSubmitSentence = sentence.trim().length >= 3 || githubUrl.trim().length > 0;
   const [extracted, setExtracted] = useState<Extracted | null>(null);
   const [tags, setTags] = useState<TagValues>({ skills: [], stack: [], domains: [] });
-  const [eventIds, setEventIds] = useState<string[]>([]);
+  const [eventIds, setEventIds] = useState<string[]>(initialEventIds);
   const [answer, setAnswer] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();

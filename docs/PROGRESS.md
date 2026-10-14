@@ -24,7 +24,7 @@ Last updated: 2026-10-14
 | P1-14 Admin tools | Done | Users, ideas, events, hand-made matches; 404 for non-admins |
 | P1-15 Analytics events | Done | `pnpm check:analytics` in CI; `digest_sent` waits for P2-06 |
 | P1-16 Phase 0 import and seeding | Done (scripts) | Import and `seed:dev` ready; real data not imported (no Phase 0 files yet) |
-| P1-17 Event pages and tagging | Not started | |
+| P1-17 Event pages and tagging | Done | `/e/[slug]` share page; join links preselect the event in onboarding |
 | P1-18 Security and privacy hardening | Not started | |
 | P1-19 E2E suite and accessibility pass | Not started | |
 | P1-20 Production deploy and pilot readiness | Not started | Must install the two auth email templates and the `/auth/confirm**` redirect pattern on the hosted Supabase project |
@@ -312,3 +312,14 @@ The P1-12 commit failed CI at `pnpm install --frozen-lockfile`: pinning the new 
 ### Before importing real data
 
 Running the import against production with real data, and sending welcome emails, both need the owner: the CSVs, the production environment, and approval to email students.
+
+## P1-17: event pages and tagging
+
+**Implemented 2026-10-14.**
+
+- `/e/[slug]` is the link organizers share: name, dates, team size, description and website, "N people are looking for teammates" (onboarded, unpaused people who tagged it), up to six ideas and six builders tagged with it (with Interested / Pass for members), and a link to the filtered board when there are more. Past events say "This event has ended" and offer no join button; unknown slugs are a 404.
+- Logged out, "Find a team for this event" goes through `/join` (recording `cta_clicked`) to sign in with `next=/e/<slug>?join=1`. A new user then lands on onboarding with that event preselected, and joining the pool returns them to the event page. A signed-in member opening a `?join=1` link has the event tagged and is sent to the clean URL; members can also toggle "I'm interested in this event" / "I'm not going after all".
+
+### Choice made without the owner
+
+- **Opening a `?join=1` link while signed in tags the event on a GET.** Only a signed-in member's own request does this (mail scanners are never signed in), and it is what lets a sign-in round trip finish the join without another click.
