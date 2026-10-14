@@ -21,7 +21,7 @@ Last updated: 2026-10-14
 | P1-11 Interested / Pass from the board | Done | Board, idea and person pages; `/matches` sections; atomic `respond_to_pair` |
 | P1-12 Notifications foundation | Done | Email via `send()`, signed one-click links, atomic mutual reveal (see below) |
 | P1-13 Shared pair page and "We teamed up" | Not started | |
-| P1-14 Admin tools | Not started | Needs P1-03 |
+| P1-14 Admin tools | Done | Users, ideas, events, hand-made matches; 404 for non-admins |
 | P1-15 Analytics events | Partly done | `track`, the event-name union and its unit test landed with P1-03. Remaining: `scripts/check-analytics.ts` and the CI check |
 | P1-16 Phase 0 import and seeding | Not started | No `data/phase0/` files in the repo yet |
 | P1-17 Event pages and tagging | Not started | |
@@ -247,3 +247,18 @@ Two real calls through `createVoyageEmbedder` (`voyage-4-lite`, 1024 dimensions)
 ### CI incident
 
 The P1-12 commit failed CI at `pnpm install --frozen-lockfile`: pinning the new React Email versions also stripped the `^` from the existing `@anthropic-ai/sdk` range, so `package.json` no longer matched the lockfile. Fixed in `c6ba88d`. The pre-push checks now include a frozen install.
+
+## P1-14: admin tools
+
+**Implemented 2026-10-14**, before P1-13 because P1-13 depends on it.
+
+- `/admin` (counts), `/admin/users` (search, role, intents, joined, last active, match counts, pause / unpause, make or remove organizer), `/admin/ideas` (feature, status), `/admin/events` (list, create; `/admin/events/[id]` edits) and `/admin/matches` (match two people by hand, all matches with both answers).
+- Every `/admin` page is a 404 for anyone but an admin (`requireAdmin` in the layout and in each page and action).
+- A hand-made match has source `admin`, a reason line for each side, an optional idea and event, and sends each person a "We think you should meet …" email with one-click Interested / Pass. A pair that already has a match is refused.
+- Event slugs are made from the name (`src/lib/slug.ts`), with `-2`, `-3` … when taken, and are kept when an event is renamed, since the slug is the shareable link.
+
+### Choices made without the owner
+
+- **People are picked by typing a name or email** with suggestions (an HTML `datalist`), rather than a custom searchable select, so the form needs no JavaScript.
+- **Admin pause is "until turned back on"**, and unpause clears it.
+- **Lists show the newest 500 rows,** enough for the pilot; pagination can come later.
