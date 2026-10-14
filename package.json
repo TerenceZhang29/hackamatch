@@ -24,7 +24,7 @@
     "db:types": "supabase gen types typescript --local > src/types/db.ts && prettier --write src/types/db.ts"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "0.133.0",
+    "@anthropic-ai/sdk": "^0.133.0",
     "@react-email/components": "1.0.12",
     "@react-email/render": "2.1.0",
     "@supabase/ssr": "0.12.7",
