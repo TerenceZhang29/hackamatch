@@ -1,6 +1,6 @@
 # Phase 0 plan: validate demand
 
-**Status: planned 2026-10-14, not started.** Nothing from Phase 0 exists yet: no sign-up form, no seed ideas, no matching sheet, no emails sent, no gate result. Nothing in this plan has been implemented.
+**Status: planned 2026-10-14, not started. Owner's decision (2026-10-14): option C — deploy first, then run Phase 0 inside the app.** Nothing from Phase 0 exists yet: no sign-up form, no seed ideas, no matching sheet, no emails sent, no gate result. Nothing in this plan has been implemented.
 
 Spec: [`IMPLEMENTATION_PLAN.md`](../IMPLEMENTATION_PLAN.md) §5 (P0-01 to P0-05). Phase 0 is run by a person, not code. Its purpose is to show that Cornell students want this before relying on the product: the gate is **at least 40 sign-ups and at least 5 teams**.
 
@@ -18,7 +18,7 @@ The plan put Phase 0 (about two weeks, manual) before Phase 1 (the app). Phase 1
 
 ## Decisions for the owner
 
-1. Which option: A, B or C?
+1. ~~Which option: A, B or C?~~ **C**, decided by the owner on 2026-10-14.
 2. The pilot event's name and date (an open question in `IMPLEMENTATION_PLAN.md` §12). Phase 0 needs about two weeks before it.
 3. Who runs the evening matching, and for how many evenings?
 4. Where to recruit: Cornell Tech Slack or email lists, class groups, hackathon organizers.
@@ -30,7 +30,7 @@ The plan put Phase 0 (about two weeks, manual) before Phase 1 (the app). Phase 1
 3. **Create the pilot event** in `/admin/events` and share its link (`/e/<slug>`); joining through it tags the event.
 4. **Recruit.** One message with the event link. Target: 40 or more people in the pool.
 5. **Match every evening (P0-03).** In `/admin/matches`, pick 3 to 5 pairs per active person with a one-line reason; the app sends each person the intro email with one-click Interested / Pass, and reveals contact details on mutual interest.
-6. **Gate check (P0-05).** After about two weeks: count onboarded users and teams. Gate passed at 40 or more sign-ups and 5 or more teams. The query belongs in `docs/runbooks/metrics.sql` (planned in P1-20 Phase A).
+6. **Gate check (P0-05).** After about two weeks: count onboarded users and teams. Gate passed at 40 or more sign-ups and 5 or more teams. The query is number 2 in [`runbooks/metrics.sql`](../runbooks/metrics.sql).
 7. **Record results** in `docs/runbooks/phase0-results.md`: the counts, what people said about vague ideas, and the builder / idea balance. Feed what was learned into the prompt backlog in [`PROMPT_TUNING.md`](../PROMPT_TUNING.md).
 
 Costs: no tools beyond P1-20. Each sign-up uses about one Claude extraction and one Voyage embedding, about $0.0004 per person, so about $0.02 for 40 people.

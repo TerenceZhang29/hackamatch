@@ -1,6 +1,6 @@
 # P1-20 plan: production deploy and pilot readiness
 
-**Status: planned 2026-10-14, not started.** Nothing in this plan has been implemented. Phase A can start when the owner says so; Phase C waits for the owner's answers to the decisions below.
+**Status: Phase A done 2026-10-14; phases B to D not started.** Phase C waits for the owner's answers to the decisions below. The step-by-step checklist is [`runbooks/deploy.md`](../runbooks/deploy.md).
 
 Spec: [`IMPLEMENTATION_PLAN.md`](../IMPLEMENTATION_PLAN.md) § P1-20. Acceptance criteria:
 
@@ -31,7 +31,9 @@ Prices from each service's pricing page on 2026-10-14, except the domain, which 
 4. **Preview deployments:** a second Supabase project for them now, or no previews at first?
 5. **Pilot event:** name and date (an open question in `IMPLEMENTATION_PLAN.md` §12; it sets the deadline).
 
-## Phase A: preparation in the repository (free)
+## Phase A: preparation in the repository (free) — done 2026-10-14
+
+Delivered: [`runbooks/deploy.md`](../runbooks/deploy.md) (phases C and D as a checklist, the production environment table, admin SQL, rollback and emergency stops), [`vercel.json`](../../vercel.json), and [`runbooks/metrics.sql`](../runbooks/metrics.sql) (Phase 1 gate, Phase 0 gate, funnel, matches, pool balance; all run against the local database).
 
 No accounts, no resources, no charges.
 
