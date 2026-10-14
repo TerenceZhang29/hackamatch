@@ -83,8 +83,22 @@ function fakeProfile(prompt: string) {
   };
 }
 
+/**
+ * Test hook: a prompt containing `[[fake-llm-delay-ms=N]]` makes the fake
+ * wait N ms, failing like a timeout if that exceeds the request's deadline.
+ * Lets e2e tests exercise the slow-LLM paths without a real provider.
+ */
+async function simulateDelay(prompt: string, timeoutMs: number | undefined) {
+  const delay = Number(/\[\[fake-llm-delay-ms=(\d+)\]\]/.exec(prompt)?.[1] ?? 0);
+  if (!delay) return;
+  const deadline = timeoutMs ?? Number.POSITIVE_INFINITY;
+  await new Promise((resolve) => setTimeout(resolve, Math.min(delay, deadline)));
+  if (delay > deadline) throw new LlmError("LLM request timed out");
+}
+
 export const fakeLlm: LlmClient = {
   async structured<T>(request: StructuredRequest<T>): Promise<T> {
+    await simulateDelay(request.user, request.timeoutMs);
     let output: unknown;
     if (request.toolName === PROFILE_TOOL) output = fakeProfile(request.user);
     else if (request.toolName === IDEA_TOOL) output = fakeIdea(readTag(request.user, "idea"));

@@ -2,7 +2,7 @@
 
 Ticket status and the decisions made while building. Specs live in [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md); update this file whenever a ticket changes state. Prompt changes and their live-test results are logged in [`PROMPT_TUNING.md`](./PROMPT_TUNING.md).
 
-Last updated: 2026-10-13
+Last updated: 2026-10-14
 
 ## Phase 1 — MVP
 
@@ -13,7 +13,7 @@ Last updated: 2026-10-13
 | P1-03 Magic-link auth restricted to Cornell | Done | Token-hash link with a confirm button (see below) |
 | P1-04 LLM wrapper, prompts, and taxonomy | Done | Gemini provider verified live on 2026-10-13. Claude provider tested against mocks only (see below) |
 | P1-05 Embeddings wrapper | Done | Verified against the real Voyage API on 2026-10-13 (see below) |
-| P1-06 Onboarding flow | Not started | Unblocked. A placeholder `/onboarding` page exists |
+| P1-06 Onboarding flow | Done | Three-step flow; slow-LLM fallback fills tags in the background (see below) |
 | P1-07 GitHub and LinkedIn import | Not started | Unblocked |
 | P1-08 Profile page and settings | Not started | |
 | P1-09 Post an idea | Not started | |
@@ -118,3 +118,28 @@ Two real calls through `createVoyageEmbedder` (`voyage-4-lite`, 1024 dimensions)
 - The fake LLM answers only the tools `record_profile` and `record_idea`. P2-04 (reason lines) must add a rule to `src/lib/llm/fake.ts`.
 - The taxonomy has 167 slugs (48 skills, 77 stack, 42 domains). Slugs are stored in the database, so renaming one needs a data migration.
 
+## P1-06: onboarding
+
+**Implemented 2026-10-14**, in the unattended run of P1-06 to P1-19 (see the summary at the end of this file once that run finishes).
+
+### What landed
+
+- `/onboarding`: one page, three steps (who you are; one sentence; review tags, optional clarifying answer and events, "Join the pool"). A builder joins with two taps (role, Continue), one sentence and one click; the e2e test asserts it takes under 60 s.
+- `src/server/profiles.ts` holds the writes (service client, after `requireUser`); `src/server/events.ts` lists upcoming events in `APP_TIMEZONE`.
+- If extraction misses the 8 s budget or fails, the user sees "We'll fill in your tags in a moment", joins anyway, and extraction re-runs after the response with a 30 s budget, then re-embeds if they have already joined.
+- Joining embeds the profile and ideas after the response, applies the clarifying answer (appended to the idea text, then re-extracted), records `pool_joined` with `seconds_since_link_click`, and redirects to `next` or `/matches?welcome=1`.
+
+### Choices made without the owner
+
+- **Re-running step 2 replaces the onboarding idea** rather than adding a second one, while the user is still onboarding. A late background run after joining only adds the idea if the user has none.
+- **`user_edited` is set by comparing against the stored tags,** not by trusting the client, so untouched LLM tags stay refreshable.
+- **Tag chips show slugs with spaces** (`ux design`); the taxonomy has no display labels yet.
+- **Step 1 and step 2 are both recorded when step 2 is submitted** (`onboarding_step_completed`), since step 1 never reaches the server on its own.
+- **Test hook in the fake LLM:** a prompt containing `[[fake-llm-delay-ms=N]]` makes the fake wait N ms and time out past the deadline. It exists only in the fake provider, for the slow-LLM e2e test.
+- The onboarding page shows "Signed in as …" with the sign-out button (the P1-03 e2e tests rely on the email being visible there).
+
+### Notes for later tickets
+
+- The GitHub/LinkedIn import row (P1-07) is not on step 2 yet.
+- E2E sign-in helpers moved to `tests/e2e/auth.ts`; `tests/e2e/helpers.ts` gained `query` and `eventually` (poll until work done in `after()` lands).
+- Local stack gotcha: if magic-link emails come out with Supabase's default template, the auth container predates the custom templates. `pnpm exec supabase stop && pnpm db:start` recreates it.

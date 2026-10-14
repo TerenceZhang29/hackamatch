@@ -121,3 +121,27 @@ export async function getLastActive(email: string) {
 export async function deleteUser(email: string) {
   await withDb((client) => client.query(`delete from auth.users where email = $1`, [email]));
 }
+
+/** Runs one SQL query as the postgres superuser and returns its rows. */
+export async function query<T extends pg.QueryResultRow = pg.QueryResultRow>(
+  sql: string,
+  params: unknown[] = [],
+) {
+  return withDb(async (client) => (await client.query<T>(sql, params)).rows);
+}
+
+/** Polls `read` until `done` accepts its value, for work that finishes after the response. */
+export async function eventually<T>(
+  read: () => Promise<T>,
+  done: (value: T) => boolean,
+  { timeoutMs = 20_000, intervalMs = 250 } = {},
+): Promise<T> {
+  const deadline = Date.now() + timeoutMs;
+  let value = await read();
+  while (!done(value)) {
+    if (Date.now() > deadline) throw new Error(`Condition not met within ${timeoutMs} ms`);
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+    value = await read();
+  }
+  return value;
+}

@@ -1,11 +1,11 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
+import { openMagicLink, requestLink, signIn } from "./auth";
 import {
   backdateLastActive,
   countAnalyticsEvents,
   countMail,
   deleteUser,
   getLastActive,
-  getMagicLink,
   getUserRow,
   markOnboarded,
   uniqueEmail,
@@ -21,36 +21,6 @@ const newEmail = () => {
 test.afterEach(async () => {
   for (const email of created.splice(0)) await deleteUser(email);
 });
-
-/** Requests a magic link from the login page and opens it from the mail catcher. */
-async function signIn(page: Page, email: string, loginUrl = "/login") {
-  const before = await countMail(email);
-  // Supabase Auth allows one email per address per second
-  // (auth.email.max_frequency in supabase/config.toml).
-  if (before > 0) await page.waitForTimeout(1100);
-  await page.goto(loginUrl);
-  await page.getByLabel("Cornell email").fill(email);
-  await page.getByRole("button", { name: "Email me a sign-in link" }).click();
-  await expect(page.getByRole("heading", { name: "Check your inbox" })).toBeVisible();
-  const link = await getMagicLink(email, { after: before });
-  await openMagicLink(page, link);
-  return link;
-}
-
-/** Opens a magic link and presses the button that completes the sign-in. */
-async function openMagicLink(page: Page, link: string) {
-  await page.goto(link);
-  await page.getByRole("button", { name: "Continue to HackaMatch" }).click();
-}
-
-/** Requests a magic link without opening it, and returns the link. */
-async function requestLink(page: Page, email: string) {
-  await page.goto("/login");
-  await page.getByLabel("Cornell email").fill(email);
-  await page.getByRole("button", { name: "Email me a sign-in link" }).click();
-  await expect(page.getByRole("heading", { name: "Check your inbox" })).toBeVisible();
-  return getMagicLink(email);
-}
 
 test("rejects a non-Cornell email before any email is sent", async ({ page }) => {
   const email = uniqueEmail("gmail.com");
