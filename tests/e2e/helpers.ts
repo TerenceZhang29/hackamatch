@@ -170,3 +170,51 @@ export async function createUser(
   }
   return id;
 }
+
+export interface OutboxEmail {
+  to: string;
+  subject: string;
+  html: string;
+  text: string;
+  headers?: Record<string, string>;
+}
+
+/** Emails the fake provider wrote to `.tmp/outbox` for one recipient, oldest first. */
+export async function readOutbox(email: string): Promise<OutboxEmail[]> {
+  const { readdir, readFile } = await import("node:fs/promises");
+  const dir = `${process.cwd()}/.tmp/outbox`;
+  const files = (await readdir(dir).catch(() => [] as string[]))
+    .filter((f) => f.endsWith(".json"))
+    .sort();
+  const emails = await Promise.all(
+    files.map(async (f) => JSON.parse(await readFile(`${dir}/${f}`, "utf8")) as OutboxEmail),
+  );
+  return emails.filter((e) => e.to === email);
+}
+
+/** The secret the e2e web server signs one-click links with (see playwright.config.ts). */
+export const E2E_TOKEN_SECRET =
+  process.env.RESPONSE_TOKEN_SECRET || "e2e-response-token-secret-not-for-production";
+
+/** Creates a match between two users; `aInterested` marks whichever is user_a as interested. */
+export async function createMatch(
+  x: string,
+  y: string,
+  opts: { ideaId?: string | null; interested?: string[]; source?: string } = {},
+) {
+  const [a, b] = x < y ? [x, y] : [y, x];
+  const interested = new Set(opts.interested ?? []);
+  const [row] = await query<{ id: string }>(
+    `insert into public.matches (user_a, user_b, idea_id, source, a_response, b_response)
+     values ($1, $2, $3, $4, $5, $6) returning id`,
+    [
+      a,
+      b,
+      opts.ideaId ?? null,
+      opts.source ?? "board",
+      interested.has(a) ? "interested" : "pending",
+      interested.has(b) ? "interested" : "pending",
+    ],
+  );
+  return row!.id;
+}

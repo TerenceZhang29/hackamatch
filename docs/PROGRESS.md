@@ -19,7 +19,7 @@ Last updated: 2026-10-14
 | P1-09 Post an idea | Done | `/ideas/new` with preview; `/ideas/[id]` owner and public views; `public_idea` SQL function |
 | P1-10 Public board | Done | Board with tabs, filters, load more; `/join` and `/people/[id]` |
 | P1-11 Interested / Pass from the board | Not started | A placeholder `/matches` page exists |
-| P1-12 Notifications foundation | Not started | Unblocked |
+| P1-12 Notifications foundation | Done | Email via `send()`, signed one-click links, atomic mutual reveal (see below) |
 | P1-13 Shared pair page and "We teamed up" | Not started | |
 | P1-14 Admin tools | Not started | Needs P1-03 |
 | P1-15 Analytics events | Partly done | `track`, the event-name union and its unit test landed with P1-03. Remaining: `scripts/check-analytics.ts` and the CI check |
@@ -209,3 +209,22 @@ Two real calls through `createVoyageEmbedder` (`voyage-4-lite`, 1024 dimensions)
 - **Builder cards link to `/people/[id]`,** the "card" the plan's logged-out flow returns to; the plan listed the route in the repository layout but no ticket specified it.
 - **`/join` is a GET that records a click.** Links to it set `prefetch={false}` so Next.js prefetching never counts as a click.
 - **The board's skill filter matches a person's skills or stack,** and an idea's skills needed.
+
+## P1-12: notifications foundation
+
+**Implemented 2026-10-14**, before P1-11 because P1-11 depends on it.
+
+- `src/server/notify.ts` `send()`: looks up the user's channel (email only in Phase 1; `none` is logged as skipped), renders a React Email template to HTML and plain text, adds `List-Unsubscribe` and `List-Unsubscribe-Post` headers, sends, and records `notification_log` (provider id, or `failed`). Digest kinds are inserted into the log first, so the one-per-day unique index stops a second send. Failures are logged, never thrown.
+- Providers: Resend over its REST API (`src/lib/notify/resend.ts`), and a fake that writes each email to `.tmp/outbox/<id>.json` and `.html` (`src/lib/notify/fake.ts`).
+- Signed one-click links (`src/lib/notify/tokens.ts`): base64url payload plus HMAC-SHA256, constant-time check, 30-day expiry for match links and 180 days for footer links. Outside production a fixed development secret is used when `RESPONSE_TOKEN_SECRET` is unset.
+- `/r/[token]`: loading the page changes nothing. The buttons post to server actions, which record the answer (either answer, so "Change my answer" works from the same link) or pause matches. Expired or tampered links show an error with "Sign in". `POST /r/[token]/unsubscribe` is the RFC 8058 one-click unsubscribe; a GET only redirects to the confirm page.
+- `src/server/matches.ts`: `recordResponse`, the atomic `revealIfMutual` (one conditional UPDATE, so simultaneous clicks reveal once), mutual emails with Cornell email, GitHub and LinkedIn plus a suggested coffee-chat message, and `sendInboundInterest` for P1-11 and P1-14. Templates: `Layout`, `InboundInterest`, `Mutual`.
+- `src/lib/llm/coffee-chat.ts`: up to 50 words, template fallback; the fake LLM has a `write_coffee_chat` rule.
+
+### Choices made without the owner
+
+- **`send()` lives in `src/server/notify.ts`,** not `src/lib/notify/index.ts` as the plan's layout says: it uses the service client, which ESLint only allows under `src/server/`.
+- **One footer link** ("Pause matches or manage notifications") opens a token page with pause options and a link to `/me`, instead of two separate links. Unsubscribing in one click pauses until the user turns matches back on.
+- **Changing an answer after a reveal does not hide contact details** that were already emailed.
+- **Resend is called with `fetch`,** not the Resend SDK, to avoid a dependency for one endpoint.
+- **Vitest now uses the automatic JSX runtime** (`esbuild.jsx = "automatic"`), matching Next.js, so templates render in unit tests.

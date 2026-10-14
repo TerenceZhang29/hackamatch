@@ -1,5 +1,5 @@
 import { findTags } from "@/lib/taxonomy/normalize";
-import { IDEA_TOOL, PROFILE_TOOL } from "./prompts";
+import { COFFEE_CHAT_TOOL, IDEA_TOOL, PROFILE_TOOL } from "./prompts";
 import { LlmError, type LlmClient, type StructuredRequest } from "./types";
 
 /**
@@ -83,6 +83,15 @@ function fakeProfile(prompt: string) {
   };
 }
 
+function fakeCoffeeChat(prompt: string) {
+  const recipient = readTag(prompt, "recipient");
+  const idea = readTag(prompt, "idea").replace(/[.!?]+$/, "");
+  const about = idea ? ` about ${idea.charAt(0).toLowerCase()}${idea.slice(1)}` : "";
+  return {
+    message: `Hi ${recipient}, HackaMatch paired us and I'd love to chat${about}. Free for a 15-minute coffee at Cornell Tech this week?`,
+  };
+}
+
 /**
  * Test hook: a prompt containing `[[fake-llm-delay-ms=N]]` makes the fake
  * wait N ms, failing like a timeout if that exceeds the request's deadline.
@@ -102,6 +111,7 @@ export const fakeLlm: LlmClient = {
     let output: unknown;
     if (request.toolName === PROFILE_TOOL) output = fakeProfile(request.user);
     else if (request.toolName === IDEA_TOOL) output = fakeIdea(readTag(request.user, "idea"));
+    else if (request.toolName === COFFEE_CHAT_TOOL) output = fakeCoffeeChat(request.user);
     else throw new LlmError(`The fake LLM has no rule for tool "${request.toolName}"`);
 
     const parsed = request.schema.safeParse(output);

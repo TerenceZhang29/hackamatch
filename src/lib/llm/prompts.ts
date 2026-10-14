@@ -10,6 +10,7 @@ export const PROMPT_VERSION = "2026-10-13.2";
 
 export const PROFILE_TOOL = "record_profile";
 export const IDEA_TOOL = "record_idea";
+export const COFFEE_CHAT_TOOL = "write_coffee_chat";
 
 export type ProfileRole = "idea" | "builder" | "both";
 
