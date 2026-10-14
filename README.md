@@ -1,5 +1,7 @@
 # HackaMatch
 
+[![CI](https://github.com/TerenceZhang29/hackamatch/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/TerenceZhang29/hackamatch/actions/workflows/ci.yml?query=branch%3Amain)
+
 Pairs Cornell students who have ideas with students who can build them.
 
 - Product framework: [docs/FRAMEWORK.md](docs/FRAMEWORK.md)
