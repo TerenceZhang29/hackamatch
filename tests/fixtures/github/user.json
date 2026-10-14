@@ -1,0 +1,14 @@
+{
+  "login": "sofia-chen-dev",
+  "id": 1234567,
+  "name": "Sofia Chen",
+  "company": null,
+  "blog": "",
+  "location": "New York, NY",
+  "bio": "Frontend engineer. I like health tech.",
+  "public_repos": 7,
+  "followers": 12,
+  "following": 9,
+  "created_at": "2021-02-03T15:04:05Z",
+  "updated_at": "2026-09-30T12:00:00Z"
+}

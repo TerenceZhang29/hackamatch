@@ -52,19 +52,45 @@ function sameTags(a: ProfileTags, b: ProfileTags): boolean {
 /** Step 1 and 2 of onboarding: who the user is and their one sentence. */
 export async function saveOnboardingBasics(
   userId: string,
-  input: { name: string | null; role: Role; intents: Intent[]; sentence: string },
+  input: {
+    name: string | null;
+    role: Role;
+    intents: Intent[];
+    sentence: string;
+    githubUrl: string | null;
+    githubSummary: string | null;
+    linkedinUrl: string | null;
+    linkedinText: string | null;
+  },
 ) {
+  const supabase = createServiceClient();
   const update: {
     role: Role;
     intents: Intent[];
     raw_bio: string;
+    github_url: string | null;
+    linkedin_url: string | null;
+    linkedin_text: string | null;
     name?: string;
-  } = { role: input.role, intents: input.intents, raw_bio: input.sentence };
-  // An empty name field never erases a name we already have (e.g. from GitHub).
+  } = {
+    role: input.role,
+    intents: input.intents,
+    raw_bio: input.sentence,
+    github_url: input.githubUrl,
+    linkedin_url: input.linkedinUrl,
+    linkedin_text: input.linkedinText,
+  };
+  // An empty name field never erases a name we already have.
   if (input.name) update.name = input.name;
 
-  const { error } = await createServiceClient().from("users").update(update).eq("id", userId);
+  const { error } = await supabase.from("users").update(update).eq("id", userId);
   if (error) throw new Error(`saveOnboardingBasics: ${error.message}`);
+
+  const { error: profileError } = await supabase
+    .from("profiles")
+    .update({ github_summary: input.githubSummary })
+    .eq("user_id", userId);
+  if (profileError) throw new Error(`saveOnboardingBasics: ${profileError.message}`);
 }
 
 /**
@@ -78,7 +104,7 @@ export async function saveOnboardingBasics(
  */
 export async function runProfileExtraction(
   userId: string,
-  options: { timeoutMs?: number; githubSummary?: string | null } = {},
+  options: { timeoutMs?: number } = {},
 ): Promise<ExtractionResult> {
   const supabase = createServiceClient();
   const { data: user, error: userError } = await supabase
@@ -89,22 +115,22 @@ export async function runProfileExtraction(
   if (userError) throw new Error(`runProfileExtraction: ${userError.message}`);
   if (!user.role || !user.raw_bio) throw new Error("runProfileExtraction: role and sentence first");
 
+  const { data: current, error: profileError } = await supabase
+    .from("profiles")
+    .select("user_edited, skills, stack, domains, github_summary")
+    .eq("user_id", userId)
+    .single();
+  if (profileError) throw new Error(`runProfileExtraction: ${profileError.message}`);
+
   const extracted = await extractProfile(
     {
       role: user.role,
       sentence: user.raw_bio,
-      githubSummary: options.githubSummary,
+      githubSummary: current.github_summary,
       linkedinText: user.linkedin_text,
     },
     { timeoutMs: options.timeoutMs },
   );
-
-  const { data: current, error: profileError } = await supabase
-    .from("profiles")
-    .select("user_edited, skills, stack, domains")
-    .eq("user_id", userId)
-    .single();
-  if (profileError) throw new Error(`runProfileExtraction: ${profileError.message}`);
 
   // Tags the user has edited are theirs; extraction never overwrites them.
   const tags: ProfileTags = current.user_edited
@@ -254,13 +280,10 @@ export async function markJoinedPool(
 }
 
 /** Embeds the profile and every idea of a user who is in the pool. Logs and swallows failures. */
-export async function embedUserAndIdeas(
-  userId: string,
-  options: { githubSummary?: string | null } = {},
-) {
+export async function embedUserAndIdeas(userId: string) {
   const supabase = createServiceClient();
   try {
-    await embedProfile(userId, options);
+    await embedProfile(userId);
     const { data: ideas, error } = await supabase.from("ideas").select("id").eq("owner_id", userId);
     if (error) throw new Error(error.message);
     for (const idea of ideas) await embedIdea(idea.id);

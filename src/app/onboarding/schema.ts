@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { parseGithubUsername } from "@/lib/imports/github";
+import { LINKEDIN_TEXT_MAX, normalizeLinkedinUrl } from "@/lib/imports/linkedin";
 
 /** Input schemas for the onboarding server actions. Kept apart so they can be unit tested. */
 
@@ -9,25 +11,63 @@ export const SENTENCE_MAX = 600;
 export const ANSWER_MAX = 300;
 const TAG_MAX = 30;
 
-export const sentenceInputSchema = z.object({
-  role: z.enum(ROLES),
-  intents: z
-    .array(z.enum(INTENTS))
-    .min(1, "Pick at least one")
-    .transform((intents) => [...new Set(intents)]),
-  name: z
+/** An optional free-text field: trimmed, and empty means absent. */
+const optionalText = (max: number) =>
+  z
     .string()
     .trim()
-    .max(80)
-    .transform((name) => name || null)
+    .max(max)
+    .transform((value) => value || null)
     .nullable()
-    .default(null),
-  sentence: z
-    .string()
-    .trim()
-    .min(3, "Write a sentence about yourself or your idea")
-    .max(SENTENCE_MAX, `Keep it under ${SENTENCE_MAX} characters`),
-});
+    .default(null);
+
+export const sentenceInputSchema = z
+  .object({
+    role: z.enum(ROLES),
+    intents: z
+      .array(z.enum(INTENTS))
+      .min(1, "Pick at least one")
+      .transform((intents) => [...new Set(intents)]),
+    name: z
+      .string()
+      .trim()
+      .max(80)
+      .transform((name) => name || null)
+      .nullable()
+      .default(null),
+    sentence: z
+      .string()
+      .trim()
+      .max(SENTENCE_MAX, `Keep it under ${SENTENCE_MAX} characters`)
+      .default(""),
+    githubUrl: optionalText(200),
+    linkedinUrl: optionalText(200),
+    linkedinText: optionalText(LINKEDIN_TEXT_MAX + 1000),
+  })
+  .superRefine((input, ctx) => {
+    // A GitHub profile can stand in for the sentence.
+    if (input.sentence.length < 3 && !input.githubUrl) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["sentence"],
+        message: "Write a sentence about yourself or your idea",
+      });
+    }
+    if (input.githubUrl && !parseGithubUsername(input.githubUrl)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["githubUrl"],
+        message: "Paste a GitHub profile link, like github.com/yourname",
+      });
+    }
+    if (input.linkedinUrl && !normalizeLinkedinUrl(input.linkedinUrl)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["linkedinUrl"],
+        message: "Paste a LinkedIn profile link, like linkedin.com/in/yourname",
+      });
+    }
+  });
 
 export type SentenceInput = z.input<typeof sentenceInputSchema>;
 

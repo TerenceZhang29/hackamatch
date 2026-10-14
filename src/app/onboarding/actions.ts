@@ -4,6 +4,9 @@ import { after } from "next/server";
 import { redirect } from "next/navigation";
 import { track } from "@/lib/analytics";
 import { requireUser } from "@/lib/auth";
+import { getConfig } from "@/lib/config";
+import { fetchGithubSummary, parseGithubUsername } from "@/lib/imports/github";
+import { cleanLinkedinText, normalizeLinkedinUrl } from "@/lib/imports/linkedin";
 import { sanitizeNext } from "@/lib/auth-helpers";
 import { LlmError } from "@/lib/llm/types";
 import { addEventInterests, filterUpcomingEventIds } from "@/server/events";
@@ -46,9 +49,36 @@ export async function submitSentence(input: SentenceInput): Promise<SentenceResu
     return { status: "error", message: parsed.error.issues[0]?.message ?? "Check your answers" };
   }
 
-  await saveOnboardingBasics(user.id, parsed.data);
+  const data = parsed.data;
+
+  // A GitHub profile is optional extra signal, and can replace the sentence.
+  const githubUsername = data.githubUrl ? parseGithubUsername(data.githubUrl) : null;
+  const github = data.githubUrl
+    ? await fetchGithubSummary(data.githubUrl, { token: getConfig().GITHUB_TOKEN })
+    : null;
+  if (data.githubUrl && !github && data.sentence.length < 3) {
+    return {
+      status: "error",
+      message: "We couldn't read that GitHub profile. Write a sentence instead.",
+    };
+  }
+
+  await saveOnboardingBasics(user.id, {
+    role: data.role,
+    intents: data.intents,
+    name: data.name ?? github?.name ?? null,
+    sentence: data.sentence.length >= 3 ? data.sentence : (github?.bio ?? "(imported from GitHub)"),
+    githubUrl: githubUsername ? `https://github.com/${githubUsername}` : null,
+    githubSummary: github?.summaryText || null,
+    linkedinUrl: data.linkedinUrl ? normalizeLinkedinUrl(data.linkedinUrl) : null,
+    linkedinText: data.linkedinText ? cleanLinkedinText(data.linkedinText) : null,
+  });
   await track("onboarding_step_completed", { step: 1 }, user.id);
-  await track("onboarding_step_completed", { step: 2, role: parsed.data.role }, user.id);
+  await track(
+    "onboarding_step_completed",
+    { step: 2, role: data.role, github: github !== null, linkedin: data.linkedinText !== null },
+    user.id,
+  );
 
   try {
     const result = await runProfileExtraction(user.id, { timeoutMs: EXTRACTION_TIMEOUT_MS });

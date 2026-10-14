@@ -14,7 +14,7 @@ Last updated: 2026-10-14
 | P1-04 LLM wrapper, prompts, and taxonomy | Done | Gemini provider verified live on 2026-10-13. Claude provider tested against mocks only (see below) |
 | P1-05 Embeddings wrapper | Done | Verified against the real Voyage API on 2026-10-13 (see below) |
 | P1-06 Onboarding flow | Done | Three-step flow; slow-LLM fallback fills tags in the background (see below) |
-| P1-07 GitHub and LinkedIn import | Not started | Unblocked |
+| P1-07 GitHub and LinkedIn import | Done | GitHub summary now stored in `profiles.github_summary` (see below) |
 | P1-08 Profile page and settings | Not started | |
 | P1-09 Post an idea | Not started | |
 | P1-10 Public board | Not started | |
@@ -110,7 +110,7 @@ Two real calls through `createVoyageEmbedder` (`voyage-4-lite`, 1024 dimensions)
 - **`timeoutMs` is one deadline for the whole call,** including the validation retry, so onboarding's 8 s budget (P1-06) cannot be doubled by a retry.
 - **A refusal is not retried;** a response with no tool call is retried once with the same request.
 - **Embedding text leaves out empty sections** rather than emitting bare labels.
-- **`embedProfile` takes the GitHub summary as an optional argument.** The schema has no column for it, so only the onboarding call that has just imported it can include it; a later re-embed will not. Decide in P1-07 whether to store it.
+- **`embedProfile` takes the GitHub summary as an optional argument.** Since P1-07 it defaults to the stored `profiles.github_summary`.
 
 ### Things the next tickets should know
 
@@ -140,6 +140,23 @@ Two real calls through `createVoyageEmbedder` (`voyage-4-lite`, 1024 dimensions)
 
 ### Notes for later tickets
 
-- The GitHub/LinkedIn import row (P1-07) is not on step 2 yet.
 - E2E sign-in helpers moved to `tests/e2e/auth.ts`; `tests/e2e/helpers.ts` gained `query` and `eventually` (poll until work done in `after()` lands).
 - Local stack gotcha: if magic-link emails come out with Supabase's default template, the auth container predates the custom templates. `pnpm exec supabase stop && pnpm db:start` recreates it.
+
+## P1-07: GitHub and LinkedIn import
+
+**Implemented 2026-10-14.**
+
+- Step 2 of onboarding has a collapsed "Or import from GitHub or LinkedIn" row: GitHub profile link, LinkedIn profile link, and a box to paste LinkedIn About or Experience text.
+- `src/lib/imports/github.ts` reads `github.com/<user>` only (repository links, other hosts, query strings are rejected), calls the two public endpoints with a 5 s deadline (`GITHUB_TOKEN` sent when set), and builds a summary of bio, top languages, topics and the five most recent non-fork repositories, capped at 1,500 characters. Any failure returns null.
+- A GitHub link can replace the sentence. If GitHub can't be read and there is no sentence, the user is asked to write one. The GitHub name fills an empty first-name field.
+- LinkedIn is never fetched: the link is stored in canonical `https://www.linkedin.com/in/<handle>` form, and pasted text (capped at 3,000 characters) goes to extraction.
+
+### Decision made without the owner
+
+- **The GitHub summary is stored** in a new `profiles.github_summary` column (migration `20261014052358_profile_github_summary.sql`), so re-extraction and re-embedding include it, not just the onboarding request. It is public GitHub data and is never shown to other users. Users cannot write it directly (not in their column grant). `embedProfile` and `runProfileExtraction` now read it from the database.
+
+### Tests
+
+- Unit tests run against recorded GitHub responses in `tests/fixtures/github/`; the acceptance case (GitHub link, empty sentence, non-empty stack tags) runs there with the fake LLM.
+- E2E covers the LinkedIn paste and a rejected non-profile GitHub link. No e2e test calls the real GitHub API.

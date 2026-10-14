@@ -13,6 +13,9 @@ describe("sentenceInputSchema", () => {
       intents: ["hackathon"],
       name: null,
       sentence: "I build iOS apps",
+      githubUrl: null,
+      linkedinUrl: null,
+      linkedinText: null,
     });
   });
 
@@ -41,6 +44,25 @@ describe("sentenceInputSchema", () => {
     expect(
       sentenceInputSchema.safeParse({ role: "idea", intents: ["hackathon"], sentence: "  " })
         .success,
+    ).toBe(false);
+  });
+
+  it("accepts a GitHub profile instead of a sentence", () => {
+    const parsed = sentenceInputSchema.parse({
+      role: "builder",
+      intents: ["hackathon"],
+      githubUrl: " github.com/octocat ",
+    });
+    expect(parsed).toMatchObject({ sentence: "", githubUrl: "github.com/octocat" });
+  });
+
+  it("rejects import links that are not profiles", () => {
+    const base = { role: "builder", intents: ["hackathon"], sentence: "I build iOS apps" } as const;
+    expect(
+      sentenceInputSchema.safeParse({ ...base, githubUrl: "https://example.com/me" }).success,
+    ).toBe(false);
+    expect(
+      sentenceInputSchema.safeParse({ ...base, linkedinUrl: "linkedin.com/company/x" }).success,
     ).toBe(false);
   });
 

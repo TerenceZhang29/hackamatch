@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { EventPicker, type PickableEvent } from "@/components/EventPicker";
 import { TagEditor, type TagGroup, type TagValues } from "@/components/TagEditor";
+import { LINKEDIN_TEXT_MAX } from "@/lib/imports/linkedin";
 import { joinPool, submitSentence } from "./actions";
 import { ANSWER_MAX, SENTENCE_MAX, type INTENTS, type ROLES } from "./schema";
 
@@ -75,6 +76,10 @@ export function OnboardingFlow({
   );
   const [name, setName] = useState(initial.name);
   const [sentence, setSentence] = useState(initial.sentence);
+  const [githubUrl, setGithubUrl] = useState("");
+  const [linkedinUrl, setLinkedinUrl] = useState("");
+  const [linkedinText, setLinkedinText] = useState("");
+  const canSubmitSentence = sentence.trim().length >= 3 || githubUrl.trim().length > 0;
   const [extracted, setExtracted] = useState<Extracted | null>(null);
   const [tags, setTags] = useState<TagValues>({ skills: [], stack: [], domains: [] });
   const [eventIds, setEventIds] = useState<string[]>([]);
@@ -93,7 +98,15 @@ export function OnboardingFlow({
     if (!role) return;
     setError(null);
     startTransition(async () => {
-      const result = await submitSentence({ role, intents, name, sentence });
+      const result = await submitSentence({
+        role,
+        intents,
+        name,
+        sentence,
+        githubUrl,
+        linkedinUrl,
+        linkedinText,
+      });
       if (result.status === "error") {
         setError(result.message);
         return;
@@ -216,14 +229,63 @@ export function OnboardingFlow({
             onChange={(event) => setSentence(event.target.value)}
             placeholder={PLACEHOLDERS[role]}
             rows={3}
-            required
-            minLength={3}
+            required={!githubUrl.trim()}
             maxLength={SENTENCE_MAX}
             autoFocus
             aria-invalid={error ? true : undefined}
             aria-describedby={error ? "onboarding-error" : undefined}
             className="rounded-lg border border-neutral-300 bg-transparent px-3 py-2 text-base outline-none focus:border-neutral-900 dark:border-neutral-700 dark:focus:border-neutral-100"
           />
+          <details className="rounded-lg border border-neutral-200 px-3 py-2 dark:border-neutral-800">
+            <summary className="cursor-pointer text-sm font-medium">
+              Or import from GitHub or LinkedIn
+            </summary>
+            <div className="mt-3 flex flex-col gap-3">
+              <div className="flex flex-col gap-1">
+                <label htmlFor="github" className="text-sm">
+                  GitHub profile
+                </label>
+                <input
+                  id="github"
+                  value={githubUrl}
+                  onChange={(event) => setGithubUrl(event.target.value)}
+                  placeholder="github.com/yourname"
+                  inputMode="url"
+                  autoComplete="url"
+                  className="rounded-lg border border-neutral-300 bg-transparent px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:focus:border-neutral-100"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label htmlFor="linkedin" className="text-sm">
+                  LinkedIn profile
+                </label>
+                <input
+                  id="linkedin"
+                  value={linkedinUrl}
+                  onChange={(event) => setLinkedinUrl(event.target.value)}
+                  placeholder="linkedin.com/in/yourname"
+                  inputMode="url"
+                  className="rounded-lg border border-neutral-300 bg-transparent px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:focus:border-neutral-100"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label htmlFor="linkedin-text" className="text-sm">
+                  Paste your LinkedIn About or Experience
+                </label>
+                <textarea
+                  id="linkedin-text"
+                  value={linkedinText}
+                  onChange={(event) => setLinkedinText(event.target.value)}
+                  rows={3}
+                  maxLength={LINKEDIN_TEXT_MAX}
+                  className="rounded-lg border border-neutral-300 bg-transparent px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:focus:border-neutral-100"
+                />
+              </div>
+              <p className="text-xs text-neutral-500">
+                We read your public GitHub repositories to suggest tags. We never fetch LinkedIn.
+              </p>
+            </div>
+          </details>
           {error ? <ErrorText message={error} /> : null}
           <div className="flex gap-2">
             <button
@@ -235,7 +297,7 @@ export function OnboardingFlow({
             </button>
             <button
               type="submit"
-              disabled={pending || sentence.trim().length < 3}
+              disabled={pending || !canSubmitSentence}
               className={`flex-1 ${primaryButton}`}
             >
               {pending ? "Reading your sentence…" : "Continue"}

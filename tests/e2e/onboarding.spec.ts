@@ -234,3 +234,49 @@ test("onboarding has no horizontal scroll on any step", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Here's what we got" })).toBeVisible();
   await noOverflow();
 });
+
+test("pasted LinkedIn text adds tags, and the profile link is stored", async ({ page }) => {
+  const email = newEmail();
+  await signIn(page, email);
+
+  await page.getByRole("button", { name: "I can build" }).click();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.getByLabel("What you can build, in one sentence").fill("I design products");
+  await page.getByText("Or import from GitHub or LinkedIn").click();
+  await page.getByLabel("LinkedIn profile").fill("linkedin.com/in/e2e-designer/");
+  await page
+    .getByLabel("Paste your LinkedIn About or Experience")
+    .fill("Product designer. I prototype in Figma and run user research for fintech teams.");
+  await page.getByRole("button", { name: "Continue" }).click();
+
+  await expect(page.getByRole("list", { name: "Tools and languages" })).toContainText("figma");
+  await expect(page.getByRole("list", { name: "Areas" })).toContainText("fintech");
+  await page.getByRole("button", { name: "Join the pool" }).click();
+  await expect(page).toHaveURL("/matches?welcome=1");
+
+  const [row] = await query<{ linkedin_url: string; linkedin_text: string }>(
+    `select linkedin_url, linkedin_text from public.users where cornell_email = $1`,
+    [email],
+  );
+  expect(row).toEqual({
+    linkedin_url: "https://www.linkedin.com/in/e2e-designer",
+    linkedin_text:
+      "Product designer. I prototype in Figma and run user research for fintech teams.",
+  });
+});
+
+test("a link that is not a GitHub profile is rejected with a clear message", async ({ page }) => {
+  const email = newEmail();
+  await signIn(page, email);
+
+  await page.getByRole("button", { name: "I can build" }).click();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.getByText("Or import from GitHub or LinkedIn").click();
+  await page.getByLabel("GitHub profile").fill("https://github.com/someone/some-repo");
+  await page.getByRole("button", { name: "Continue" }).click();
+
+  await expect(
+    page.getByText("Paste a GitHub profile link, like github.com/yourname"),
+  ).toBeVisible();
+  expect((await getUserRow(email))?.onboarded_at).toBeNull();
+});

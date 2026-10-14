@@ -22,10 +22,7 @@ function sections(parts: [label: string, value: string | null | undefined][]): s
     .join(" ");
 }
 
-/**
- * `githubSummary` is not stored, so only a caller that has just imported it
- * (onboarding) can pass it.
- */
+/** `githubSummary` is the text built from the user's public GitHub profile (P1-07), if any. */
 export function profileEmbeddingText(
   user: UserFields,
   profile: ProfileFields,
@@ -56,7 +53,10 @@ async function embedDocument(text: string): Promise<string> {
   return `[${vector.join(",")}]`;
 }
 
-/** Embeds a user's profile and stores the vector. Throws if the user is missing or a step fails. */
+/**
+ * Embeds a user's profile and stores the vector. Uses the stored GitHub
+ * summary unless one is passed. Throws if the user is missing or a step fails.
+ */
 export async function embedProfile(
   userId: string,
   options: { githubSummary?: string | null } = {},
@@ -64,13 +64,21 @@ export async function embedProfile(
   const supabase = createServiceClient();
   const [user, profile] = await Promise.all([
     supabase.from("users").select("role, intents, raw_bio").eq("id", userId).single(),
-    supabase.from("profiles").select("skills, stack, domains").eq("user_id", userId).single(),
+    supabase
+      .from("profiles")
+      .select("skills, stack, domains, github_summary")
+      .eq("user_id", userId)
+      .single(),
   ]);
   if (user.error) throw new Error(`embedProfile: ${user.error.message}`);
   if (profile.error) throw new Error(`embedProfile: ${profile.error.message}`);
 
   const embedding = await embedDocument(
-    profileEmbeddingText(user.data, profile.data, options.githubSummary),
+    profileEmbeddingText(
+      user.data,
+      profile.data,
+      options.githubSummary ?? profile.data.github_summary,
+    ),
   );
 
   const { error } = await supabase

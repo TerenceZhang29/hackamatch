@@ -1,0 +1,57 @@
+[
+  {
+    "name": "clinic-queue",
+    "description": "Next.js app that shows clinic wait times",
+    "language": "TypeScript",
+    "topics": ["nextjs", "react", "health"],
+    "fork": false,
+    "pushed_at": "2026-09-28T10:00:00Z"
+  },
+  {
+    "name": "med-reminders",
+    "description": "React Native medication reminders",
+    "language": "TypeScript",
+    "topics": ["react-native", "health"],
+    "fork": false,
+    "pushed_at": "2026-08-14T10:00:00Z"
+  },
+  {
+    "name": "react",
+    "description": "A fork of React for experiments",
+    "language": "JavaScript",
+    "topics": ["react"],
+    "fork": true,
+    "pushed_at": "2026-09-30T10:00:00Z"
+  },
+  {
+    "name": "sleep-data",
+    "description": "Pandas notebooks on sleep tracker exports",
+    "language": "Python",
+    "topics": ["data-analysis", "pandas"],
+    "fork": false,
+    "pushed_at": "2026-06-01T10:00:00Z"
+  },
+  {
+    "name": "dotfiles",
+    "description": null,
+    "language": "Shell",
+    "topics": [],
+    "fork": false,
+    "pushed_at": "2026-05-01T10:00:00Z"
+  },
+  {
+    "name": "portfolio",
+    "description": "Personal site built with Tailwind",
+    "language": "TypeScript",
+    "topics": ["tailwind"],
+    "fork": false,
+    "pushed_at": "2026-04-01T10:00:00Z"
+  },
+  {
+    "name": "old-hackathon",
+    "description": "Hackathon project from 2023",
+    "language": null,
+    "fork": false,
+    "pushed_at": "2023-11-01T10:00:00Z"
+  }
+]

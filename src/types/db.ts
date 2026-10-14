@@ -520,6 +520,7 @@ export type Database = {
           experience_level: Database["public"]["Enums"]["experience_level"] | null;
           extracted_at: string | null;
           extraction_model: string | null;
+          github_summary: string | null;
           skills: string[];
           stack: string[];
           summary: string | null;
@@ -534,6 +535,7 @@ export type Database = {
           experience_level?: Database["public"]["Enums"]["experience_level"] | null;
           extracted_at?: string | null;
           extraction_model?: string | null;
+          github_summary?: string | null;
           skills?: string[];
           stack?: string[];
           summary?: string | null;
@@ -547,6 +549,7 @@ export type Database = {
           experience_level?: Database["public"]["Enums"]["experience_level"] | null;
           extracted_at?: string | null;
           extraction_model?: string | null;
+          github_summary?: string | null;
           skills?: string[];
           stack?: string[];
           summary?: string | null;

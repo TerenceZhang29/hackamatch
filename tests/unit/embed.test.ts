@@ -96,6 +96,19 @@ describe("embedProfile", () => {
     expect(updates[0]?.values.embedded_at).toEqual(expect.any(String));
   });
 
+  it("uses the stored GitHub summary when none is passed", async () => {
+    rows.users = { data: user, error: null };
+    rows.profiles = { data: { ...profile, github_summary: "Languages: Go" }, error: null };
+    embed.mockResolvedValue([[1]]);
+
+    await embedProfile("user-1");
+
+    expect(embed).toHaveBeenCalledWith(
+      [profileEmbeddingText(user, profile, "Languages: Go")],
+      "document",
+    );
+  });
+
   it("throws when the user is missing, without embedding", async () => {
     rows.users = { data: null, error: { message: "no rows" } };
     rows.profiles = { data: profile, error: null };
