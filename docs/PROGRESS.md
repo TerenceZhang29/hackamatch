@@ -27,7 +27,7 @@ Last updated: 2026-10-14
 | P1-17 Event pages and tagging | Done | `/e/[slug]` share page; join links preselect the event in onboarding |
 | P1-18 Security and privacy hardening | Done | CSP and headers, Postgres rate limits, audit in [`docs/security.md`](./security.md) |
 | P1-19 E2E suite and accessibility pass | Done | Full journey and axe checks on every page; fixed seeded-id 404s |
-| P1-20 Production deploy and pilot readiness | Not started | Must install the two auth email templates and the `/auth/confirm**` redirect pattern on the hosted Supabase project |
+| P1-20 Production deploy and pilot readiness | Planned, not started | Plan and owner decisions in [`plans/p1-20-deploy.md`](./plans/p1-20-deploy.md). Must install the two auth email templates and the `/auth/confirm**` redirect pattern on the hosted Supabase project |
 
 Phases 2 and 3 have not started.
 
