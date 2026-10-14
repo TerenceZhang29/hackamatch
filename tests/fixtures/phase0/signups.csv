@@ -1,0 +1,4 @@
+email,name,role,intents,sentence,github_url,linkedin_url,events,submitted_at
+p0-maya@cornell.edu,Maya Import,I have an idea,hackathon partner; co-founder,"A mobile app that helps nurses swap shifts, with a backend for hospital rules",,,Cornell Tech Fall Hack,2026-09-01
+p0-sofia@cornell.edu,Sofia Import,I can build,hackathon partner,I build React and Python apps for health,,linkedin.com/in/sofia-import,cornell-tech-fall-hack; Mystery Hackathon,2026-09-02
+not-an-email,Broken Row,Both,side project,Something,,,,2026-09-03

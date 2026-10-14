@@ -22,7 +22,9 @@
     "db:env": "node scripts/local-env.mjs",
     "db:reset": "supabase db reset",
     "db:types": "supabase gen types typescript --local > src/types/db.ts && prettier --write src/types/db.ts",
-    "check:analytics": "node scripts/check-analytics.mts"
+    "check:analytics": "node scripts/check-analytics.mts",
+    "import:phase0": "tsx --env-file=.env.local --conditions=react-server scripts/import-phase0.ts",
+    "seed:dev": "tsx --env-file=.env.local --conditions=react-server scripts/seed-dev.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.133.0",
@@ -51,6 +53,7 @@
     "prettier": "3.9.9",
     "supabase": "2.120.0",
     "tailwindcss": "4.3.3",
+    "tsx": "4.23.15",
     "typescript": "5.9.3",
     "vitest": "3.2.7"
   },

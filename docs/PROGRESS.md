@@ -23,7 +23,7 @@ Last updated: 2026-10-14
 | P1-13 Shared pair page and "We teamed up" | Done | Pair page, event picks, one team per match and event |
 | P1-14 Admin tools | Done | Users, ideas, events, hand-made matches; 404 for non-admins |
 | P1-15 Analytics events | Done | `pnpm check:analytics` in CI; `digest_sent` waits for P2-06 |
-| P1-16 Phase 0 import and seeding | Not started | No `data/phase0/` files in the repo yet |
+| P1-16 Phase 0 import and seeding | Done (scripts) | Import and `seed:dev` ready; real data not imported (no Phase 0 files yet) |
 | P1-17 Event pages and tagging | Not started | |
 | P1-18 Security and privacy hardening | Not started | |
 | P1-19 E2E suite and accessibility pass | Not started | |
@@ -292,3 +292,23 @@ The P1-12 commit failed CI at `pnpm install --frozen-lockfile`: pinning the new 
 ### Choice made without the owner
 
 - **`digest_link_clicked` is recorded when someone answers from any emailed one-click link** (inbound interest, admin intro, and later digests), with the answer in its props. It is recorded on the button press, not on page load, because mail scanners load links. The plan only named it for digests; this makes Phase 1 email clicks measurable too.
+
+## P1-16: Phase 0 import and dev seed
+
+**Implemented 2026-10-14.** The scripts are ready; nothing has been imported, since there are no Phase 0 files in the repository.
+
+- `pnpm import:phase0 --signups … --ideas … --matches … [--dry-run]` and `pnpm import:phase0 --send-welcome --signups …`, documented in `docs/runbooks/import-phase0.md`. CSV parsing and row mapping (`src/lib/csv.ts`, `src/lib/phase0.ts`) accept the Google Form wording ("I have an idea", "hackathon partner; co-founder", "1"/"2" replies). The import (`src/server/phase0-import.ts`) creates accounts without sending email, infers tags and ideas, tags events, joins the pool and embeds; seed ideas become featured; matches keep their answers, mutual ones are revealed, and `teamed_up` creates the team. Re-running skips what exists.
+- `pnpm seed:dev`: 60 generated users through the same importer with the fake LLM and embedder, plus embeddings for the `seed.sql` users. Refuses non-local databases and real providers.
+- Scripts run with `tsx` (new dev dependency) using `--env-file=.env.local --conditions=react-server`, so they share the app's code and `server-only` modules.
+
+### Choices made without the owner
+
+- **Unknown events are reported, not created.** The plan said to create missing events "flagged for admin review", but events need dates, which the sheets don't have. The import lists unknown names; create them in `/admin/events` and re-run.
+- **Seed ideas whose `owner_email` has no account go to the first admin** (or `--admin-email`).
+- **Welcome emails use the existing magic-link email** and land on `/me`. A dedicated "claim your profile" email would need a new Supabase template.
+- **`seed:dev` makes 35 ideas, not 25:** the 25 idea people and the 10 "both" users whose sentences describe a product each get one.
+- **The import is tested end to end** in `tests/db/phase0-import.test.ts`, which runs the CLI on `tests/fixtures/phase0/` (dry run, import, re-run) against the local database.
+
+### Before importing real data
+
+Running the import against production with real data, and sending welcome emails, both need the owner: the CSVs, the production environment, and approval to email students.
