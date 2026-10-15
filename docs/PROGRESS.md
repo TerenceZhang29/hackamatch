@@ -27,7 +27,7 @@ Last updated: 2026-10-14
 | P1-17 Event pages and tagging | Done | `/e/[slug]` share page; join links preselect the event in onboarding |
 | P1-18 Security and privacy hardening | Done | CSP and headers, Postgres rate limits, audit in [`docs/security.md`](./security.md) |
 | P1-19 E2E suite and accessibility pass | Done | Full journey and axe checks on every page; fixed seeded-id 404s |
-| P1-20 Production deploy and pilot readiness | In progress | Phase A (runbook, `vercel.json`, metrics queries) done 2026-10-14; setup waits on the owner's decisions in [`plans/p1-20-deploy.md`](./plans/p1-20-deploy.md). Checklist: [`runbooks/deploy.md`](./runbooks/deploy.md) |
+| P1-20 Production deploy and pilot readiness | In progress | Phase A (runbook, `vercel.json`, metrics queries) done 2026-10-14. Decisions answered 2026-10-14 (`vercel.app` for now, free tiers, no previews; pilot event TBD) in [`plans/p1-20-deploy.md`](./plans/p1-20-deploy.md). 2026-10-15: production Supabase project created (`us-east-1`, Free), all 9 migrations pushed, schema matches local, RLS on all 14 tables; read-only checks via `scripts/prod-read.sh`. Next: Resend key, Vercel, Supabase auth settings. Checklist: [`runbooks/deploy.md`](./runbooks/deploy.md) |
 
 Phases 2 and 3 have not started.
 

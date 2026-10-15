@@ -1,6 +1,6 @@
 # P1-20 plan: production deploy and pilot readiness
 
-**Status: Phase A done 2026-10-14; phases B to D not started.** Phase C waits for the owner's answers to the decisions below. The step-by-step checklist is [`runbooks/deploy.md`](../runbooks/deploy.md).
+**Status: Phase A done 2026-10-14; phases B to D not started.** Decisions 1 to 4 answered 2026-10-14; the pilot event (5) is still open but does not block phases B and C. The step-by-step checklist is [`runbooks/deploy.md`](../runbooks/deploy.md).
 
 Spec: [`IMPLEMENTATION_PLAN.md`](../IMPLEMENTATION_PLAN.md) § P1-20. Acceptance criteria:
 
@@ -13,7 +13,7 @@ Prices from each service's pricing page on 2026-10-14, except the domain, which 
 
 | Service | Free option | Catch | Paid option |
 | --- | --- | --- | --- |
-| Domain (needed to send email) | None, unless the owner already has one; a subdomain such as `match.example.com` works | Email cannot be authenticated without one | About $10–20 a year (estimate, not checked) |
+| Domain (needed to send email) | Vercel's `<project>.vercel.app` address (**chosen for now**, 2026-10-14) | Email to students cannot be authenticated without our own domain; options in [`domain-options.md`](./domain-options.md) | About $10–20 a year (estimate, not checked) |
 | Supabase (database, sign-in) | Free: 2 active projects, 500 MB each, 50,000 monthly active users | Free projects pause after 1 week of inactivity, a risk between pilot events | Pro, from $25 a month: no pausing |
 | Vercel (hosting) | Hobby, $0 | For "personal, non-commercial use"; a student pilot probably fits | Pro, $20 a month per developer seat |
 | Resend (email) | Free: 3,000 a month, 100 a day, 3 domains | A launch day with 100 sign-ups uses the 100-a-day cap on sign-in emails alone | Pro, $20 a month: 50,000 a month, no daily cap |
@@ -25,11 +25,11 @@ Prices from each service's pricing page on 2026-10-14, except the domain, which 
 
 ### Questions to answer before Phase C
 
-1. **Domain:** does the owner already have one to use, or does one need buying?
-2. **Supabase:** Free or Pro for the pilot?
-3. **Resend:** start on Free and upgrade before launch day, or Pro from the start?
-4. **Preview deployments:** a second Supabase project for them now, or no previews at first?
-5. **Pilot event:** name and date (an open question in `IMPLEMENTATION_PLAN.md` §12; it sets the deadline).
+1. ~~**Domain:** does the owner already have one to use, or does one need buying?~~ **For now, Vercel's free `vercel.app` address**, decided by the owner on 2026-10-14. Students cannot receive email until a domain is added; options and the switch-over steps are in [`domain-options.md`](./domain-options.md).
+2. ~~**Supabase:** Free or Pro for the pilot?~~ **Free now, Pro if pausing between events becomes a risk**, decided by the owner on 2026-10-14.
+3. ~~**Resend:** start on Free and upgrade before launch day, or Pro from the start?~~ **Free now, Pro before launch day**, decided by the owner on 2026-10-14.
+4. ~~**Preview deployments:** a second Supabase project for them now, or no previews at first?~~ **No previews for now**, decided by the owner on 2026-10-14. Automatic preview deployments are turned off in Vercel (runbook step 3.3).
+5. **Pilot event:** name and date (an open question in `IMPLEMENTATION_PLAN.md` §12; it sets the deadline). **To be decided** (owner, 2026-10-14). Phase 0 needs about two weeks before it, and a bought domain should be in place days or weeks earlier.
 
 ## Phase A: preparation in the repository (free) — done 2026-10-14
 

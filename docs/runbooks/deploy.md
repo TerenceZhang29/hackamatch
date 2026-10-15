@@ -4,8 +4,8 @@ The checklist for P1-20. The plan, costs and the owner's decisions are in [`../p
 
 Placeholders used below:
 
-- `<domain>`: the app's address, for example `match.example.com`. `APP_URL` is `https://<domain>`, with no trailing slash.
-- `<mail-domain>`: the domain email is sent from; usually the same as `<domain>`.
+- `<domain>`: the app's address. For now Vercel's `<project>.vercel.app` (owner's decision 2026-10-14; see [`../plans/domain-options.md`](../plans/domain-options.md)), later a bought domain such as `match.example.com`. `APP_URL` is `https://<domain>`, with no trailing slash.
+- `<mail-domain>`: the domain email is sent from; usually the same as `<domain>`. It cannot be `vercel.app`: until a domain is bought, section 1 stops at the test sender, which reaches only the Resend account's own address.
 - `<project-ref>`: the Supabase project id, from its dashboard URL.
 
 ## 0. Before you start
@@ -95,7 +95,7 @@ Placeholders used below:
 3. [ ] Preview deployments, per the owner's decision:
    - **No previews at first:** Settings → Git → turn off automatic preview deployments, so a branch push can never run with production variables.
    - **With previews:** a second Supabase project with steps 2.2 to 2.9 repeated, and its own values under the **Preview** scope only. Preview builds also run with `NODE_ENV=production`, so they use real providers unless `LLM_PROVIDER`, `EMBEDDINGS_PROVIDER` and `EMAIL_PROVIDER` are set otherwise for Preview.
-4. [ ] Settings → Domains: add `<domain>` and the DNS record Vercel shows.
+4. [ ] Settings → Domains: skip while on `vercel.app`. With a bought domain, add `<domain>` and the DNS record Vercel shows.
 5. [ ] Deploy `main` (Deployments → Redeploy, or push to `main`). Watch the build log; a missing variable fails at boot with a list of what is missing.
 
 ## 4. Verify (the P1-20 acceptance criteria)
@@ -108,6 +108,10 @@ Placeholders used below:
 6. [ ] Make the owner an admin (section 5), open `/admin`, and create the pilot event in `/admin/events`.
 7. [ ] Run query 1 in `metrics.sql` with the event's slug; it should show 1 team from step 5.
 8. [ ] Record the date, the deployed commit and what was checked in `PROGRESS.md` (P1-20 row).
+
+## Read-only checks against production
+
+`scripts/prod-read.sh` runs one `select` against the linked project inside a read-only transaction, so Postgres refuses any write. It also prints migration status (`--migrations`) and generated types (`--types`). It needs `supabase login` and `supabase link` first. Anything that writes to production goes through the owner, not this script.
 
 ## 5. Make someone an admin
 
