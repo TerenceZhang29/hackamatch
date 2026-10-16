@@ -93,7 +93,7 @@ Placeholders used below:
    - Do not set `GEMINI_*` unless switching provider; Gemini has not been tested on the current prompt.
 
 3. [ ] Preview deployments, per the owner's decision:
-   - **No previews at first:** Settings → Git → turn off automatic preview deployments, so a branch push can never run with production variables.
+   - **No previews at first** (the owner's decision, 2026-10-14): `vercel.json` sets `git.deploymentEnabled` to `false` for every branch except `main`, so a branch push or pull request never builds. Nothing to change in the dashboard. Also scope every variable to **Production** only, so a manual preview deploy would fail at boot instead of running against production.
    - **With previews:** a second Supabase project with steps 2.2 to 2.9 repeated, and its own values under the **Preview** scope only. Preview builds also run with `NODE_ENV=production`, so they use real providers unless `LLM_PROVIDER`, `EMBEDDINGS_PROVIDER` and `EMAIL_PROVIDER` are set otherwise for Preview.
 4. [ ] Settings → Domains: skip while on `vercel.app`. With a bought domain, add `<domain>` and the DNS record Vercel shows.
 5. [ ] Deploy `main` (Deployments → Redeploy, or push to `main`). Watch the build log; a missing variable fails at boot with a list of what is missing.
