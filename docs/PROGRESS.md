@@ -2,7 +2,7 @@
 
 Ticket status and the decisions made while building. Specs live in [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md); update this file whenever a ticket changes state. Prompt changes and their live-test results are logged in [`PROMPT_TUNING.md`](./PROMPT_TUNING.md).
 
-Last updated: 2026-10-14
+Last updated: 2026-10-17
 
 ## Phase 1 — MVP
 
@@ -27,7 +27,7 @@ Last updated: 2026-10-14
 | P1-17 Event pages and tagging | Done | `/e/[slug]` share page; join links preselect the event in onboarding |
 | P1-18 Security and privacy hardening | Done | CSP and headers, Postgres rate limits, audit in [`docs/security.md`](./security.md) |
 | P1-19 E2E suite and accessibility pass | Done | Full journey and axe checks on every page; fixed seeded-id 404s |
-| P1-20 Production deploy and pilot readiness | In progress | Phase A (runbook, `vercel.json`, metrics queries) done 2026-10-14. Decisions answered 2026-10-14 (`vercel.app` for now, free tiers, no previews; pilot event TBD) in [`plans/p1-20-deploy.md`](./plans/p1-20-deploy.md). 2026-10-15: production Supabase project created (`us-east-1`, Free), all 9 migrations pushed, schema matches local, RLS on all 14 tables; read-only checks via `scripts/prod-read.sh`. Next: Resend key, Vercel, Supabase auth settings. Checklist: [`runbooks/deploy.md`](./runbooks/deploy.md) |
+| P1-20 Production deploy and pilot readiness | In progress | Phase A (runbook, `vercel.json`, metrics queries) done 2026-10-14. Decisions answered 2026-10-14 (`vercel.app` for now, free tiers, no previews; pilot event TBD) in [`plans/p1-20-deploy.md`](./plans/p1-20-deploy.md). 2026-10-15: production Supabase project created (`us-east-1`, Free), all 9 migrations pushed, schema matches local, RLS on all 14 tables; read-only checks via `scripts/prod-read.sh`. 2026-10-16: Vercel project live at `https://hackamatch.vercel.app` (Hobby, `iad1`, only `main` deploys), security headers checked. 2026-10-17: Supabase auth configured (URLs, Resend SMTP with the test sender, both templates, OTP 1 hour); the owner's Cornell sign-in email reached the Outlook inbox and onboarding completed with live Claude tags and a Voyage embedding. Waiting on a domain: email to other students, the two-account journey. Follow-up: [`plans/me-name.md`](./plans/me-name.md) (show and edit the name on `/me`). Checklist: [`runbooks/deploy.md`](./runbooks/deploy.md) |
 
 Phases 2 and 3 have not started.
 
