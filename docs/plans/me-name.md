@@ -1,6 +1,6 @@
 # Plan: show and edit your name on `/me`
 
-**Status: planned 2026-10-17, not started.** Requested by the owner after the first production sign-up: the owner signed up as "Test User" and found no way to change it.
+**Status: planned and built 2026-10-17.** The full name shows under the page heading (or an "Add your name" link), and a "Your name" section saves it with the onboarding rule (`nameField` in `src/app/onboarding/schema.ts`, shared by both). Requested by the owner after the first production sign-up: the owner signed up as "Test User" and found no way to change it.
 
 ## The problem
 
@@ -12,11 +12,11 @@ The database already allows the change: `name` is in the column grant users have
 ## What to build
 
 1. **Show the full name on `/me`.** The full name as stored, for example "Maya Patel", near the top of the page. If no name is set, show a prompt to add one instead.
-   - Say who sees what: public pages (the board, `/people/[id]`, idea pages) show "Maya P." (`display_name`); the full name is shown to mutual matches.
+   - Say who sees what: public pages (the board, `/people/[id]`, idea pages) show "Maya P." (`display_name`); match emails and the pair page show the first name, "Maya" (`firstName` in `src/server/matches.ts`). The full name is seen only by the user and admins.
 2. **A "Your name" section** on `/me`, in the style of the other sections (`Section` in `src/app/me/sections.tsx`): a text field with the current name and a Save button, with the usual "Saved" or error outcome.
 3. **A `saveName` server action** in `src/app/me/actions.ts`, following `saveSentence`:
    - Validate with the same rules as onboarding (`src/app/onboarding/schema.ts`): trimmed, at most 80 characters; empty clears the name, so public pages fall back to "Cornell student".
-   - Update only the signed-in user's own row, through the user's session (not the service key), so row-level security and the column grant apply.
+   - Update only the signed-in user's own row (`updateName` in `src/server/profiles.ts`, keyed on the session's user id, like the other `/me` updates).
    - No LLM or embedding call: the name isn't part of the embedding or the tags. No new rate limit needed.
    - Revalidate `/me` so the header updates.
 4. **Analytics:** none required. If one is added, it goes in the analytics check (`pnpm check:analytics`).

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { INTENTS, ROLES, SENTENCE_MAX } from "@/app/onboarding/schema";
+import { INTENTS, ROLES, SENTENCE_MAX, nameField } from "@/app/onboarding/schema";
 import { PAUSE_CHOICES } from "@/lib/pause";
 
 /** Input schemas for the /me server actions. */
@@ -13,6 +13,8 @@ export const sentenceSchema = z.object({
     .min(3, "Write at least a few words")
     .max(SENTENCE_MAX, `Keep it under ${SENTENCE_MAX} characters`),
 });
+
+export const nameSchema = z.object({ name: nameField });
 
 export const tagsSchema = z.object({
   tags: z.object({ skills: tagList, stack: tagList, domains: tagList }),

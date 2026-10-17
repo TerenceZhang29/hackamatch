@@ -5,10 +5,12 @@ import { useState, useTransition } from "react";
 import { EventPicker, type PickableEvent } from "@/components/EventPicker";
 import { TagEditor, type TagGroup, type TagValues } from "@/components/TagEditor";
 import type { INTENTS, ROLES } from "@/app/onboarding/schema";
-import { SENTENCE_MAX } from "@/app/onboarding/schema";
+import { NAME_MAX, SENTENCE_MAX } from "@/app/onboarding/schema";
+import { displayName } from "@/lib/display-name";
 import {
   changeIdeaStatus,
   deleteMyAccount,
+  saveName,
   saveRole,
   saveSentence,
   saveTags,
@@ -77,6 +79,48 @@ export function Section({
       ) : null}
       {children}
     </section>
+  );
+}
+
+export function NameSection({ name }: { name: string }) {
+  const [value, setValue] = useState(name);
+  const action = useAction();
+  const firstName = displayName(value).split(" ")[0];
+  return (
+    <form
+      className="flex flex-col gap-2"
+      onSubmit={(event) => {
+        event.preventDefault();
+        action.run(() => saveName({ name: value }));
+      }}
+    >
+      <label htmlFor="me-name" className="text-sm font-medium">
+        Full name
+      </label>
+      <input
+        id="me-name"
+        value={value}
+        onChange={(event) => setValue(event.target.value)}
+        maxLength={NAME_MAX}
+        autoComplete="name"
+        className={inputClass}
+      />
+      <p className="text-sm text-neutral-600 dark:text-neutral-400">
+        {value.trim()
+          ? `Public pages show "${displayName(value)}"; matches see "${firstName}".`
+          : 'With no name, public pages show "Cornell student".'}
+      </p>
+      <div className="flex items-center gap-3">
+        <button
+          type="submit"
+          disabled={action.pending || value.trim() === name}
+          className={primaryButton}
+        >
+          {action.pending ? "Saving…" : "Save name"}
+        </button>
+        <Outcome result={action.result} />
+      </div>
+    </form>
   );
 }
 

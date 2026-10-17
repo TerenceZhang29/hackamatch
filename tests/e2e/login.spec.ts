@@ -180,9 +180,14 @@ test("protected routes redirect to login when signed out", async ({ page }) => {
 });
 
 test("login and confirm pages have no horizontal scroll", async ({ page }) => {
-  for (const path of ["/login", "/auth/confirm?next=&token_hash=abc&type=email"]) {
+  const pages = [
+    ["/login", "Email me a sign-in link"],
+    ["/auth/confirm?next=&token_hash=abc&type=email", "Continue to HackaMatch"],
+  ] as const;
+  for (const [path, button] of pages) {
     await page.goto(path);
-    await expect(page.getByRole("button")).toBeVisible();
+    // Named, because `pnpm dev` adds its own "Open Next.js Dev Tools" button.
+    await expect(page.getByRole("button", { name: button })).toBeVisible();
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
     );

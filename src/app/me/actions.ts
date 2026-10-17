@@ -18,6 +18,7 @@ import {
   runProfileExtraction,
   saveEditedTags,
   setPausedUntil,
+  updateName,
   updateRoleAndIntents,
   updateSentence,
 } from "@/server/profiles";
@@ -25,6 +26,7 @@ import {
   deleteSchema,
   eventInterestSchema,
   ideaStatusSchema,
+  nameSchema,
   pauseSchema,
   roleSchema,
   sentenceSchema,
@@ -42,6 +44,17 @@ function invalid(error: { issues: { message: string }[] }): ActionResult {
 
 function reembedLater(userId: string) {
   after(() => embedUserAndIdeas(userId));
+}
+
+/** Saves the name. It isn't part of the tags or the embedding, so nothing else reruns. */
+export async function saveName(input: unknown): Promise<ActionResult> {
+  const user = await requireOnboarded("/me");
+  const parsed = nameSchema.safeParse(input);
+  if (!parsed.success) return invalid(parsed.error);
+
+  await updateName(user.id, parsed.data.name);
+  revalidatePath("/me");
+  return { ok: true };
 }
 
 /** Saves the sentence, re-infers tags (kept if the user edited them) and re-embeds. */

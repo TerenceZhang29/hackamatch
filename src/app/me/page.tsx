@@ -11,6 +11,7 @@ import {
   DeleteSection,
   EventsSection,
   IdeasSection,
+  NameSection,
   PauseSection,
   RoleSection,
   Section,
@@ -36,6 +37,16 @@ export default async function MePage() {
     <main className="mx-auto flex max-w-2xl flex-col gap-8 px-4 py-12">
       <header className="flex flex-col gap-1">
         <h1 className="text-3xl font-bold tracking-tight">Your profile</h1>
+        {user.name ? (
+          <p className="text-xl font-medium">{user.name}</p>
+        ) : (
+          <p className="text-neutral-600 dark:text-neutral-400">
+            <a href="#me-name" className="underline">
+              Add your name
+            </a>{" "}
+            so matches know who you are.
+          </p>
+        )}
         {profile.summary ? (
           <p className="text-neutral-600 dark:text-neutral-400">{profile.summary}</p>
         ) : null}
@@ -51,6 +62,10 @@ export default async function MePage() {
           </Link>
         </nav>
       </header>
+
+      <Section title="Your name">
+        <NameSection name={user.name ?? ""} />
+      </Section>
 
       <Section title="Your sentence" description="We use it to suggest your tags and find matches.">
         <SentenceSection sentence={user.raw_bio ?? ""} />

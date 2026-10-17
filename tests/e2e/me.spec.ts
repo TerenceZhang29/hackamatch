@@ -63,6 +63,37 @@ test("edited tags survive a later sentence change", async ({ page }) => {
   await expect(page.getByRole("list", { name: "Tools and languages" })).toContainText("swift");
 });
 
+test("the full name is shown and can be changed or cleared", async ({ page }) => {
+  const email = await newOnboardedUser(page, "I can build", "I build Rust command-line tools");
+  const nameOf = async () =>
+    (
+      await query<{ name: string | null; shown: string }>(
+        `select name, public.display_name(name) as shown from public.users where cornell_email = $1`,
+        [email],
+      )
+    )[0]!;
+
+  await page.goto("/me");
+  await expect(page.getByRole("link", { name: "Add your name" })).toBeVisible();
+
+  await page.getByLabel("Full name").fill("  Maya Patel  ");
+  await expect(page.getByText(`Public pages show "Maya P."; matches see "Maya".`)).toBeVisible();
+  await page.getByRole("button", { name: "Save name" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Saved" })).toBeVisible();
+  expect(await nameOf()).toEqual({ name: "Maya Patel", shown: "Maya P." });
+
+  await page.reload();
+  await expect(page.getByText("Maya Patel", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Full name")).toHaveValue("Maya Patel");
+
+  await page.getByLabel("Full name").fill("");
+  await page.getByRole("button", { name: "Save name" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Saved" })).toBeVisible();
+  expect(await nameOf()).toEqual({ name: null, shown: "Cornell student" });
+  await page.reload();
+  await expect(page.getByRole("link", { name: "Add your name" })).toBeVisible();
+});
+
 test("pausing takes the user off the board and out of the pool, and resuming brings them back", async ({
   page,
 }) => {

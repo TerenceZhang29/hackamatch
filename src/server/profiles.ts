@@ -323,6 +323,11 @@ export async function updateSentence(userId: string, sentence: string) {
   if (error) throw new Error(`updateSentence: ${error.message}`);
 }
 
+export async function updateName(userId: string, name: string | null) {
+  const { error } = await createServiceClient().from("users").update({ name }).eq("id", userId);
+  if (error) throw new Error(`updateName: ${error.message}`);
+}
+
 export async function updateRoleAndIntents(userId: string, role: Role, intents: Intent[]) {
   const { error } = await createServiceClient()
     .from("users")
