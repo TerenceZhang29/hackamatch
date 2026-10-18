@@ -103,7 +103,7 @@ Placeholders used below:
 1. [ ] Open `https://<domain>`: the board loads, logged out, with no errors in the browser console (the Content-Security-Policy is strict, so a blocked request shows there).
 2. [ ] Sign in with a real `@cornell.edu` address. The email arrives in the Outlook **inbox, not junk**, from `EMAIL_FROM`. A first-time address gets the Confirm signup template; a returning one gets Magic Link.
 3. [ ] Press the link's button and complete onboarding. Tags appear within a few seconds (Claude), and the profile is in the pool.
-4. [ ] Mail scanners: in Supabase → Authentication → Logs, check whether the link was fetched before you opened it (open question since P1-03). The confirm button makes sign-in work either way; record what you see in `PROGRESS.md`.
+4. [x] Mail scanners: in Vercel → Logs, check whether `GET /auth/confirm` ran before you opened the link (open question since P1-03). The confirm button makes sign-in work either way; record what you see in `PROGRESS.md`. Checked 2026-10-17: one GET, the owner's own. Check again after the domain switch.
 5. [ ] Full journey with a second real account: Interested from the board, the "interested" email, Interested back, the mutual email with contact details, the pair page, "We teamed up". Both emails must land in the inbox.
 6. [ ] Make the owner an admin (section 5), open `/admin`, and create the pilot event in `/admin/events`.
 7. [ ] Run query 1 in `metrics.sql` with the event's slug; it should show 1 team from step 5.

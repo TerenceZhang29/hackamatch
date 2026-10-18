@@ -1,0 +1,493 @@
+<title>HackaMatch Launch Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=Source+Sans+3:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a launch checklist. Summary strip on top, then sections A–E as
+   lists of numbered items, each with its own thread of notes for Claude. */
+:root {
+  --bg: #f6f7f5;
+  --surface: #ffffff;
+  --ink: #1b1f1d;
+  --muted: #5d6762;
+  --line: #d9ddda;
+  --accent: #b31b1b;          /* Cornell carnelian, used sparingly */
+  --accent-soft: #f6e3e1;
+  --ok: #2f7a4b;
+  --ok-soft: #e1f0e6;
+  --wait: #8a5a00;
+  --wait-soft: #f8ecd2;
+  --claude: #3c4f8f;
+  --claude-soft: #e7eaf5;
+  --focus: #1f5fd6;
+  --font-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --step-0: 1rem;
+  --step-1: 1.125rem;
+  --step-2: 1.4rem;
+  --step-3: 2rem;
+  --small: 0.875rem;
+  --radius: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121514; --surface: #1b1f1d; --ink: #e8ebe9; --muted: #9aa49f; --line: #2f3532;
+    --accent: #e0605a; --accent-soft: #3a2120; --ok: #6cc28c; --ok-soft: #1d3326;
+    --wait: #e2b45c; --wait-soft: #3a2f17; --claude: #9fb0ea; --claude-soft: #222a44; --focus: #7aa7ff;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121514; --surface: #1b1f1d; --ink: #e8ebe9; --muted: #9aa49f; --line: #2f3532;
+  --accent: #e0605a; --accent-soft: #3a2120; --ok: #6cc28c; --ok-soft: #1d3326;
+  --wait: #e2b45c; --wait-soft: #3a2f17; --claude: #9fb0ea; --claude-soft: #222a44; --focus: #7aa7ff;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font: 400 var(--step-0)/1.5 var(--font-body);
+  padding: 0 16px;
+}
+.wrap { max-width: 860px; margin: 0 auto; padding-block: 32px 64px; display: flex; flex-direction: column; gap: 28px; }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; }
+h1 { font-size: var(--step-3); font-weight: 800; letter-spacing: -0.01em; line-height: 1.1; }
+h2 { font-size: var(--step-2); font-weight: 700; }
+.eyebrow { font: 500 0.75rem/1 var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent); }
+.lede { color: var(--muted); margin: 6px 0 0; max-width: 65ch; }
+button, input, textarea, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+/* Summary */
+.summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.stat .label { font-size: var(--small); color: var(--muted); }
+.stat .value { font: 700 var(--step-2)/1.1 var(--font-display); font-variant-numeric: tabular-nums; }
+.stat.attn .value { color: var(--wait); }
+.bars { display: flex; flex-direction: column; gap: 6px; grid-column: 1 / -1; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; }
+.bar-row { display: grid; grid-template-columns: 1.6rem 1fr 3.4rem; align-items: center; gap: 10px; font-size: var(--small); }
+.bar { height: 8px; background: var(--line); border-radius: 4px; overflow: hidden; }
+.bar > span { display: block; height: 100%; background: var(--ok); width: 0; transition: width .3s; }
+
+/* Notice and controls */
+.notice { border: 1px solid var(--line); background: var(--surface); border-radius: var(--radius); padding: 12px 14px; color: var(--muted); }
+.notice.error { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.chipbtn { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 4px 12px; font-size: var(--small); cursor: pointer; }
+.chipbtn[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+/* Sections and items */
+section.group { display: flex; flex-direction: column; gap: 10px; }
+.group-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.group-head .count { font: 500 var(--small) var(--font-mono); color: var(--muted); }
+.items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.item { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; }
+.item.has-open { border-left: 3px solid var(--wait); }
+.item.done .title { color: var(--muted); text-decoration: line-through; text-decoration-thickness: 1px; }
+.check { width: 1.25rem; height: 1.25rem; margin-top: 3px; accent-color: var(--ok); cursor: pointer; }
+.body { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.title-row { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.num { font: 500 var(--small) var(--font-mono); color: var(--accent); }
+.title { font-weight: 600; font-size: var(--step-1); line-height: 1.35; overflow-wrap: anywhere; }
+.detail { color: var(--muted); margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag { font-size: 0.8rem; border: 1px solid var(--line); border-radius: 4px; padding: 1px 7px; color: var(--muted); }
+.tag.done { border-color: var(--ok); color: var(--ok); background: var(--ok-soft); }
+
+/* Threads */
+.thread { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.note { border-radius: var(--radius); padding: 8px 10px; background: var(--bg); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.note.claude { background: var(--claude-soft); border-color: transparent; margin-left: 18px; }
+.note-head { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 0.8rem; color: var(--muted); }
+.who { font-weight: 600; color: var(--ink); }
+.note.claude .who { color: var(--claude); }
+.pill { border-radius: 999px; padding: 0 8px; font-size: 0.75rem; font-weight: 600; }
+.pill.open { background: var(--wait-soft); color: var(--wait); }
+.pill.addressed { background: var(--ok-soft); color: var(--ok); }
+.note-text { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.linkbtn { background: none; border: 0; padding: 0; color: var(--muted); text-decoration: underline; cursor: pointer; font-size: 0.8rem; }
+.compose { display: flex; flex-direction: column; gap: 6px; }
+textarea, input[type="text"], select { width: 100%; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 10px; }
+textarea { min-height: 4.5rem; resize: vertical; }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.primary { background: var(--ink); color: var(--bg); border: 0; border-radius: var(--radius); padding: 6px 14px; font-weight: 600; cursor: pointer; }
+.primary:disabled { opacity: .5; cursor: default; }
+.ghost { background: none; border: 1px solid var(--line); border-radius: var(--radius); padding: 5px 12px; cursor: pointer; font-size: var(--small); }
+.status { font-size: var(--small); color: var(--muted); }
+.status.err { color: var(--accent); }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.panel h2 { font-size: var(--step-1); }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+@media (max-width: 520px) { .grid2 { grid-template-columns: 1fr; } .note.claude { margin-left: 8px; } }
+label.field { display: flex; flex-direction: column; gap: 4px; font-size: var(--small); color: var(--muted); }
+.empty { color: var(--muted); font-style: italic; }
+@media (prefers-reduced-motion: reduce) { .bar > span { transition: none; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">P1-20 · pilot readiness</div>
+    <h1>HackaMatch Launch Tracker</h1>
+    <p class="lede">Everything left before students can use HackaMatch. Tick items as they're done. Leave a note on any item for Claude Code, then tell Claude "check the tracker": it reads every open note, works on it, and replies here.</p>
+  </header>
+
+  <div id="notice" class="notice" role="status">Connecting to the tracker…</div>
+
+  <div class="summary" id="summary" hidden>
+    <div class="stat"><span class="label">Done</span><span class="value" id="stat-done">0 / 0</span></div>
+    <div class="stat attn"><span class="label">Notes waiting for Claude</span><span class="value" id="stat-open">0</span></div>
+    <div class="stat"><span class="label">Replies from Claude</span><span class="value" id="stat-replies">0</span></div>
+    <div class="bars" id="bars" aria-label="Progress by section"></div>
+  </div>
+
+  <div class="panel" id="general" hidden>
+    <h2>General note for Claude</h2>
+    <ul class="thread" id="general-thread"></ul>
+    <form class="compose" data-item="general">
+      <label class="field" for="compose-general">Anything not tied to one item</label>
+      <textarea id="compose-general" maxlength="4000" placeholder="For example: draft the Phase 0 recruiting message"></textarea>
+      <div class="row"><button class="primary" type="submit">Leave note</button><span class="status" aria-live="polite"></span></div>
+    </form>
+  </div>
+
+  <div class="controls" id="controls" hidden role="group" aria-label="Filter items">
+    <button class="chipbtn" type="button" data-filter="all" aria-pressed="true">All</button>
+    <button class="chipbtn" type="button" data-filter="open" aria-pressed="false">Not done</button>
+    <button class="chipbtn" type="button" data-filter="done" aria-pressed="false">Done</button>
+    <button class="chipbtn" type="button" data-filter="notes" aria-pressed="false">Waiting for Claude</button>
+  </div>
+
+  <div id="groups"></div>
+
+  <form class="panel" id="add-item" hidden>
+    <h2>Add an item</h2>
+    <div class="grid2">
+      <label class="field" for="new-section">Section
+        <select id="new-section"></select>
+      </label>
+      <label class="field" for="new-who">Who
+        <input id="new-who" type="text" maxlength="80" placeholder="You, Claude, or both">
+      </label>
+    </div>
+    <label class="field" for="new-title">What needs doing
+      <input id="new-title" type="text" maxlength="200" required>
+    </label>
+    <label class="field" for="new-detail">Details (optional)
+      <textarea id="new-detail" maxlength="2000"></textarea>
+    </label>
+    <div class="row"><button class="primary" type="submit">Add item</button><span class="status" id="add-status" aria-live="polite"></span></div>
+  </form>
+</div>
+
+<script>
+(() => {
+  const SECTIONS = [
+    { key: "A", name: "Blocks opening the app to students" },
+    { key: "B", name: "Before launch day" },
+    { key: "C", name: "Phase 0, inside the app" },
+    { key: "D", name: "Not confirmed yet: please check" },
+    { key: "E", name: "Code and product follow-ups" },
+  ];
+  const $ = (sel, root = document) => root.querySelector(sel);
+  const el = (tag, cls, text) => {
+    const n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  };
+  const fmt = (iso) => {
+    if (!iso) return "";
+    const d = new Date(iso);
+    return isNaN(d) ? "" : d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  };
+
+  let db = null, me = null, canWrite = true;
+  let items = [], comments = [];
+  let filter = "all";
+  try { filter = localStorage.getItem("tracker-filter") || "all"; } catch {}
+  const cards = new Map();
+
+  const notice = $("#notice");
+  const showNotice = (text, error) => {
+    notice.hidden = !text;
+    notice.textContent = text || "";
+    notice.classList.toggle("error", !!error);
+  };
+
+  // ---- writes -------------------------------------------------------------
+  async function toggleDone(item, done) {
+    try {
+      await db.collection("items").doc(item.id).update({ done, doneAt: done ? new Date().toISOString() : null });
+    } catch (e) { readOnlyIfRefused(e); showNotice("Couldn't save that change: " + (e?.message || "unknown error"), true); }
+  }
+  async function addNote(itemId, text, statusEl) {
+    statusEl.textContent = "Saving…"; statusEl.classList.remove("err");
+    try {
+      await db.collection("comments").add({
+        itemId, text, from: "owner", status: "open", replyTo: null,
+        createdAt: new Date().toISOString(), author: me,
+      });
+      statusEl.textContent = "Saved. Tell Claude to check the tracker.";
+      return true;
+    } catch (e) {
+      readOnlyIfRefused(e);
+      statusEl.textContent = "Not saved: " + (e?.message || "unknown error"); statusEl.classList.add("err");
+      return false;
+    }
+  }
+  async function setNoteStatus(c, status) {
+    try { await db.collection("comments").doc(c.id).update({ status }); }
+    catch (e) { showNotice("Couldn't update that note: " + (e?.message || "unknown error"), true); }
+  }
+  async function deleteNote(c) {
+    try { await db.collection("comments").doc(c.id).delete(); }
+    catch (e) { showNotice("Couldn't delete that note: " + (e?.message || "unknown error"), true); }
+  }
+  function readOnlyIfRefused(e) {
+    if (e?.code === "invalid_argument" || e?.code === "not_granted") { canWrite = false; render(); }
+  }
+
+  // ---- rendering ----------------------------------------------------------
+  const notesFor = (itemId) => comments
+    .filter((c) => c.itemId === itemId && !c.replyTo)
+    .sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)));
+  const repliesTo = (id) => comments
+    .filter((c) => c.replyTo === id)
+    .sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)));
+  const hasOpen = (itemId) => comments.some((c) => c.itemId === itemId && c.from === "owner" && c.status === "open");
+
+  function renderThread(list, itemId) {
+    list.replaceChildren();
+    for (const c of notesFor(itemId)) {
+      list.append(noteEl(c));
+      for (const r of repliesTo(c.id)) list.append(noteEl(r));
+    }
+    // Claude notes without a parent (for example a status update) still show.
+    for (const c of comments.filter((c) => c.itemId === itemId && c.replyTo && !comments.some((p) => p.id === c.replyTo))) {
+      list.append(noteEl(c));
+    }
+    list.hidden = list.childElementCount === 0;
+  }
+
+  function noteEl(c) {
+    const li = el("li", "note" + (c.from === "claude" ? " claude" : ""));
+    const head = el("div", "note-head");
+    head.append(el("span", "who", c.from === "claude" ? "Claude" : "You"), el("span", null, fmt(c.createdAt)));
+    if (c.from === "owner") {
+      head.append(el("span", "pill " + (c.status === "addressed" ? "addressed" : "open"), c.status === "addressed" ? "Addressed" : "Waiting for Claude"));
+      if (canWrite) {
+        if (c.status === "addressed") {
+          const re = el("button", "linkbtn", "Reopen"); re.type = "button";
+          re.addEventListener("click", () => setNoteStatus(c, "open"));
+          head.append(re);
+        } else if (!repliesTo(c.id).length) {
+          const del = el("button", "linkbtn", "Delete"); del.type = "button";
+          del.addEventListener("click", () => deleteNote(c));
+          head.append(del);
+        }
+      }
+    }
+    li.append(head, el("p", "note-text", String(c.text ?? "")));
+    return li;
+  }
+
+  function makeCompose(itemId) {
+    const form = el("form", "compose");
+    const id = "compose-" + itemId;
+    const toggle = el("button", "linkbtn", "Leave a note for Claude"); toggle.type = "button";
+    const inner = el("div", "compose"); inner.hidden = true;
+    const label = el("label", "field", "Note for Claude"); label.htmlFor = id;
+    const ta = el("textarea"); ta.id = id; ta.maxLength = 4000;
+    const row = el("div", "row");
+    const send = el("button", "primary", "Leave note"); send.type = "submit";
+    const cancel = el("button", "ghost", "Cancel"); cancel.type = "button";
+    const status = el("span", "status"); status.setAttribute("aria-live", "polite");
+    row.append(send, cancel, status);
+    inner.append(label, ta, row);
+    form.append(toggle, inner);
+    toggle.addEventListener("click", () => { inner.hidden = false; toggle.hidden = true; ta.focus(); });
+    cancel.addEventListener("click", () => { inner.hidden = true; toggle.hidden = false; status.textContent = ""; });
+    form.addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+      const text = ta.value.trim();
+      if (!text) { status.textContent = "Write something first."; status.classList.add("err"); return; }
+      send.disabled = true;
+      if (await addNote(itemId, text, status)) ta.value = "";
+      send.disabled = false;
+    });
+    return form;
+  }
+
+  function cardFor(item) {
+    let card = cards.get(item.id);
+    if (!card) {
+      const li = el("li", "item");
+      const box = el("input", "check"); box.type = "checkbox"; box.id = "done-" + item.id;
+      box.addEventListener("change", () => toggleDone(cards.get(item.id).item, box.checked));
+      const body = el("div", "body");
+      const titleRow = el("div", "title-row");
+      const num = el("span", "num");
+      const title = el("label", "title"); title.htmlFor = box.id;
+      titleRow.append(num, title);
+      const detail = el("p", "detail");
+      const meta = el("div", "meta");
+      const thread = el("ul", "thread");
+      const compose = makeCompose(item.id);
+      body.append(titleRow, detail, meta, thread, compose);
+      li.append(box, body);
+      card = { li, box, num, title, detail, meta, thread, compose, item };
+      cards.set(item.id, card);
+    }
+    card.item = item;
+    card.li.classList.toggle("done", !!item.done);
+    card.li.classList.toggle("has-open", hasOpen(item.id));
+    card.box.checked = !!item.done;
+    card.box.disabled = !canWrite;
+    card.num.textContent = (item.section || "") + (item.num ?? "");
+    card.title.textContent = item.title || "Untitled";
+    card.detail.textContent = item.detail || "";
+    card.detail.hidden = !item.detail;
+    card.meta.replaceChildren();
+    if (item.who) card.meta.append(el("span", "tag", item.who));
+    if (item.cost) card.meta.append(el("span", "tag", "Cost: " + item.cost));
+    if (item.done) card.meta.append(el("span", "tag done", "Done" + (item.doneAt ? " " + fmt(item.doneAt) : "")));
+    renderThread(card.thread, item.id);
+    card.compose.hidden = !canWrite;
+    return card;
+  }
+
+  function visible(item) {
+    if (filter === "open") return !item.done;
+    if (filter === "done") return !!item.done;
+    if (filter === "notes") return hasOpen(item.id);
+    return true;
+  }
+
+  function render() {
+    const groups = $("#groups");
+    const sorted = [...items].sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
+    const known = new Set(sorted.map((i) => i.id));
+    for (const [id, card] of cards) if (!known.has(id)) { card.li.remove(); cards.delete(id); }
+
+    for (const s of SECTIONS) {
+      let sec = $(`section[data-key="${s.key}"]`, groups);
+      if (!sec) {
+        sec = el("section", "group"); sec.dataset.key = s.key;
+        const head = el("div", "group-head");
+        const h = el("h2", null, `${s.key}. ${s.name}`); h.id = "sec-" + s.key;
+        head.append(h, el("span", "count"));
+        sec.setAttribute("aria-labelledby", h.id);
+        const ul = el("ul", "items");
+        const empty = el("p", "empty", "Nothing here matches the filter.");
+        sec.append(head, ul, empty);
+        groups.append(sec);
+      }
+      const inSec = sorted.filter((i) => i.section === s.key);
+      const shown = inSec.filter(visible);
+      $(".count", sec).textContent = `${inSec.filter((i) => i.done).length} of ${inSec.length} done`;
+      const ul = $(".items", sec);
+      shown.forEach((item, idx) => {
+        const { li } = cardFor(item);
+        if (ul.children[idx] !== li) ul.insertBefore(li, ul.children[idx] || null);
+      });
+      for (const item of inSec) if (!visible(item)) cardFor(item).li.remove();
+      while (ul.children.length > shown.length) ul.lastChild.remove();
+      $(".empty", sec).hidden = shown.length > 0 || inSec.length === 0;
+      sec.hidden = inSec.length === 0;
+    }
+
+    // Summary
+    const done = items.filter((i) => i.done).length;
+    $("#stat-done").textContent = `${done} / ${items.length}`;
+    $("#stat-open").textContent = comments.filter((c) => c.from === "owner" && c.status === "open").length;
+    $("#stat-replies").textContent = comments.filter((c) => c.from === "claude").length;
+    const bars = $("#bars"); bars.replaceChildren();
+    for (const s of SECTIONS) {
+      const inSec = items.filter((i) => i.section === s.key);
+      if (!inSec.length) continue;
+      const d = inSec.filter((i) => i.done).length;
+      const row = el("div", "bar-row");
+      const bar = el("div", "bar"); const fill = el("span"); fill.style.width = (100 * d / inSec.length) + "%"; bar.append(fill);
+      bar.setAttribute("role", "img"); bar.setAttribute("aria-label", `Section ${s.key}: ${d} of ${inSec.length} done`);
+      row.append(el("span", "mono", s.key), bar, el("span", "mono", `${d}/${inSec.length}`));
+      bars.append(row);
+    }
+
+    renderThread($("#general-thread"), "general");
+    $("#general form").hidden = !canWrite;
+    $("#add-item").hidden = !canWrite;
+    for (const b of document.querySelectorAll("[data-filter]")) b.setAttribute("aria-pressed", String(b.dataset.filter === filter));
+    if (!items.length) showNotice("No items yet. Ask Claude to add the launch action items, or add one at the bottom.");
+    else if (!canWrite) showNotice("You can read this tracker but not change it.");
+    else showNotice("");
+  }
+
+  // ---- static wiring ------------------------------------------------------
+  for (const b of document.querySelectorAll("[data-filter]")) {
+    b.addEventListener("click", () => {
+      filter = b.dataset.filter;
+      try { localStorage.setItem("tracker-filter", filter); } catch {}
+      render();
+    });
+  }
+  const sel = $("#new-section");
+  for (const s of SECTIONS) { const o = el("option", null, `${s.key}. ${s.name}`); o.value = s.key; sel.append(o); }
+
+  $("#general form").addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    const ta = $("#compose-general"), status = $("#general .status");
+    const text = ta.value.trim();
+    if (!text) { status.textContent = "Write something first."; status.classList.add("err"); return; }
+    if (await addNote("general", text, status)) ta.value = "";
+  });
+
+  $("#add-item").addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    const status = $("#add-status");
+    const title = $("#new-title").value.trim();
+    if (!title) { status.textContent = "Say what needs doing."; status.classList.add("err"); return; }
+    const nextNum = Math.max(0, ...items.map((i) => Number(i.num) || 0)) + 1;
+    const section = sel.value;
+    const maxOrder = Math.max(0, ...items.map((i) => i.order || 0));
+    status.textContent = "Saving…"; status.classList.remove("err");
+    try {
+      await db.collection("items").doc("i" + String(nextNum).padStart(3, "0") + "-" + Date.now().toString(36)).set({
+        num: nextNum, section, title, detail: $("#new-detail").value.trim(), who: $("#new-who").value.trim(),
+        cost: "", done: false, doneAt: null, order: maxOrder + 1, addedBy: "owner", createdAt: new Date().toISOString(),
+      });
+      $("#new-title").value = ""; $("#new-detail").value = ""; $("#new-who").value = "";
+      status.textContent = `Added as ${section}${nextNum}.`;
+    } catch (e) {
+      readOnlyIfRefused(e);
+      status.textContent = "Not added: " + (e?.message || "unknown error"); status.classList.add("err");
+    }
+  });
+
+  // ---- start --------------------------------------------------------------
+  (async () => {
+    db = await window.claude?.use?.("db");
+    if (!db) { showNotice("Sign in to claude.ai to see and update the tracker."); return; }
+    const user = await window.claude.use("user");
+    if (user) {
+      try { me = await user.id(); } catch {}
+      try { const w = await user.can("data.write"); if (w === false) canWrite = false; } catch {}
+    }
+    $("#summary").hidden = false; $("#general").hidden = false; $("#controls").hidden = false;
+    showNotice("Loading items…");
+    let gotItems = false;
+    const fail = (e) => showNotice("Lost the connection to the tracker (" + (e?.code || "error") + "). Reload the page.", true);
+    db.collection("items").onSnapshot((snap) => {
+      items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      gotItems = true; render();
+    }, fail);
+    db.collection("comments").onSnapshot((snap) => {
+      comments = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      if (gotItems) render();
+    }, fail);
+  })();
+})();
+</script>

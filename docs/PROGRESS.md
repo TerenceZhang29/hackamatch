@@ -53,6 +53,7 @@ Chosen by the project owner on 2026-10-09.
 - Not confirmed: whether Cornell's Outlook setup fetches links on delivery. The button was chosen so the pilot does not depend on the answer.
 - Cost accepted: one extra tap on every sign-in.
 - Revisit by sending a link from a hosted project to a real Cornell inbox. Switching to verify-on-load later only changes the confirm page.
+- **Checked 2026-10-17 on production:** one sign-in email to the owner's Cornell Outlook inbox produced a single `GET /auth/confirm` in Vercel's logs, the owner's own. So Cornell's mail system did not open that link on delivery. One email is a small sample (scanning can depend on the sender's reputation, and the domain will change), so the confirm button stays.
 
 ### Work items
 
