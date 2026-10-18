@@ -145,7 +145,7 @@ test("the board works without JavaScript", async ({ browser }) => {
 test("a builder's card page shows their public profile only", async ({ page }) => {
   const response = await page.goto("/people/00000000-0000-4000-a000-000000000201");
   await expect(page.getByRole("article", { name: "Sofia C." })).toBeVisible();
-  expect(await response!.text()).not.toContain("sc201@cornell.edu");
+  expect(await response!.text()).not.toContain("seed-201@cornell.edu");
 
   const paused = await page.goto("/people/00000000-0000-4000-a000-000000000302");
   expect(paused!.status()).toBe(404);

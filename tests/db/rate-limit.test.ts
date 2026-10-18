@@ -30,7 +30,7 @@ describe("hit_rate_limit", () => {
   });
 
   it("is not callable or readable by signed-in users", async () => {
-    const user = await db.createAuthUser("rl@cornell.edu");
+    const user = await db.createAuthUser("db-601@cornell.edu");
     const call = await db.expectError(() =>
       db.asUser(user, "select public.hit_rate_limit('x', 60, 1)"),
     );

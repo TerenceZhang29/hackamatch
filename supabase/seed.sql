@@ -37,19 +37,19 @@ $$;
 
 select pg_temp.seed_auth_user(id::uuid, email, name)
 from (values
-  ('00000000-0000-4000-a000-000000000001', 'admin@cornell.edu',  'HackaMatch Admin'),
-  ('00000000-0000-4000-a000-000000000101', 'mp101@cornell.edu',  'Maya Patel'),
-  ('00000000-0000-4000-a000-000000000102', 'jl102@cornell.edu',  'Jordan Lee'),
-  ('00000000-0000-4000-a000-000000000103', 'ar103@cornell.edu',  'Amara Robinson'),
-  ('00000000-0000-4000-a000-000000000104', 'dk104@cornell.edu',  'Daniel Kim'),
-  ('00000000-0000-4000-a000-000000000201', 'sc201@cornell.edu',  'Sofia Chen'),
-  ('00000000-0000-4000-a000-000000000202', 'ry202@cornell.edu',  'Ravi Yadav'),
-  ('00000000-0000-4000-a000-000000000203', 'eg203@cornell.edu',  'Elena Garcia'),
-  ('00000000-0000-4000-a000-000000000204', 'tn204@cornell.edu',  'Tom Nguyen'),
-  ('00000000-0000-4000-a000-000000000205', 'pw205@cornell.edu',  'Priya Wang'),
-  ('00000000-0000-4000-a000-000000000301', 'ob301@cornell.edu',  'Omar Bakr'),
-  ('00000000-0000-4000-a000-000000000302', 'lh302@cornell.edu',  'Lena Hoffmann'),
-  ('00000000-0000-4000-a000-000000000303', 'new303@cornell.edu', null)
+  ('00000000-0000-4000-a000-000000000001', 'seed-001@cornell.edu',  'HackaMatch Admin'),
+  ('00000000-0000-4000-a000-000000000101', 'seed-101@cornell.edu',  'Maya Patel'),
+  ('00000000-0000-4000-a000-000000000102', 'seed-102@cornell.edu',  'Jordan Lee'),
+  ('00000000-0000-4000-a000-000000000103', 'seed-103@cornell.edu',  'Amara Robinson'),
+  ('00000000-0000-4000-a000-000000000104', 'seed-104@cornell.edu',  'Daniel Kim'),
+  ('00000000-0000-4000-a000-000000000201', 'seed-201@cornell.edu',  'Sofia Chen'),
+  ('00000000-0000-4000-a000-000000000202', 'seed-202@cornell.edu',  'Ravi Yadav'),
+  ('00000000-0000-4000-a000-000000000203', 'seed-203@cornell.edu',  'Elena Garcia'),
+  ('00000000-0000-4000-a000-000000000204', 'seed-204@cornell.edu',  'Tom Nguyen'),
+  ('00000000-0000-4000-a000-000000000205', 'seed-205@cornell.edu',  'Priya Wang'),
+  ('00000000-0000-4000-a000-000000000301', 'seed-301@cornell.edu',  'Omar Bakr'),
+  ('00000000-0000-4000-a000-000000000302', 'seed-302@cornell.edu',  'Lena Hoffmann'),
+  ('00000000-0000-4000-a000-000000000303', 'seed-303@cornell.edu', null)
 ) as seed_users (id, email, name);
 
 update public.users set is_admin = true, is_organizer = true
@@ -92,7 +92,7 @@ from (values
 ) as s (id, role, intents, raw_bio, github_url, inactive_days)
 where u.id = s.id::uuid;
 
--- Lena is paused; new303 signed up but never finished onboarding.
+-- Lena is paused; seed-303 signed up but never finished onboarding.
 update public.users set paused_until = now() + interval '30 days'
 where id = '00000000-0000-4000-a000-000000000302';
 update public.users set onboarding_started_at = now() - interval '1 day'

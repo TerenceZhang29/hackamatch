@@ -45,7 +45,7 @@ describe("Mutual email", () => {
     const props = {
       other: {
         name: "Maya",
-        email: "mp101@cornell.edu",
+        email: "ut-101@cornell.edu",
         summary: null,
         githubUrl: "https://github.com/maya",
         linkedinUrl: null,
@@ -56,7 +56,7 @@ describe("Mutual email", () => {
       pauseUrl: "https://app.test/r/pause",
     };
     const html = await render(createElement(Mutual, props));
-    expect(html).toContain("mailto:mp101@cornell.edu");
+    expect(html).toContain("mailto:ut-101@cornell.edu");
     expect(html).toContain("https://github.com/maya");
     expect(html).toContain("Hi Maya, coffee this week?");
     expect(html).toContain('href="https://app.test/matches/1"');
@@ -75,7 +75,7 @@ describe("createResendProvider", () => {
       fetchImpl,
     });
     const result = await provider.send({
-      to: "a@cornell.edu",
+      to: "ut-102@cornell.edu",
       subject: "Hi",
       html: "<p>Hi</p>",
       text: "Hi",
@@ -87,7 +87,7 @@ describe("createResendProvider", () => {
     expect((init.headers as Record<string, string>).Authorization).toBe("Bearer re_test");
     expect(JSON.parse(init.body as string)).toMatchObject({
       from: "HackaMatch <hi@x.test>",
-      to: ["a@cornell.edu"],
+      to: ["ut-102@cornell.edu"],
       headers: { "List-Unsubscribe": "<https://x.test/u>" },
     });
   });

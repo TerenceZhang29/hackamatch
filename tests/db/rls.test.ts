@@ -80,7 +80,7 @@ describe("anon (logged-out visitors)", () => {
   });
 
   it("hides ideas from paused or not-yet-onboarded owners", async () => {
-    const owner = await db.createAuthUser("owner@cornell.edu", { onboarded: true });
+    const owner = await db.createAuthUser("db-201@cornell.edu", { onboarded: true });
     const ideaId = await createIdea(owner);
     const visible = () =>
       db.asAnon("select id from public.public_board_ideas(100, 0) where id = $1", [ideaId]);
@@ -114,8 +114,8 @@ describe("anon (logged-out visitors)", () => {
 
 describe("users and profiles", () => {
   it("a user sees only their own row", async () => {
-    const a = await db.createAuthUser("ua@cornell.edu");
-    await db.createAuthUser("ub@cornell.edu");
+    const a = await db.createAuthUser("db-202@cornell.edu");
+    await db.createAuthUser("db-203@cornell.edu");
     const { rows } = await db.asUser<{ id: string }>(a, "select id from public.users");
     expect(rows.map((r) => r.id)).toEqual([a]);
   });
@@ -129,7 +129,7 @@ describe("users and profiles", () => {
   });
 
   it("a user can edit their profile fields but not privileged columns", async () => {
-    const a = await db.createAuthUser("uc@cornell.edu");
+    const a = await db.createAuthUser("db-204@cornell.edu");
     await db.asUser(
       a,
       "update public.users set name = 'New Name', role = 'builder' where id = $1",
@@ -141,7 +141,7 @@ describe("users and profiles", () => {
     for (const column of [
       "is_admin = true",
       "is_organizer = true",
-      "cornell_email = 'z@cornell.edu'",
+      "cornell_email = 'db-299@cornell.edu'",
     ]) {
       const error = await db.expectError(() =>
         db.asUser(a, `update public.users set ${column} where id = $1`, [a]),
@@ -151,14 +151,14 @@ describe("users and profiles", () => {
   });
 
   it("a user cannot update someone else's row", async () => {
-    const a = await db.createAuthUser("ud@cornell.edu");
-    const b = await db.createAuthUser("ue@cornell.edu");
+    const a = await db.createAuthUser("db-205@cornell.edu");
+    const b = await db.createAuthUser("db-206@cornell.edu");
     const result = await db.asUser(a, "update public.users set name = 'Hacked' where id = $1", [b]);
     expect(result.rowCount).toBe(0);
   });
 
   it("a user can edit their tags but not their embedding", async () => {
-    const a = await db.createAuthUser("uf@cornell.edu");
+    const a = await db.createAuthUser("db-207@cornell.edu");
     const updated = await db.asUser(
       a,
       "update public.profiles set skills = '{frontend}', user_edited = true where user_id = $1",
@@ -175,8 +175,8 @@ describe("users and profiles", () => {
 
 describe("ideas", () => {
   it("non-owners cannot read an idea's raw_text until a match is revealed", async () => {
-    const owner = await db.createAuthUser("io@cornell.edu", { onboarded: true });
-    const other = await db.createAuthUser("ip@cornell.edu", { onboarded: true });
+    const owner = await db.createAuthUser("db-208@cornell.edu", { onboarded: true });
+    const other = await db.createAuthUser("db-209@cornell.edu", { onboarded: true });
     const ideaId = await createIdea(owner);
     const read = () =>
       db.asUser(other, "select raw_text from public.ideas where id = $1", [ideaId]);
@@ -191,8 +191,8 @@ describe("ideas", () => {
   });
 
   it("owners can create and edit their ideas but not feature them", async () => {
-    const owner = await db.createAuthUser("iq@cornell.edu");
-    const other = await db.createAuthUser("ir@cornell.edu");
+    const owner = await db.createAuthUser("db-210@cornell.edu");
+    const other = await db.createAuthUser("db-211@cornell.edu");
 
     const { rows } = await db.asUser<{ id: string }>(
       owner,
@@ -217,9 +217,9 @@ describe("ideas", () => {
 
 describe("matches", () => {
   it("a user sees only matches they are in", async () => {
-    const a = await db.createAuthUser("ma@cornell.edu");
-    const b = await db.createAuthUser("mb@cornell.edu");
-    const c = await db.createAuthUser("mc@cornell.edu");
+    const a = await db.createAuthUser("db-212@cornell.edu");
+    const b = await db.createAuthUser("db-213@cornell.edu");
+    const c = await db.createAuthUser("db-214@cornell.edu");
     const ab = await createMatch(a, b);
     const bc = await createMatch(b, c);
 
@@ -231,8 +231,8 @@ describe("matches", () => {
   });
 
   it("users cannot write matches directly", async () => {
-    const a = await db.createAuthUser("md@cornell.edu");
-    const b = await db.createAuthUser("me@cornell.edu");
+    const a = await db.createAuthUser("db-215@cornell.edu");
+    const b = await db.createAuthUser("db-216@cornell.edu");
     const [low, high] = canonicalPair(a, b);
     const error = await db.expectError(() =>
       db.asUser(a, "insert into public.matches (user_a, user_b, source) values ($1, $2, 'board')", [
@@ -244,9 +244,9 @@ describe("matches", () => {
   });
 
   it("only members of a revealed match can vote on events for it", async () => {
-    const a = await db.createAuthUser("mf@cornell.edu");
-    const b = await db.createAuthUser("mg@cornell.edu");
-    const outsider = await db.createAuthUser("mh@cornell.edu");
+    const a = await db.createAuthUser("db-217@cornell.edu");
+    const b = await db.createAuthUser("db-218@cornell.edu");
+    const outsider = await db.createAuthUser("db-219@cornell.edu");
     const matchId = await createMatch(a, b);
     const eventId = "00000000-0000-4000-b000-000000000001";
     const vote = (userId: string) =>
@@ -265,7 +265,7 @@ describe("matches", () => {
 
 describe("events and event interests", () => {
   it("only organizers and admins can create events", async () => {
-    const student = await db.createAuthUser("ea@cornell.edu");
+    const student = await db.createAuthUser("db-220@cornell.edu");
     const insert = (userId: string) =>
       db.asUser(
         userId,
@@ -282,8 +282,8 @@ describe("events and event interests", () => {
   });
 
   it("organizers see interest in their own events only", async () => {
-    const organizer = await db.createAuthUser("eb@cornell.edu");
-    const student = await db.createAuthUser("ec@cornell.edu");
+    const organizer = await db.createAuthUser("db-221@cornell.edu");
+    const student = await db.createAuthUser("db-222@cornell.edu");
     await db.asPostgres("update public.users set is_organizer = true where id = $1", [organizer]);
     const { rows } = await db.asPostgres<{ id: string }>(
       `insert into public.events (slug, name, start_date, end_date, organizer_id)
@@ -315,7 +315,7 @@ describe("events and event interests", () => {
 
 describe("operational tables", () => {
   it("are hidden from regular users", async () => {
-    const a = await db.createAuthUser("oa@cornell.edu");
+    const a = await db.createAuthUser("db-223@cornell.edu");
     await db.asPostgres(
       `insert into public.notification_log (user_id, channel, kind, local_date)
          values ($1, 'email', 'mutual', current_date);

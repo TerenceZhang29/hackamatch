@@ -11,7 +11,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 const DATABASE_URL =
   process.env.SUPABASE_DB_URL ?? "postgresql://postgres:postgres@127.0.0.1:54322/postgres";
 const FIXTURES = "tests/fixtures/phase0";
-const EMAILS = ["p0-maya@cornell.edu", "p0-sofia@cornell.edu"];
+const EMAILS = ["p0-001@cornell.edu", "p0-002@cornell.edu"];
 const SEED_IDEA = "A study-group finder that matches classmates by schedule";
 
 const client = new pg.Client({ connectionString: DATABASE_URL });
@@ -70,7 +70,7 @@ describe("pnpm import:phase0", () => {
   it("dry run reports what it would do and writes nothing", () => {
     const { output } = runImport("--dry-run");
     expect(output).toContain("Dry run: nothing was written.");
-    expect(output).toContain("would create p0-maya@cornell.edu (idea)");
+    expect(output).toContain("would create p0-001@cornell.edu (idea)");
     expect(output).toContain("signups line 4: email: not an email address");
     expect(output).toContain(
       "Unknown events (create them in /admin/events, then re-run): Mystery Hackathon",
@@ -102,7 +102,7 @@ describe("pnpm import:phase0", () => {
     );
     expect(rows).toEqual([
       {
-        email: "p0-maya@cornell.edu",
+        email: "p0-001@cornell.edu",
         role: "idea",
         onboarded: true,
         embedded: true,
@@ -110,7 +110,7 @@ describe("pnpm import:phase0", () => {
         events: 1,
       },
       {
-        email: "p0-sofia@cornell.edu",
+        email: "p0-002@cornell.edu",
         role: "builder",
         onboarded: true,
         embedded: true,
@@ -132,7 +132,7 @@ describe("pnpm import:phase0", () => {
       await client.query<{ source: string; revealed: boolean; has_idea: boolean }>(
         `select m.source::text, m.revealed_at is not null as revealed, m.idea_id is not null as has_idea
          from public.matches m join public.users u on u.id in (m.user_a, m.user_b)
-         where u.cornell_email = 'p0-maya@cornell.edu'`,
+         where u.cornell_email = 'p0-001@cornell.edu'`,
       )
     ).rows;
     expect(match).toEqual({ source: "admin", revealed: true, has_idea: true });

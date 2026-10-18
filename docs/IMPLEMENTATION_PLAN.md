@@ -440,7 +440,7 @@ Outcome: a student can sign up in under 60 s, appear on the board with inferred 
 - **Files:** `supabase/config.toml`, `supabase/migrations/20261009000001_init.sql`, `supabase/migrations/20261009000002_rls.sql`, `supabase/migrations/20261009000003_public_board_fns.sql`, `supabase/seed.sql`, `src/types/db.ts`, `src/lib/supabase/{server,browser,service,middleware}.ts`, `src/middleware.ts`.
 - **Spec:**
   - Implement §3 exactly (tables, enums, triggers, `app_settings`, `active_pool`, RLS, public board functions).
-  - `seed.sql`: 3 events (one 3 weeks out, one 8 weeks out, one past), 12 users across roles with profile tags filled, 6 ideas, 1 admin (`admin@cornell.edu`). Embeddings stay null in `seed.sql`; `scripts/seed-dev.ts` (P1-16) fills them with the fake embedder from P1-05 after `db reset`.
+  - `seed.sql`: 3 events (one 3 weeks out, one 8 weeks out, one past), 12 users across roles with profile tags filled, 6 ideas, 1 admin (`seed-001@cornell.edu`; test addresses use `<use case>-<digits>` NetIDs, see README). Embeddings stay null in `seed.sql`; `scripts/seed-dev.ts` (P1-16) fills them with the fake embedder from P1-05 after `db reset`.
   - Supabase clients per `@supabase/ssr` conventions: `server.ts` (cookies, user-scoped), `browser.ts`, `service.ts` (service role, `import 'server-only'`), `middleware.ts` (session refresh).
   - `config.toml`: enable email OTP/magic link, set site URL and redirect URLs for local dev; local Inbucket/Mailpit enabled for capturing magic links.
 - **Acceptance criteria:**

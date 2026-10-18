@@ -60,37 +60,37 @@ describe("isAllowedEmailDomain", () => {
   const allowed = ["cornell.edu"];
 
   it("accepts an allowed domain regardless of case or surrounding space", () => {
-    expect(isAllowedEmailDomain("abc123@cornell.edu", allowed)).toBe(true);
-    expect(isAllowedEmailDomain("  ABC123@Cornell.EDU ", allowed)).toBe(true);
+    expect(isAllowedEmailDomain("ut-001@cornell.edu", allowed)).toBe(true);
+    expect(isAllowedEmailDomain("  UT-001@Cornell.EDU ", allowed)).toBe(true);
   });
 
   it("rejects other domains, lookalikes and subdomains", () => {
-    expect(isAllowedEmailDomain("abc123@gmail.com", allowed)).toBe(false);
-    expect(isAllowedEmailDomain("abc123@notcornell.edu", allowed)).toBe(false);
-    expect(isAllowedEmailDomain("abc123@cornell.edu.evil.com", allowed)).toBe(false);
-    expect(isAllowedEmailDomain("abc123@tech.cornell.edu", allowed)).toBe(false);
+    expect(isAllowedEmailDomain("ut-001@gmail.com", allowed)).toBe(false);
+    expect(isAllowedEmailDomain("ut-001@notcornell.edu", allowed)).toBe(false);
+    expect(isAllowedEmailDomain("ut-001@cornell.edu.evil.com", allowed)).toBe(false);
+    expect(isAllowedEmailDomain("ut-001@tech.cornell.edu", allowed)).toBe(false);
     expect(isAllowedEmailDomain("cornell.edu@gmail.com", allowed)).toBe(false);
   });
 
   it("uses the domain after the last @", () => {
-    expect(isAllowedEmailDomain("abc@cornell.edu@gmail.com", allowed)).toBe(false);
+    expect(isAllowedEmailDomain("ut-002@cornell.edu@gmail.com", allowed)).toBe(false);
   });
 
   it("rejects malformed input and an empty allow-list", () => {
     expect(isAllowedEmailDomain("@cornell.edu", allowed)).toBe(false);
     expect(isAllowedEmailDomain("cornell.edu", allowed)).toBe(false);
-    expect(isAllowedEmailDomain("abc123@cornell.edu", [])).toBe(false);
+    expect(isAllowedEmailDomain("ut-001@cornell.edu", [])).toBe(false);
   });
 
   it("supports several allowed domains", () => {
     const many = ["cornell.edu", "Tech.Cornell.edu"];
-    expect(isAllowedEmailDomain("abc123@tech.cornell.edu", many)).toBe(true);
+    expect(isAllowedEmailDomain("ut-001@tech.cornell.edu", many)).toBe(true);
   });
 });
 
 describe("normalizeEmail", () => {
   it("trims and lowercases", () => {
-    expect(normalizeEmail("  ABC123@Cornell.EDU ")).toBe("abc123@cornell.edu");
+    expect(normalizeEmail("  UT-001@Cornell.EDU ")).toBe("ut-001@cornell.edu");
   });
 });
 

@@ -27,8 +27,8 @@ describe("parseCsvRows", () => {
 
 describe("parseCsv", () => {
   it("keys rows by lowercased header and checks required columns", () => {
-    expect(parseCsv("Email,Name\nx@cornell.edu, Ann \n", ["email"])).toEqual([
-      { email: "x@cornell.edu", name: "Ann" },
+    expect(parseCsv("Email,Name\nut-201@cornell.edu, Ann \n", ["email"])).toEqual([
+      { email: "ut-201@cornell.edu", name: "Ann" },
     ]);
     expect(() => parseCsv("email\nx", ["email", "role"])).toThrow(/missing column\(s\): role/);
   });
@@ -40,7 +40,7 @@ describe("signup rows", () => {
   it("maps Google Form answers onto the app's values", () => {
     const row = signupRowSchema.parse({
       ...base,
-      email: " MP101@Cornell.edu ",
+      email: " UT-202@Cornell.edu ",
       name: "Maya Patel",
       role: "I have an idea",
       intents: "hackathon partner; co-founder",
@@ -48,7 +48,7 @@ describe("signup rows", () => {
       events: "Cornell Tech Fall Hack; Health AI Buildathon",
     });
     expect(row).toEqual({
-      email: "mp101@cornell.edu",
+      email: "ut-202@cornell.edu",
       name: "Maya Patel",
       role: "idea",
       intents: ["hackathon", "cofounder"],
@@ -62,9 +62,9 @@ describe("signup rows", () => {
   it("defaults intents to hackathon and reports bad rows with spreadsheet line numbers", () => {
     const { valid, errors } = validateRows(
       [
-        { ...base, email: "a@cornell.edu", role: "Both", sentence: "I build and have ideas" },
+        { ...base, email: "ut-203@cornell.edu", role: "Both", sentence: "I build and have ideas" },
         { ...base, email: "not-an-email", role: "builder", sentence: "I build iOS apps" },
-        { ...base, email: "c@cornell.edu", role: "investor", sentence: "I fund things" },
+        { ...base, email: "ut-205@cornell.edu", role: "investor", sentence: "I fund things" },
       ],
       signupRowSchema,
     );
@@ -80,12 +80,12 @@ describe("seed idea and match rows", () => {
   it("parses a seed idea", () => {
     expect(
       seedIdeaRowSchema.parse({
-        owner_email: "Founder@cornell.edu",
+        owner_email: "UT-206@cornell.edu",
         sentence: "A study-group finder app",
         event: "",
       }),
     ).toEqual({
-      owner_email: "founder@cornell.edu",
+      owner_email: "ut-206@cornell.edu",
       sentence: "A study-group finder app",
       event: null,
     });
@@ -93,8 +93,8 @@ describe("seed idea and match rows", () => {
 
   it("parses manual matches, including 1/2 replies and teamed_up", () => {
     const row = matchRowSchema.parse({
-      email_a: "a@cornell.edu",
-      email_b: "b@cornell.edu",
+      email_a: "ut-203@cornell.edu",
+      email_b: "ut-204@cornell.edu",
       idea_sentence: "",
       reason: "Both like health",
       a_response: "1",
@@ -110,7 +110,7 @@ describe("seed idea and match rows", () => {
     expect(
       matchRowSchema.safeParse({
         ...row,
-        email_b: "a@cornell.edu",
+        email_b: "ut-203@cornell.edu",
         a_response: "",
         b_response: "",
         teamed_up: "",

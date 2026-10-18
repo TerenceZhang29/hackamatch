@@ -33,7 +33,9 @@ Local services once `pnpm db:start` is running:
 | Supabase Studio                     | http://127.0.0.1:54323                                    |
 | Mailpit (catches magic-link emails) | http://127.0.0.1:54324                                    |
 
-Seeded accounts (see `supabase/seed.sql`) include `admin@cornell.edu` (admin and organizer), idea people such as `mp101@cornell.edu`, and builders such as `sc201@cornell.edu`. Sign in with a magic link and open it from Mailpit.
+Seeded accounts (see `supabase/seed.sql`) include `seed-001@cornell.edu` (admin and organizer), idea people `seed-101@` to `seed-104@`, builders `seed-201@` to `seed-205@` `both` users `seed-301@` and `seed-302@` (paused), and `seed-303@`, who never finished onboarding; `pnpm seed:dev` adds `dev-001@` to `dev-060@`. Sign in with a magic link and open it from Mailpit.
+
+Test addresses always use a `<use case>-<digits>` NetID (`ut-`, `db-`, `e2e-`, `seed-`, `dev-`, `p0-`), which can never be a real student's (real NetIDs are letters then digits, like `abc123`). `tests/unit/test-addresses.test.ts` enforces this.
 
 ## Scripts
 

@@ -11,8 +11,8 @@ type Row = { match_id: string; created: boolean };
 
 describe("respond_to_pair", () => {
   it("creates the canonical row with the actor's answer, then updates only the actor's side", async () => {
-    const x = await db.createAuthUser("rp-x@cornell.edu", { onboarded: true });
-    const y = await db.createAuthUser("rp-y@cornell.edu", { onboarded: true });
+    const x = await db.createAuthUser("db-301@cornell.edu", { onboarded: true });
+    const y = await db.createAuthUser("db-302@cornell.edu", { onboarded: true });
 
     const first = await db.asPostgres<Row>(
       "select * from public.respond_to_pair($1, $2, null, 'interested', 'board')",
@@ -38,7 +38,7 @@ describe("respond_to_pair", () => {
   });
 
   it("refuses a self-match or a pending answer", async () => {
-    const x = await db.createAuthUser("rp-z@cornell.edu", { onboarded: true });
+    const x = await db.createAuthUser("db-303@cornell.edu", { onboarded: true });
     const self = await db.expectError(() =>
       db.asPostgres("select * from public.respond_to_pair($1, $1, null, 'interested', 'board')", [
         x,
@@ -48,7 +48,7 @@ describe("respond_to_pair", () => {
   });
 
   it("is not callable by signed-in users", async () => {
-    const x = await db.createAuthUser("rp-w@cornell.edu", { onboarded: true });
+    const x = await db.createAuthUser("db-304@cornell.edu", { onboarded: true });
     const error = await db.expectError(() =>
       db.asUser(x, "select * from public.respond_to_pair($1, $1, null, 'interested', 'board')", [
         x,
@@ -58,15 +58,15 @@ describe("respond_to_pair", () => {
   });
 
   it("counts today's interests for the daily limit", async () => {
-    const x = await db.createAuthUser("rp-v@cornell.edu", { onboarded: true });
+    const x = await db.createAuthUser("db-305@cornell.edu", { onboarded: true });
     for (const n of [1, 2, 3]) {
-      const y = await db.createAuthUser(`rp-t${n}@cornell.edu`, { onboarded: true });
+      const y = await db.createAuthUser(`db-31${n}@cornell.edu`, { onboarded: true });
       await db.asPostgres("select public.respond_to_pair($1, $2, null, 'interested', 'board')", [
         x,
         y,
       ]);
     }
-    const passTarget = await db.createAuthUser("rp-t4@cornell.edu", { onboarded: true });
+    const passTarget = await db.createAuthUser("db-314@cornell.edu", { onboarded: true });
     await db.asPostgres("select public.respond_to_pair($1, $2, null, 'pass', 'board')", [
       x,
       passTarget,
@@ -92,7 +92,7 @@ describe("respond_to_pair under concurrency", () => {
     clients.push(setup);
     await setup.connect();
     const ids: string[] = [];
-    for (const email of ["race-a@cornell.edu", "race-b@cornell.edu"]) {
+    for (const email of ["db-306@cornell.edu", "db-307@cornell.edu"]) {
       const { rows } = await setup.query<{ id: string }>(
         `insert into auth.users (instance_id, id, aud, role, email)
          values ('00000000-0000-0000-0000-000000000000', gen_random_uuid(), 'authenticated',

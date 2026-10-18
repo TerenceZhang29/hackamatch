@@ -15,7 +15,7 @@ async function ownerWithIdea(email: string, status = "open") {
 
 describe("public_idea", () => {
   it("returns public fields and never raw_text, to logged-out visitors", async () => {
-    const { ideaId, owner } = await ownerWithIdea("pi-a@cornell.edu");
+    const { ideaId, owner } = await ownerWithIdea("db-501@cornell.edu");
     const { rows, fields } = await db.asAnon("select * from public.public_idea($1)", [ideaId]);
     expect(rows).toHaveLength(1);
     expect(fields.map((f) => f.name)).not.toContain("raw_text");
@@ -24,8 +24,8 @@ describe("public_idea", () => {
   });
 
   it("shows filled ideas but hides archived ones", async () => {
-    const filled = await ownerWithIdea("pi-b@cornell.edu", "filled");
-    const archived = await ownerWithIdea("pi-c@cornell.edu", "archived");
+    const filled = await ownerWithIdea("db-502@cornell.edu", "filled");
+    const archived = await ownerWithIdea("db-503@cornell.edu", "archived");
     expect(
       (await db.asAnon("select id from public.public_idea($1)", [filled.ideaId])).rowCount,
     ).toBe(1);
@@ -35,7 +35,7 @@ describe("public_idea", () => {
   });
 
   it("hides ideas of paused owners", async () => {
-    const { owner, ideaId } = await ownerWithIdea("pi-d@cornell.edu");
+    const { owner, ideaId } = await ownerWithIdea("db-504@cornell.edu");
     await db.asPostgres(
       "update public.users set paused_until = now() + interval '1 day' where id = $1",
       [owner],

@@ -5,13 +5,13 @@ const db = setupTestDb();
 
 describe("auth user provisioning", () => {
   it("creates users and profiles rows for a cornell.edu address", async () => {
-    const id = await db.createAuthUser("np999@cornell.edu");
+    const id = await db.createAuthUser("db-101@cornell.edu");
 
     const users = await db.asPostgres(
       "select cornell_email, role from public.users where id = $1",
       [id],
     );
-    expect(users.rows).toEqual([{ cornell_email: "np999@cornell.edu", role: null }]);
+    expect(users.rows).toEqual([{ cornell_email: "db-101@cornell.edu", role: null }]);
 
     const profiles = await db.asPostgres("select user_id from public.profiles where user_id = $1", [
       id,
@@ -38,7 +38,7 @@ describe("auth user provisioning", () => {
   });
 
   it("rejects changing an existing email to a disallowed domain", async () => {
-    const id = await db.createAuthUser("np998@cornell.edu");
+    const id = await db.createAuthUser("db-102@cornell.edu");
     const error = await db.expectError(() =>
       db.asPostgres("update public.users set cornell_email = 'x@gmail.com' where id = $1", [id]),
     );
@@ -48,8 +48,8 @@ describe("auth user provisioning", () => {
 
 describe("matches table", () => {
   it("requires the canonical order user_a < user_b", async () => {
-    const a = await db.createAuthUser("pair-a@cornell.edu");
-    const b = await db.createAuthUser("pair-b@cornell.edu");
+    const a = await db.createAuthUser("db-103@cornell.edu");
+    const b = await db.createAuthUser("db-104@cornell.edu");
     const [low, high] = a < b ? [a, b] : [b, a];
 
     const error = await db.expectError(() =>
@@ -62,8 +62,8 @@ describe("matches table", () => {
   });
 
   it("allows only one match per pair", async () => {
-    const a = await db.createAuthUser("pair-c@cornell.edu");
-    const b = await db.createAuthUser("pair-d@cornell.edu");
+    const a = await db.createAuthUser("db-105@cornell.edu");
+    const b = await db.createAuthUser("db-106@cornell.edu");
     const [low, high] = a < b ? [a, b] : [b, a];
     const insert = () =>
       db.asPostgres(
@@ -79,7 +79,7 @@ describe("matches table", () => {
 
 describe("notification_log", () => {
   it("allows one digest per user per local date", async () => {
-    const id = await db.createAuthUser("digest@cornell.edu");
+    const id = await db.createAuthUser("db-107@cornell.edu");
     const insert = (kind: string) =>
       db.asPostgres(
         `insert into public.notification_log (user_id, channel, kind, local_date)
@@ -96,9 +96,9 @@ describe("notification_log", () => {
 
 describe("active_pool", () => {
   it("includes onboarded, unpaused users only", async () => {
-    const active = await db.createAuthUser("active@cornell.edu", { onboarded: true });
-    const paused = await db.createAuthUser("paused@cornell.edu", { onboarded: true });
-    const fresh = await db.createAuthUser("fresh@cornell.edu");
+    const active = await db.createAuthUser("db-108@cornell.edu", { onboarded: true });
+    const paused = await db.createAuthUser("db-109@cornell.edu", { onboarded: true });
+    const fresh = await db.createAuthUser("db-110@cornell.edu");
     await db.asPostgres(
       "update public.users set paused_until = now() + interval '1 day' where id = $1",
       [paused],

@@ -16,8 +16,8 @@ describe("clientIp", () => {
 
 describe("limitKey", () => {
   it("normalizes the subject so case can't dodge a limit", () => {
-    expect(limitKey(LIMITS.loginEmail, " MP101@Cornell.edu ")).toBe(
-      "login:email:mp101@cornell.edu",
+    expect(limitKey(LIMITS.loginEmail, " UT-301@Cornell.edu ")).toBe(
+      "login:email:ut-301@cornell.edu",
     );
   });
 });

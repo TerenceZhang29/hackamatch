@@ -1,13 +1,16 @@
-import { randomUUID } from "node:crypto";
+import { randomInt, randomUUID } from "node:crypto";
 import pg from "pg";
 
 const MAILPIT_URL = process.env.MAILPIT_URL ?? "http://127.0.0.1:54324";
 const DATABASE_URL =
   process.env.SUPABASE_DB_URL ?? "postgresql://postgres:postgres@127.0.0.1:54322/postgres";
 
-/** A unique address, so parallel tests never read each other's mail. */
+/**
+ * A unique address, so parallel tests never read each other's mail. The local
+ * part is `e2e-` plus digits, which can never be a real NetID (letters, then digits).
+ */
 export function uniqueEmail(domain = "cornell.edu") {
-  return `e2e-${randomUUID().slice(0, 12)}@${domain}`;
+  return `e2e-${String(randomInt(0, 1e12)).padStart(12, "0")}@${domain}`;
 }
 
 type MailpitSummary = { ID: string; Created: string };

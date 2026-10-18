@@ -4,9 +4,9 @@ import { canonicalPair, setupTestDb } from "./helpers";
 const db = setupTestDb();
 const EVENT = "00000000-0000-4000-b000-000000000001";
 
-async function revealedPair(prefix: string) {
-  const x = await db.createAuthUser(`${prefix}-x@cornell.edu`, { onboarded: true });
-  const y = await db.createAuthUser(`${prefix}-y@cornell.edu`, { onboarded: true });
+async function revealedPair(pair: number) {
+  const x = await db.createAuthUser(`db-4${pair}1@cornell.edu`, { onboarded: true });
+  const y = await db.createAuthUser(`db-4${pair}2@cornell.edu`, { onboarded: true });
   const [a, b] = canonicalPair(x, y);
   const { rows } = await db.asPostgres<{ id: string }>(
     `insert into public.matches (user_a, user_b, source, a_response, b_response, revealed_at)
@@ -18,7 +18,7 @@ async function revealedPair(prefix: string) {
 
 describe("team_up", () => {
   it("creates one team per match and event, with both people, however often it runs", async () => {
-    const { x, y, matchId } = await revealedPair("tu-a");
+    const { x, y, matchId } = await revealedPair(1);
     const first = await db.asPostgres<{ team_id: string; created: boolean }>(
       "select * from public.team_up($1, $2, $3)",
       [matchId, EVENT, x],
@@ -44,7 +44,7 @@ describe("team_up", () => {
   });
 
   it("treats 'no event' as its own team, also only once", async () => {
-    const { x, matchId } = await revealedPair("tu-b");
+    const { x, matchId } = await revealedPair(2);
     await db.asPostgres("select public.team_up($1, null, $2)", [matchId, x]);
     await db.asPostgres("select public.team_up($1, null, $2)", [matchId, x]);
     await db.asPostgres("select public.team_up($1, $2, $3)", [matchId, EVENT, x]);
@@ -56,14 +56,14 @@ describe("team_up", () => {
   });
 
   it("refuses an unrevealed match or someone outside it", async () => {
-    const { matchId } = await revealedPair("tu-c");
-    const stranger = await db.createAuthUser("tu-c-z@cornell.edu", { onboarded: true });
+    const { matchId } = await revealedPair(3);
+    const stranger = await db.createAuthUser("db-433@cornell.edu", { onboarded: true });
     const outside = await db.expectError(() =>
       db.asPostgres("select public.team_up($1, null, $2)", [matchId, stranger]),
     );
     expect(outside?.message).toMatch(/Not a revealed match/);
 
-    const { x, matchId: hidden } = await revealedPair("tu-d");
+    const { x, matchId: hidden } = await revealedPair(4);
     await db.asPostgres("update public.matches set revealed_at = null where id = $1", [hidden]);
     const unrevealed = await db.expectError(() =>
       db.asPostgres("select public.team_up($1, null, $2)", [hidden, x]),
