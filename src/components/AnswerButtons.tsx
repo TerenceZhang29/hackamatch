@@ -1,4 +1,4 @@
-import { Heart, X } from "lucide-react";
+import { Handshake, X } from "lucide-react";
 import { answerCard, answerMatch } from "@/app/actions/respond";
 import { buttonClass } from "@/components/ui/Button";
 
@@ -26,7 +26,7 @@ export function CardAnswerButtons({
         value="interested"
         className={buttonClass("primary", "sm")}
       >
-        <Heart aria-hidden="true" className="size-4" /> Interested
+        <Handshake aria-hidden="true" className="size-4" /> Interested
       </button>
       <button type="submit" name="response" value="pass" className={buttonClass("secondary", "sm")}>
         Pass
@@ -58,7 +58,7 @@ export function MatchAnswerButtons({ matchId }: { matchId: string }) {
         title="Interested"
         className={`${round} bg-accent text-accent-ink`}
       >
-        <Heart aria-hidden="true" className="size-5" />
+        <Handshake aria-hidden="true" className="size-5" />
       </button>
     </form>
   );

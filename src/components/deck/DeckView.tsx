@@ -1,6 +1,6 @@
 import {
   CalendarDays,
-  Heart,
+  Handshake,
   LayoutGrid,
   Lightbulb,
   PartyPopper,
@@ -79,7 +79,7 @@ function AnswerBar({
           title="Interested"
           className={`${round} bg-accent text-accent-ink`}
         >
-          <Heart aria-hidden="true" className="size-7" strokeWidth={2.4} />
+          <Handshake aria-hidden="true" className="size-7" strokeWidth={2.4} />
         </button>
       </form>
     </div>

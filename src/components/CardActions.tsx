@@ -1,4 +1,4 @@
-import { Heart } from "lucide-react";
+import { Handshake } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
 export type Viewer = "anon" | "not-onboarded" | "onboarded";
@@ -25,7 +25,7 @@ export function CardActions({
   return (
     <div className="mt-auto flex gap-2">
       <Button href={href} prefetch={false} size="sm">
-        {viewer === "anon" ? <Heart aria-hidden="true" className="size-4" /> : null}
+        {viewer === "anon" ? <Handshake aria-hidden="true" className="size-4" /> : null}
         {viewer === "anon" ? "Interested" : "Finish joining to connect"}
       </Button>
     </div>
