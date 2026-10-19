@@ -692,6 +692,7 @@ Outcome: every evening each active user receives 3–5 matches with a one-line r
 3. Complementary roles: allowed pairs are idea↔builder, idea↔both, builder↔both, both↔both. Not allowed: idea↔idea, builder↔builder.
 4. At least one of them owns an `open` idea, **unless** both have role `both` (then profile-to-profile matching is used).
 5. No row in `matches` for the pair (covers "already matched" and "passed"). Matching never removes anyone from the pool.
+   - *To consider (owner, 2026-10-19):* let a Pass expire, so a passed person can be suggested again after some time (for example 30 days) or when they post a new idea. This would change this filter for pairs whose only answers are passes (`docs/plans/card-deck.md`, decision 4).
 6. Neither user has ≥ 10 pending, unanswered matches (stop piling up on people who don't respond).
 
 **Candidate generation** (`candidates.ts`, SQL): for each eligible user, take the top `K=50` nearest neighbors by cosine distance among eligible users' profile embeddings and among open ideas' embeddings (owner becomes the candidate), using the HNSW indexes. Apply the hard filters in SQL. Output `(u, v, idea_id | null)` triples, where `idea_id` is the best-scoring open idea owned by either user (the one with highest semantic fit to the other user's profile).
@@ -700,6 +701,7 @@ Outcome: every evening each active user receives 3–5 matches with a one-line r
 - `coverage` = |skills_needed(idea) ∩ (skills(builder) ∪ stack(builder))| / max(1, |skills_needed(idea)|), where builder is the non-owner. For both↔both without an idea: `1 − jaccard(skills_u ∪ stack_u, skills_v ∪ stack_v)` (rewarding complementary skills).
 - `semantic` = max(0, cos(embedding(idea or u's profile), embedding(v's profile))).
 - `event` = 1 if they share an `event_interests` event whose `start_date` is in the future, else 0. If the idea has `event_id`, sharing that event counts too.
+  - *To consider (owner, 2026-10-19):* weight the event feature by how soon the shared event starts, so that a member going to an event soon sees that event's pool first in the card view (`docs/plans/card-deck.md`, decision 3).
 - `freshness` = min(f(u), f(v)) with f(x) = exp(−days_since(last_active_at) / 7).
 - `fairness` = (matches assigned to v earlier in this run + v's pending unanswered matches) / 10, capped at 1; computed dynamically during selection.
 
