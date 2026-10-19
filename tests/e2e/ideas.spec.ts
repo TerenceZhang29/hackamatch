@@ -168,3 +168,10 @@ test("seeded ideas open, whatever the UUID variant of their id", async ({ page }
     page.getByRole("heading", { name: "Let nurses swap shifts in minutes instead of days." }),
   ).toBeVisible();
 });
+
+test("the post-an-idea page links back to the board", async ({ page }) => {
+  await newBuilder(page);
+  await page.goto("/ideas/new");
+  await page.getByRole("link", { name: "← Back to the board" }).click();
+  await expect(page).toHaveURL("/");
+});
