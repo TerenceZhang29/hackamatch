@@ -16,6 +16,9 @@ import {
  * Serious and critical violations fail the test; minor ones are reported.
  */
 
+// No transitions, so axe never measures a color halfway through one.
+test.use({ contextOptions: { reducedMotion: "reduce" } });
+
 const created: string[] = [];
 const newEmail = () => {
   const email = uniqueEmail();
@@ -77,6 +80,8 @@ test("onboarding, every step", async ({ page }) => {
   await page.getByRole("textbox").first().fill("A shift swap app");
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(page.getByRole("heading", { name: "Here's what we got" })).toBeVisible();
+  // Scan once the step has settled: the button is disabled (and faded) while it loads.
+  await expect(page.getByRole("button", { name: "Join the pool" })).toBeEnabled();
   await expectAccessible(page, "onboarding step 3");
 });
 
@@ -105,6 +110,10 @@ test("member pages", async ({ page }) => {
   await expectAccessible(page, "board list (member)");
   await page.goto("/matches");
   await expectAccessible(page, "matches");
+  // The shell marks the current tab (one "Main" nav is visible per screen size).
+  await expect(
+    page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: /^Matches/ }),
+  ).toHaveAttribute("aria-current", "page");
   await page.goto(`/matches/${mutual}`);
   await expectAccessible(page, "pair page");
   await page.getByRole("button", { name: "We teamed up" }).click();

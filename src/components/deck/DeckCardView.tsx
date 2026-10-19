@@ -1,31 +1,24 @@
+import { CalendarDays, ChevronDown, ChevronUp, Star } from "lucide-react";
 import Link from "next/link";
-import { Chips } from "@/components/Card";
 import { scopeLabel } from "@/components/IdeaTags";
-import { EXPERIENCE_LABELS, INTENT_LABELS, inCommon, markNeeds } from "@/lib/deck";
+import { PersonLines, RoleTags } from "@/components/PersonLines";
+import { Avatar } from "@/components/ui/Avatar";
+import { Chip, TagList } from "@/components/ui/Chip";
+import { inCommon, markNeeds } from "@/lib/deck";
+import { nearestPoolEvents } from "@/lib/person-card";
 import { tagLabel } from "@/lib/taxonomy/labels";
 import type { DeckCard, DeckDetails } from "@/server/deck";
 
-const ROLE_LABELS = {
-  idea: "Has an idea",
-  builder: "Builder",
-  both: "Builds and has ideas",
-} as const;
-
-const chip = "rounded-full px-2.5 py-0.5 text-xs";
-
-/** "You both: react · health · Fall Hack", highlighted. Nothing when there's nothing shared. */
+/**"You both": shared tags and events, as green chips. Nothing when nothing is shared. */
 function YouBoth({ items }: { items: string[] }) {
   if (items.length === 0) return null;
   return (
     <div className="flex flex-col gap-1.5">
-      <p className="text-xs font-medium text-green-800 dark:text-green-300">You both</p>
+      <p className="text-xs font-semibold text-success-ink">You both</p>
       <ul className="flex flex-wrap gap-1.5" aria-label="You both">
         {items.map((item) => (
-          <li
-            key={item}
-            className={`${chip} bg-green-100 text-green-900 dark:bg-green-900 dark:text-green-100`}
-          >
-            {item}
+          <li key={item}>
+            <Chip tone="success">{item}</Chip>
           </li>
         ))}
       </ul>
@@ -33,19 +26,21 @@ function YouBoth({ items }: { items: string[] }) {
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Extra({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="flex flex-col gap-1.5 border-t border-neutral-200 pt-3 dark:border-neutral-800">
-      <p className="text-xs font-medium text-neutral-500">{title}</p>
+    <div className="flex flex-col gap-1.5 border-t border-line pt-4">
+      <p className="text-xs font-semibold text-muted">{title}</p>
       {children}
     </div>
   );
 }
 
+const cardClass = "flex flex-col gap-4 rounded-3xl bg-surface p-6";
+
 /**
- * The card on top of the deck: the fuller card, and when `expanded` the full
- * profile in place (decision 5). Members-only fields that the board, event
- * pages and person pages already show; contact details stay on the pair page.
+ * The card on top of the deck, and when `expanded` its full profile in place.
+ * Only fields members can already see on the board, event pages and person
+ * pages; contact details stay on the pair page.
  */
 export function DeckCardView({
   card,
@@ -63,81 +58,82 @@ export function DeckCardView({
   lessHref: string;
 }) {
   const toggle = expanded ? (
-    <Link href={lessHref} scroll={false} className="self-start text-sm underline">
-      Show less
+    <Link
+      href={lessHref}
+      scroll={false}
+      className="flex items-center gap-1 self-center text-sm text-muted"
+    >
+      <ChevronUp aria-hidden="true" className="size-4" /> Show less
     </Link>
   ) : (
-    <Link href={moreHref} scroll={false} className="self-start text-sm underline">
-      See full profile
+    <Link
+      href={moreHref}
+      scroll={false}
+      className="flex items-center gap-1 self-center text-sm text-muted"
+    >
+      <ChevronDown aria-hidden="true" className="size-4" /> See full profile
     </Link>
   );
 
   if (card.kind === "person") {
     const person = card.person;
-    const tags = [...person.stack, ...person.skills];
+    const skills = [...new Set([...person.stack, ...person.skills])];
+    // You both: shared hackathons first, then shared areas.
     const shared = inCommon(details.viewer, {
-      tags: [...tags, ...person.domains],
+      tags: person.domains,
       eventIds: details.personEvents.map((e) => e.id),
     });
     const sharedEvents = new Set(shared.eventIds);
     return (
-      <article
-        aria-label={person.display_name}
-        className="flex flex-col gap-3 rounded-2xl border border-neutral-200 p-6 dark:border-neutral-800"
-      >
-        <p className="text-xs font-medium text-neutral-500">{ROLE_LABELS[person.role]}</p>
-        <h2 className="text-2xl font-bold">{person.display_name}</h2>
-        {person.summary ? <p>{person.summary}</p> : null}
-        <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
-          {person.intents.length ? (
-            <>
-              <dt className="text-neutral-500">Looking for</dt>
-              <dd>{person.intents.map((i) => INTENT_LABELS[i]).join(" · ")}</dd>
-            </>
-          ) : null}
-          {person.experience_level ? (
-            <>
-              <dt className="text-neutral-500">Experience</dt>
-              <dd>{EXPERIENCE_LABELS[person.experience_level]}</dd>
-            </>
-          ) : null}
-          {details.personEvents.length ? (
-            <>
-              <dt className="text-neutral-500">Going to</dt>
-              <dd>
-                {details.personEvents.map((event, index) => (
-                  <span key={event.id}>
-                    {index > 0 ? ", " : null}
-                    {event.name}
-                    {sharedEvents.has(event.id) ? " ★" : null}
-                  </span>
-                ))}
-              </dd>
-            </>
-          ) : null}
-        </dl>
-        <YouBoth
-          items={[
-            ...shared.tags.map(tagLabel),
+      <article aria-label={person.display_name} className={cardClass}>
+        <div className="flex items-center gap-3">
+          <Avatar name={person.display_name} size={56} />
+          <h2 className="text-2xl font-bold">{person.display_name}</h2>
+        </div>
+        <PersonLines
+          person={person}
+          ideaPitch={details.personIdeas[0] ?? null}
+          lookingEvents={nearestPoolEvents(details.personEvents)}
+          youBoth={[
             ...details.personEvents.filter((e) => sharedEvents.has(e.id)).map((e) => e.name),
+            ...shared.tags.map(tagLabel),
           ]}
         />
-        <Chips tags={expanded ? tags : tags.slice(0, 6)} label="Skills" />
         {expanded ? (
           <>
-            {person.domains.length ? (
-              <Section title="Areas">
-                <Chips tags={person.domains} label="Areas" />
-              </Section>
-            ) : null}
-            {details.personIdeas.length ? (
-              <Section title="Their ideas">
-                <ul className="flex list-disc flex-col gap-1 pl-5 text-sm">
-                  {details.personIdeas.map((pitch) => (
-                    <li key={pitch}>{pitch}</li>
+            {details.personEvents.length ? (
+              <Extra title="Hackathons">
+                <ul className="flex flex-col gap-1 text-sm">
+                  {details.personEvents.map((event) => (
+                    <li key={event.id} className="flex items-center gap-1.5">
+                      <CalendarDays aria-hidden="true" className="size-4 text-muted" />
+                      {event.name}
+                      {sharedEvents.has(event.id) ? (
+                        <Star
+                          aria-label="you're going too"
+                          className="size-3.5 fill-current text-success-ink"
+                        />
+                      ) : null}
+                    </li>
                   ))}
                 </ul>
-              </Section>
+              </Extra>
+            ) : null}
+            {details.personIdeas.length ? (
+              <Extra title="All ideas">
+                <ul className="flex flex-col gap-2 text-sm">
+                  {details.personIdeas.map((pitch) => (
+                    <li key={pitch} className="rounded-xl bg-bg px-3 py-2">
+                      {pitch}
+                    </li>
+                  ))}
+                </ul>
+              </Extra>
+            ) : null}
+            {skills.length ? (
+              <Extra title="All skills">
+                <TagList tags={skills} label="All skills" />
+              </Extra>
             ) : null}
           </>
         ) : null}
@@ -158,32 +154,28 @@ export function DeckCardView({
     .filter(Boolean)
     .join(" · ");
   return (
-    <article
-      aria-label={idea.pitch ?? "Idea"}
-      className="flex flex-col gap-3 rounded-2xl border border-neutral-200 p-6 dark:border-neutral-800"
-    >
-      <p className="text-xs font-medium text-neutral-500">
-        {idea.featured ? "Featured · " : ""}
-        {idea.owner_display}
-        {owner ? ` · ${ROLE_LABELS[owner.role]}` : ""}
-      </p>
-      <h2 className="text-xl font-bold">{idea.pitch ?? "New idea"}</h2>
-      {meta ? <p className="text-sm text-neutral-500">{meta}</p> : null}
+    <article aria-label={idea.pitch ?? "Idea"} className={cardClass}>
+      <div className="flex items-center gap-3">
+        <Avatar name={idea.owner_display} size={40} />
+        <p className="text-sm font-medium">{idea.owner_display}</p>
+        {owner ? <RoleTags role={owner.role} /> : null}
+        {idea.featured ? (
+          <span className="ml-auto">
+            <Chip tone="accent">Featured</Chip>
+          </span>
+        ) : null}
+      </div>
+      <h2 className="text-xl leading-snug font-bold">{idea.pitch ?? "New idea"}</h2>
+      {meta ? <p className="text-sm text-muted">{meta}</p> : null}
       {needs.length ? (
         <div className="flex flex-col gap-1.5">
-          <p className="text-xs font-medium text-neutral-500">Needs</p>
+          <p className="text-xs font-semibold text-muted">Needs</p>
           <ul className="flex flex-wrap gap-1.5" aria-label="Needs">
             {needs.map(({ tag, have }) => (
-              <li
-                key={tag}
-                className={`${chip} ${
-                  have
-                    ? "bg-green-100 text-green-900 dark:bg-green-900 dark:text-green-100"
-                    : "bg-neutral-100 dark:bg-neutral-800"
-                }`}
-              >
-                {tagLabel(tag)}
-                {have ? <span aria-label=", you have this"> ✓</span> : null}
+              <li key={tag}>
+                <Chip tone={have ? "success" : "neutral"} checked={have}>
+                  {tagLabel(tag)}
+                </Chip>
               </li>
             ))}
           </ul>
@@ -196,11 +188,11 @@ export function DeckCardView({
         ]}
       />
       {expanded && owner ? (
-        <Section title={`About ${owner.display_name}`}>
+        <Extra title={`About ${owner.display_name}`}>
           {owner.summary ? <p className="text-sm">{owner.summary}</p> : null}
-          <Chips tags={[...owner.stack, ...owner.skills]} label="Their skills" />
-          <Chips tags={owner.domains} label="Their areas" />
-        </Section>
+          <TagList tags={[...owner.stack, ...owner.skills]} label="Their skills" />
+          <TagList tags={owner.domains} label="Their areas" />
+        </Extra>
       ) : null}
       {toggle}
     </article>

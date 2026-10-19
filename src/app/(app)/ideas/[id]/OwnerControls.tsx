@@ -1,5 +1,7 @@
 "use client";
 
+import { buttonClass } from "@/components/ui/Button";
+import { inputClass } from "@/components/ui/Field";
 import { useState, useTransition } from "react";
 import { TagEditor, tagLabel } from "@/components/TagEditor";
 import { answerIdeaQuestion, saveIdeaStatus, saveIdeaTags, type IdeaActionResult } from "./actions";
@@ -7,19 +9,17 @@ import { answerIdeaQuestion, saveIdeaStatus, saveIdeaTags, type IdeaActionResult
 type Scope = "weekend" | "few_weeks" | "ongoing";
 type Status = "open" | "filled" | "archived";
 
-const selectClass =
-  "rounded-lg border border-neutral-300 bg-transparent px-3 py-2 text-sm dark:border-neutral-700";
-const primaryButton =
-  "rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-900";
+const selectClass = inputClass;
+const primaryButton = buttonClass("primary", "md");
 
 function Outcome({ result }: { result: IdeaActionResult | null }) {
   if (!result) return null;
   return result.ok ? (
-    <p role="status" className="text-sm text-neutral-600 dark:text-neutral-400">
+    <p role="status" className="text-sm text-muted">
       Saved
     </p>
   ) : (
-    <p className="text-sm text-red-600 dark:text-red-400">{result.error}</p>
+    <p className="text-sm text-danger-ink">{result.error}</p>
   );
 }
 
@@ -168,7 +168,7 @@ export function OwnerControls({
                 setStatus(value);
                 statusAction.run(() => saveIdeaStatus({ ideaId, status: value }));
               }}
-              className={`rounded-lg border px-3 py-1.5 text-sm ${currentStatus === value ? "border-neutral-900 font-medium dark:border-neutral-100" : "border-neutral-300 dark:border-neutral-700"}`}
+              className={`rounded-full px-3 py-1.5 text-sm font-medium ${currentStatus === value ? "bg-accent text-accent-ink" : "bg-surface"}`}
             >
               {{ open: "Open", filled: "Filled", archived: "Archived" }[value]}
             </button>

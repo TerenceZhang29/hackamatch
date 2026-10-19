@@ -67,6 +67,7 @@ export interface DeckEvent {
   id: string;
   slug: string;
   name: string;
+  startDate: string;
 }
 
 export interface DeckDetails {
@@ -90,13 +91,20 @@ export async function deckDetails(viewerId: string, card: DeckCard): Promise<Dec
   const upcomingEventsOf = async (userId: string, inPoolOnly: boolean) => {
     let request = supabase
       .from("event_interests")
-      .select("left_pool_at, events!inner(id, slug, name, end_date)")
+      .select("left_pool_at, events!inner(id, slug, name, start_date, end_date)")
       .eq("user_id", userId)
       .gte("events.end_date", today);
     if (inPoolOnly) request = request.is("left_pool_at", null);
     const { data, error } = await request;
     if (error) throw new Error(`deckDetails: ${error.message}`);
-    return data.map(({ events }) => ({ id: events.id, slug: events.slug, name: events.name }));
+    return data
+      .map(({ events }) => ({
+        id: events.id,
+        slug: events.slug,
+        name: events.name,
+        startDate: events.start_date,
+      }))
+      .sort((a, b) => a.startDate.localeCompare(b.startDate));
   };
 
   const ownerId =

@@ -1,6 +1,9 @@
 "use client";
 
+import { MailCheck } from "lucide-react";
 import { useActionState } from "react";
+import { buttonClass } from "@/components/ui/Button";
+import { FieldError, inputClass, labelClass } from "@/components/ui/Field";
 import { requestMagicLink, type LoginState } from "./actions";
 
 const initialState: LoginState = { status: "idle" };
@@ -10,11 +13,11 @@ export function LoginForm({ next, notice }: { next: string | null; notice: strin
 
   if (state.status === "sent") {
     return (
-      <div role="status" className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold tracking-tight">Check your inbox</h1>
-        <p className="text-neutral-600 dark:text-neutral-400">
-          We sent a sign-in link to <span className="font-medium break-all">{state.email}</span>. It
-          works on any device and expires in an hour.
+      <div role="status" className="flex flex-col items-center gap-3 text-center">
+        <MailCheck aria-hidden="true" className="size-12 text-accent" strokeWidth={1.6} />
+        <h1 className="text-2xl font-bold tracking-tight">Check your inbox</h1>
+        <p className="text-muted">
+          Link sent to <span className="font-medium break-all text-ink">{state.email}</span>
         </p>
       </div>
     );
@@ -23,11 +26,11 @@ export function LoginForm({ next, notice }: { next: string | null; notice: strin
   const error = state.status === "error" ? state.message : notice;
 
   return (
-    <form action={formAction} className="flex flex-col gap-4">
-      <h1 className="text-3xl font-bold tracking-tight">Sign in</h1>
+    <form action={formAction} className="flex flex-col gap-5">
+      <h1 className="text-2xl font-bold tracking-tight">Sign in</h1>
       {next ? <input type="hidden" name="next" value={next} /> : null}
       <div className="flex flex-col gap-2">
-        <label htmlFor="email" className="text-sm font-medium">
+        <label htmlFor="email" className={labelClass}>
           Cornell email
         </label>
         <input
@@ -42,19 +45,11 @@ export function LoginForm({ next, notice }: { next: string | null; notice: strin
           defaultValue={state.status === "error" ? state.email : ""}
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? "login-error" : undefined}
-          className="w-full rounded-lg border border-neutral-300 bg-transparent px-3 py-2 text-base outline-none focus:border-neutral-900 dark:border-neutral-700 dark:focus:border-neutral-100"
+          className={inputClass}
         />
-        {error ? (
-          <p id="login-error" role="alert" className="text-sm text-red-600 dark:text-red-400">
-            {error}
-          </p>
-        ) : null}
+        {error ? <FieldError id="login-error">{error}</FieldError> : null}
       </div>
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded-lg bg-neutral-900 px-4 py-2 font-medium text-white disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-900"
-      >
+      <button type="submit" disabled={pending} className={buttonClass("primary", "lg")}>
         {pending ? "Sending…" : "Email me a sign-in link"}
       </button>
     </form>

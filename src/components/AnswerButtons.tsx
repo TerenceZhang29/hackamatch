@@ -1,9 +1,9 @@
+import { Heart, X } from "lucide-react";
 import { answerCard, answerMatch } from "@/app/actions/respond";
+import { buttonClass } from "@/components/ui/Button";
 
-const primary =
-  "rounded-lg bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white dark:bg-neutral-100 dark:text-neutral-900";
-const secondary =
-  "rounded-lg border border-neutral-300 px-3 py-1.5 text-sm dark:border-neutral-700";
+const round =
+  "inline-flex size-10 items-center justify-center rounded-full transition active:scale-95";
 
 /** Interested / Pass for a board card, as a plain form (no JavaScript needed). */
 export function CardAnswerButtons({
@@ -20,26 +20,45 @@ export function CardAnswerButtons({
       <input type="hidden" name="kind" value={kind} />
       <input type="hidden" name="targetId" value={targetId} />
       <input type="hidden" name="returnTo" value={returnTo} />
-      <button type="submit" name="response" value="interested" className={primary}>
-        Interested
+      <button
+        type="submit"
+        name="response"
+        value="interested"
+        className={buttonClass("primary", "sm")}
+      >
+        <Heart aria-hidden="true" className="size-4" /> Interested
       </button>
-      <button type="submit" name="response" value="pass" className={secondary}>
+      <button type="submit" name="response" value="pass" className={buttonClass("secondary", "sm")}>
         Pass
       </button>
     </form>
   );
 }
 
-/** Interested / Pass for a match on /matches. */
+/** ✕ / ♥ for a match waiting on you, on /matches. */
 export function MatchAnswerButtons({ matchId }: { matchId: string }) {
   return (
-    <form action={answerMatch} className="flex gap-2">
+    <form action={answerMatch} className="flex shrink-0 gap-2">
       <input type="hidden" name="matchId" value={matchId} />
-      <button type="submit" name="response" value="interested" className={primary}>
-        Interested
+      <button
+        type="submit"
+        name="response"
+        value="pass"
+        aria-label="Pass"
+        title="Pass"
+        className={`${round} bg-surface-2 text-ink`}
+      >
+        <X aria-hidden="true" className="size-5" />
       </button>
-      <button type="submit" name="response" value="pass" className={secondary}>
-        Pass
+      <button
+        type="submit"
+        name="response"
+        value="interested"
+        aria-label="Interested"
+        title="Interested"
+        className={`${round} bg-accent text-accent-ink`}
+      >
+        <Heart aria-hidden="true" className="size-5" />
       </button>
     </form>
   );

@@ -12,7 +12,7 @@ const SERVICE_CLIENT_ALLOWED = [
   "src/lib/supabase/service.ts",
   "src/lib/analytics.ts",
   "src/app/api/cron/**",
-  "src/app/r/**",
+  "src/app/(focus)/r/**",
   "src/app/admin/**",
   "src/server/**",
   "scripts/**",

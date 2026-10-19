@@ -49,7 +49,7 @@ test("two students go from sign-up to a team", async ({ browser }) => {
       .getByRole("article", { name: idea!.pitch })
       .getByRole("button", { name: "Interested" })
       .click();
-    await expect(sofiaPage.getByText("Sent. If they're interested too")).toBeVisible();
+    await expect(sofiaPage.getByText("Sent", { exact: true })).toBeVisible();
 
     // Maya answers from the email, without opening the app first.
     const [inbound] = await eventually(
@@ -92,7 +92,7 @@ test("two students go from sign-up to a team", async ({ browser }) => {
     await mayaPage.reload();
     await expect(mayaPage.getByLabel("Team for Cornell Tech Fall Hack")).toBeVisible();
     await mayaPage.getByRole("button", { name: "Team is set? Mark this idea as filled" }).click();
-    await expect(mayaPage.getByText("Your idea is marked as filled.")).toBeVisible();
+    await expect(mayaPage.getByText("Idea marked as filled.")).toBeVisible();
 
     const [result] = await query<{ teams: number; event: string; status: string }>(
       `select count(t.id)::int as teams, max(e.slug) as event, max(i.status::text) as status

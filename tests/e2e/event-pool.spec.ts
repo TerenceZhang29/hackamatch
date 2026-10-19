@@ -81,7 +81,7 @@ test("a match for an event asks once whether to keep matching; leaving and rejoi
 
   // The event page shows the match, and doesn't ask again.
   await page.goto(`/e/${slug}`);
-  await expect(page.getByText("You've matched with 1 person for this event: Maya.")).toBeVisible();
+  await expect(page.getByText(/Matched:\s*Maya$/)).toBeVisible();
   await expect(page.getByRole("link", { name: "Maya" })).toHaveAttribute(
     "href",
     `/matches/${matchId}`,
@@ -97,16 +97,14 @@ test("a match for an event asks once whether to keep matching; leaving and rejoi
     await expect(going.getByRole("article")).toHaveCount(2);
 
     await page.getByRole("button", { name: "I have my team" }).click();
-    await expect(
-      page.getByText("You're going and have your team. You're hidden from this event's list."),
-    ).toBeVisible();
+    await expect(page.getByText("Have a team", { exact: true })).toBeVisible();
     await visitorPage.reload();
     await expect(going.getByRole("article")).toHaveCount(1);
     await expect(going.getByRole("article", { name: "Maya P." })).toBeVisible();
-    await expect(visitorPage.getByText("1 person is looking for teammates")).toBeVisible();
+    await expect(visitorPage.getByText("1 looking", { exact: true })).toBeVisible();
 
     await page.getByRole("button", { name: "I'm looking again" }).click();
-    await expect(page.getByText("You're in for this event.")).toBeVisible();
+    await expect(page.getByText("Looking", { exact: true })).toBeVisible();
     await visitorPage.reload();
     await expect(going.getByRole("article")).toHaveCount(2);
   } finally {
@@ -117,11 +115,9 @@ test("a match for an event asks once whether to keep matching; leaving and rejoi
   const second = await matchFor(viewerId, eventId, "Omar Pool");
   await voteForEvent(second, viewerId, eventId);
   await page.goto(`/e/${slug}`);
-  await expect(
-    page.getByText(/You've matched with 2 people for this event: Maya, Omar\./),
-  ).toBeVisible();
+  await expect(page.getByText(/Matched:\s*Maya, Omar$/)).toBeVisible();
   await prompt.getByRole("button", { name: "I have my team" }).click();
-  await expect(page.getByText("You're going and have your team.", { exact: false })).toBeVisible();
+  await expect(page.getByText("Have a team", { exact: true })).toBeVisible();
   await expect(prompt).toHaveCount(0);
   const [row] = await query<{ left: boolean; prompted: number }>(
     `select left_pool_at is not null as left, prompted_matches as prompted
@@ -140,16 +136,14 @@ test("'I'm no longer going' with a match asks first, and keeps the match", async
   await page.goto(`/e/${slug}`);
   await expect(page.getByRole("button", { name: "I'm not going after all" })).toHaveCount(0);
   await page.getByRole("link", { name: "I'm no longer going" }).click();
-  await expect(confirm).toContainText(
-    "You've matched with Maya for this event. Let them know you're not going.",
-  );
+  await expect(confirm).toContainText("Tell Maya you're not going?");
   await confirm.getByRole("link", { name: "Cancel" }).click();
   await expect(page).toHaveURL(`/e/${slug}`);
   await expect(confirm).toHaveCount(0);
 
   await page.getByRole("link", { name: "I'm no longer going" }).click();
   await confirm.getByRole("button", { name: "Yes, I'm not going" }).click();
-  await expect(page.getByRole("button", { name: "I'm interested in this event" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "I'm going" })).toBeVisible();
   const interests = await query(
     `select 1 from public.event_interests where user_id = $1 and event_id = $2`,
     [viewerId, eventId],

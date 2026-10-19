@@ -23,7 +23,9 @@ export function EventPicker({
 
   return (
     <fieldset className="flex flex-col gap-2">
-      <legend className="mb-1 text-sm font-medium">Hackathons you&apos;d join (optional)</legend>
+      <legend className="mb-1 text-sm font-medium">
+        Hackathons <span className="font-normal text-muted">(optional)</span>
+      </legend>
       <div className="flex flex-wrap gap-2">
         {events.map((event) => {
           const on = selected.includes(event.id);
@@ -35,14 +37,12 @@ export function EventPicker({
               onClick={() =>
                 onChange(on ? selected.filter((id) => id !== event.id) : [...selected, event.id])
               }
-              className={`rounded-full border px-3 py-1.5 text-left text-sm ${
-                on
-                  ? "border-neutral-900 bg-neutral-900 text-white dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-900"
-                  : "border-neutral-300 dark:border-neutral-700"
+              className={`rounded-2xl px-4 py-2.5 text-left text-sm font-medium transition ${
+                on ? "bg-accent text-accent-ink" : "bg-surface hover:bg-surface-2"
               }`}
             >
               {event.name}
-              <span className={on ? "opacity-80" : "text-neutral-500"}>
+              <span className={on ? "" : "text-muted"}>
                 {" · "}
                 {formatDateRange(event.start_date, event.end_date)}
               </span>

@@ -7,7 +7,7 @@ import { LoginForm } from "./LoginForm";
 export const metadata: Metadata = { title: "Sign in · HackaMatch" };
 
 const NOTICES: Record<string, string> = {
-  link: "That sign-in link has expired or was already used. Request a new one.",
+  link: "That link expired or was already used. Get a new one.",
 };
 
 const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value);
@@ -26,7 +26,7 @@ export default async function LoginPage({
   const notice = NOTICES[first(params.error) ?? ""] ?? null;
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center px-4 py-16">
+    <main className="mx-auto flex min-h-[calc(100dvh-7rem)] max-w-sm flex-col justify-center px-4 py-10">
       <LoginForm next={next} notice={notice} />
     </main>
   );

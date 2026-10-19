@@ -1,5 +1,7 @@
 "use client";
 
+import { buttonClass } from "@/components/ui/Button";
+
 import { useId, useState } from "react";
 import { tagLabel } from "@/lib/taxonomy/labels";
 
@@ -77,20 +79,20 @@ function TagGroupEditor({
         {tags.map((tag) => (
           <li
             key={tag}
-            className="flex items-center gap-1 rounded-full bg-neutral-100 py-1 pr-1 pl-3 text-sm dark:bg-neutral-800"
+            className="flex items-center gap-1 rounded-full bg-accent-soft py-1 pr-1 pl-3 text-sm text-accent-soft-ink"
           >
             {tagLabel(tag)}
             <button
               type="button"
               onClick={() => onChange(tags.filter((t) => t !== tag))}
               aria-label={`Remove ${tagLabel(tag)}`}
-              className="rounded-full px-2 text-neutral-500 hover:bg-neutral-200 hover:text-neutral-900 dark:hover:bg-neutral-700 dark:hover:text-neutral-100"
+              className="rounded-full px-2 hover:bg-bg"
             >
               ×
             </button>
           </li>
         ))}
-        {tags.length === 0 ? <li className="text-sm text-neutral-500">None yet</li> : null}
+        {tags.length === 0 ? <li className="text-sm text-muted">None yet</li> : null}
       </ul>
       <div className="flex gap-2">
         <label htmlFor={inputId} className="sr-only">
@@ -108,7 +110,7 @@ function TagGroupEditor({
             }
           }}
           placeholder={`Add to ${label.toLowerCase()}`}
-          className="min-w-0 flex-1 rounded-lg border border-neutral-300 bg-transparent px-3 py-1.5 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:focus:border-neutral-100"
+          className="h-10 min-w-0 flex-1 rounded-xl border border-line bg-bg px-3 text-sm outline-none focus:border-accent"
         />
         <datalist id={listId}>
           {suggestions
@@ -121,7 +123,7 @@ function TagGroupEditor({
           type="button"
           onClick={add}
           disabled={!draft.trim()}
-          className="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm disabled:opacity-50 dark:border-neutral-700"
+          className={buttonClass("outline", "sm", "h-10")}
         >
           Add
         </button>

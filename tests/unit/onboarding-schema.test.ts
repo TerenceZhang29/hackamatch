@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { joinPoolInputSchema, sentenceInputSchema } from "@/app/onboarding/schema";
+import { joinPoolInputSchema, sentenceInputSchema } from "@/app/(focus)/onboarding/schema";
 
 describe("sentenceInputSchema", () => {
   it("accepts the minimum a builder gives", () => {

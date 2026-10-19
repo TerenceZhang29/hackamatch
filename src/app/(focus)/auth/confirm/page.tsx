@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { sanitizeNext } from "@/lib/auth-helpers";
+import { buttonClass } from "@/components/ui/Button";
 import { confirmSignIn } from "./actions";
 
 export const metadata: Metadata = {
@@ -32,19 +33,12 @@ export default async function ConfirmPage({
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center px-4 py-16">
-      <form action={confirmSignIn} className="flex flex-col gap-4">
-        <h1 className="text-3xl font-bold tracking-tight">Almost there</h1>
-        <p className="text-neutral-600 dark:text-neutral-400">
-          Press the button to finish signing in.
-        </p>
+    <main className="mx-auto flex min-h-[calc(100dvh-7rem)] max-w-sm flex-col justify-center px-4 py-10">
+      <form action={confirmSignIn} className="flex flex-col gap-5">
+        <h1 className="text-2xl font-bold tracking-tight">Almost there</h1>
         <input type="hidden" name="token_hash" value={tokenHash} />
         {next ? <input type="hidden" name="next" value={next} /> : null}
-        <button
-          type="submit"
-          autoFocus
-          className="rounded-lg bg-neutral-900 px-4 py-2 font-medium text-white dark:bg-neutral-100 dark:text-neutral-900"
-        >
+        <button type="submit" autoFocus className={buttonClass("primary", "lg")}>
           Continue to HackaMatch
         </button>
       </form>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ideaTagsSchema, postIdeaSchema, previewSchema } from "@/app/ideas/schema";
+import { ideaTagsSchema, postIdeaSchema, previewSchema } from "@/app/(app)/ideas/schema";
 
 describe("idea schemas", () => {
   it("needs a real sentence to preview", () => {

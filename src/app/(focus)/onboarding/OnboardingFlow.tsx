@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 import { EventPicker, type PickableEvent } from "@/components/EventPicker";
 import { TagEditor, type TagGroup, type TagValues } from "@/components/TagEditor";
+import { buttonClass } from "@/components/ui/Button";
+import { FieldError, inputClass, labelClass } from "@/components/ui/Field";
 import { LINKEDIN_TEXT_MAX } from "@/lib/imports/linkedin";
 import { joinPool, submitSentence } from "./actions";
 import { ANSWER_MAX, SENTENCE_MAX, type INTENTS, type ROLES } from "./schema";
@@ -34,13 +36,11 @@ const SENTENCE_LABELS: Record<Role, string> = {
   both: "Your idea and what you can build",
 };
 
-const primaryButton =
-  "rounded-lg bg-neutral-900 px-4 py-2 font-medium text-white disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-900";
+const primaryButton = buttonClass("primary", "lg");
+const backButton = buttonClass("secondary", "lg");
 const chip = (on: boolean) =>
-  `rounded-full border px-4 py-2 text-sm ${
-    on
-      ? "border-neutral-900 bg-neutral-900 text-white dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-900"
-      : "border-neutral-300 dark:border-neutral-700"
+  `rounded-full px-4 py-2.5 text-sm font-medium transition ${
+    on ? "bg-accent text-accent-ink" : "bg-surface text-ink hover:bg-surface-2"
   }`;
 
 export interface OnboardingInitial {
@@ -155,7 +155,7 @@ export function OnboardingFlow({
           <li
             key={n}
             aria-current={n === step ? "step" : undefined}
-            className={`h-1.5 flex-1 rounded-full ${n <= step ? "bg-neutral-900 dark:bg-neutral-100" : "bg-neutral-200 dark:bg-neutral-800"}`}
+            className={`h-1.5 flex-1 rounded-full ${n <= step ? "bg-accent" : "bg-surface-2"}`}
           />
         ))}
       </ol>
@@ -168,7 +168,7 @@ export function OnboardingFlow({
             if (role && intents.length) setStep(2);
           }}
         >
-          <h1 className="text-3xl font-bold tracking-tight">Who are you?</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Who are you?</h1>
           <fieldset className="flex flex-col gap-2">
             <legend className="mb-2 text-sm font-medium">I&apos;m here because…</legend>
             <div className="flex flex-wrap gap-2">
@@ -202,8 +202,8 @@ export function OnboardingFlow({
             </div>
           </fieldset>
           <div className="flex flex-col gap-2">
-            <label htmlFor="name" className="text-sm font-medium">
-              First name <span className="font-normal text-neutral-500">(optional)</span>
+            <label htmlFor="name" className={labelClass}>
+              First name <span className="font-normal text-muted">(optional)</span>
             </label>
             <input
               id="name"
@@ -211,7 +211,7 @@ export function OnboardingFlow({
               onChange={(event) => setName(event.target.value)}
               autoComplete="given-name"
               maxLength={80}
-              className="rounded-lg border border-neutral-300 bg-transparent px-3 py-2 outline-none focus:border-neutral-900 dark:border-neutral-700 dark:focus:border-neutral-100"
+              className={inputClass}
             />
           </div>
           <button type="submit" disabled={!role || intents.length === 0} className={primaryButton}>
@@ -222,8 +222,8 @@ export function OnboardingFlow({
 
       {step === 2 && role ? (
         <form className="flex flex-col gap-4" onSubmit={submitStep2}>
-          <h1 className="text-3xl font-bold tracking-tight">One sentence</h1>
-          <label htmlFor="sentence" className="text-sm font-medium">
+          <h1 className="text-2xl font-bold tracking-tight">One sentence</h1>
+          <label htmlFor="sentence" className={labelClass}>
             {SENTENCE_LABELS[role]}
           </label>
           <textarea
@@ -237,9 +237,9 @@ export function OnboardingFlow({
             autoFocus
             aria-invalid={error ? true : undefined}
             aria-describedby={error ? "onboarding-error" : undefined}
-            className="rounded-lg border border-neutral-300 bg-transparent px-3 py-2 text-base outline-none focus:border-neutral-900 dark:border-neutral-700 dark:focus:border-neutral-100"
+            className={inputClass}
           />
-          <details className="rounded-lg border border-neutral-200 px-3 py-2 dark:border-neutral-800">
+          <details className="rounded-2xl bg-surface px-4 py-3">
             <summary className="cursor-pointer text-sm font-medium">
               Or import from GitHub or LinkedIn
             </summary>
@@ -255,7 +255,7 @@ export function OnboardingFlow({
                   placeholder="github.com/yourname"
                   inputMode="url"
                   autoComplete="url"
-                  className="rounded-lg border border-neutral-300 bg-transparent px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:focus:border-neutral-100"
+                  className={inputClass}
                 />
               </div>
               <div className="flex flex-col gap-1">
@@ -268,7 +268,7 @@ export function OnboardingFlow({
                   onChange={(event) => setLinkedinUrl(event.target.value)}
                   placeholder="linkedin.com/in/yourname"
                   inputMode="url"
-                  className="rounded-lg border border-neutral-300 bg-transparent px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:focus:border-neutral-100"
+                  className={inputClass}
                 />
               </div>
               <div className="flex flex-col gap-1">
@@ -281,21 +281,17 @@ export function OnboardingFlow({
                   onChange={(event) => setLinkedinText(event.target.value)}
                   rows={3}
                   maxLength={LINKEDIN_TEXT_MAX}
-                  className="rounded-lg border border-neutral-300 bg-transparent px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:focus:border-neutral-100"
+                  className={inputClass}
                 />
               </div>
-              <p className="text-xs text-neutral-500">
-                We read your public GitHub repositories to suggest tags. We never fetch LinkedIn.
+              <p className="text-xs text-muted">
+                Public GitHub repos only. LinkedIn is never fetched.
               </p>
             </div>
           </details>
           {error ? <ErrorText message={error} /> : null}
           <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => setStep(1)}
-              className="rounded-lg border border-neutral-300 px-4 py-2 dark:border-neutral-700"
-            >
+            <button type="button" onClick={() => setStep(1)} className={backButton}>
               Back
             </button>
             <button
@@ -311,19 +307,13 @@ export function OnboardingFlow({
 
       {step === 3 && extracted ? (
         <form className="flex flex-col gap-6" onSubmit={submitStep3}>
-          <h1 className="text-3xl font-bold tracking-tight">Here&apos;s what we got</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Here&apos;s what we got</h1>
           {extracted.status === "ok" ? (
             <>
-              {extracted.summary ? (
-                <p className="text-lg text-neutral-700 dark:text-neutral-300">
-                  {extracted.summary}
-                </p>
-              ) : null}
+              {extracted.summary ? <p className="text-lg text-ink">{extracted.summary}</p> : null}
               {extracted.idea?.pitch ? (
-                <div className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
-                  <p className="text-sm font-medium text-neutral-500">
-                    Your idea, as others will see it
-                  </p>
+                <div className="rounded-2xl bg-surface p-4">
+                  <p className="text-sm font-medium text-muted">Your idea, as others will see it</p>
                   <p className="mt-1">{extracted.idea.pitch}</p>
                 </div>
               ) : null}
@@ -331,20 +321,20 @@ export function OnboardingFlow({
                 <div className="flex flex-col gap-2">
                   <label htmlFor="answer" className="text-sm font-medium">
                     {extracted.idea.question}{" "}
-                    <span className="font-normal text-neutral-500">(optional)</span>
+                    <span className="font-normal text-muted">(optional)</span>
                   </label>
                   <input
                     id="answer"
                     value={answer}
                     onChange={(event) => setAnswer(event.target.value)}
                     maxLength={ANSWER_MAX}
-                    className="rounded-lg border border-neutral-300 bg-transparent px-3 py-2 outline-none focus:border-neutral-900 dark:border-neutral-700 dark:focus:border-neutral-100"
+                    className={inputClass}
                   />
                 </div>
               ) : null}
             </>
           ) : (
-            <p role="status" className="text-neutral-600 dark:text-neutral-400">
+            <p role="status" className="text-muted">
               We&apos;ll fill in your tags in a moment. You can join now and edit them later.
             </p>
           )}
@@ -352,11 +342,7 @@ export function OnboardingFlow({
           <EventPicker events={events} selected={eventIds} onChange={setEventIds} />
           {error ? <ErrorText message={error} /> : null}
           <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => setStep(2)}
-              className="rounded-lg border border-neutral-300 px-4 py-2 dark:border-neutral-700"
-            >
+            <button type="button" onClick={() => setStep(2)} className={backButton}>
               Back
             </button>
             <button type="submit" disabled={pending} className={`flex-1 ${primaryButton}`}>
@@ -370,9 +356,5 @@ export function OnboardingFlow({
 }
 
 function ErrorText({ message }: { message: string }) {
-  return (
-    <p id="onboarding-error" role="alert" className="text-sm text-red-600 dark:text-red-400">
-      {message}
-    </p>
-  );
+  return <FieldError id="onboarding-error">{message}</FieldError>;
 }

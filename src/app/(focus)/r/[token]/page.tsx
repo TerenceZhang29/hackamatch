@@ -8,18 +8,16 @@ import { describePause, isPaused } from "@/lib/pause";
 import { createServiceClient } from "@/lib/supabase/service";
 import { getMatch, otherUserId, sideOf } from "@/server/matches";
 import { pauseFromToken, respondFromToken } from "./actions";
+import { buttonClass } from "@/components/ui/Button";
 
 export const metadata: Metadata = { title: "HackaMatch", robots: { index: false } };
 
-const primaryButton =
-  "rounded-lg bg-neutral-900 px-4 py-3 text-base font-medium text-white dark:bg-neutral-100 dark:text-neutral-900";
-const secondaryButton =
-  "rounded-lg border border-neutral-300 px-4 py-3 text-base dark:border-neutral-700";
+const primaryButton = buttonClass("primary", "lg");
+const secondaryButton = buttonClass("secondary", "lg");
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-5 px-4 py-12">
-      <p className="text-sm font-bold">HackaMatch</p>
+    <main className="mx-auto flex min-h-[calc(100dvh-7rem)] max-w-md flex-col justify-center gap-5 px-4 py-10">
       {children}
     </main>
   );
@@ -31,9 +29,7 @@ function LinkProblem({ expired }: { expired: boolean }) {
       <h1 className="text-2xl font-bold tracking-tight">
         {expired ? "This link has expired" : "This link isn't valid"}
       </h1>
-      <p className="text-neutral-600 dark:text-neutral-400">
-        Sign in to see and answer your matches.
-      </p>
+      <p className="text-muted">Sign in to see and answer your matches.</p>
       <Link href="/login?next=%2Fmatches" className={`self-start ${primaryButton}`}>
         Sign in
       </Link>
@@ -97,7 +93,7 @@ async function ResponsePage({
       {done && match.revealed_at ? (
         <>
           <h1 className="text-2xl font-bold tracking-tight">It&apos;s a match!</h1>
-          <p className="text-neutral-600 dark:text-neutral-400">
+          <p className="text-muted">
             You and {name} are both interested. We&apos;ve emailed you each other&apos;s contact
             details.
           </p>
@@ -110,7 +106,7 @@ async function ResponsePage({
           <h1 className="text-2xl font-bold tracking-tight">
             {current === "interested" ? "Thanks, you're interested" : "Got it, you passed"}
           </h1>
-          <p className="text-neutral-600 dark:text-neutral-400">
+          <p className="text-muted">
             {current === "interested"
               ? `If ${name} is interested too, we'll email you both.`
               : "We won't show you this match again. You stay in the pool."}
@@ -119,12 +115,8 @@ async function ResponsePage({
       ) : (
         <>
           <h1 className="text-2xl font-bold tracking-tight">Build with {name}?</h1>
-          {idea?.pitch ? (
-            <p className="text-neutral-600 dark:text-neutral-400">{idea.pitch}</p>
-          ) : null}
-          {profile?.summary ? (
-            <p className="text-neutral-600 dark:text-neutral-400">{profile.summary}</p>
-          ) : null}
+          {idea?.pitch ? <p className="text-muted">{idea.pitch}</p> : null}
+          {profile?.summary ? <p className="text-muted">{profile.summary}</p> : null}
         </>
       )}
 
@@ -178,7 +170,7 @@ async function PausePage({
       <h1 className="text-2xl font-bold tracking-tight">
         {paused ? describePause(user.paused_until!, getConfig().APP_TIMEZONE) : "Pause matches?"}
       </h1>
-      <p className="text-neutral-600 dark:text-neutral-400">
+      <p className="text-muted">
         {paused
           ? "You're off the board and won't get new matches. Your existing matches stay."
           : done

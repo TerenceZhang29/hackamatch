@@ -1,3 +1,4 @@
+import { SearchX } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
@@ -5,6 +6,9 @@ import { CardAnswerButtons } from "@/components/AnswerButtons";
 import { BoardFilters } from "@/components/BoardFilters";
 import { CardActions, type Viewer } from "@/components/CardActions";
 import { DeckView } from "@/components/deck/DeckView";
+import { Button } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Notice } from "@/components/ui/Notice";
 import { IdeaCard } from "@/components/IdeaCard";
 import { Outcome } from "@/components/Outcome";
 import { PersonCard } from "@/components/PersonCard";
@@ -22,7 +26,13 @@ import {
   type BoardState,
 } from "@/lib/board";
 import { slugsOf } from "@/lib/taxonomy/skills";
-import { excludedUserIds, listBoardIdeas, listBoardPeople } from "@/server/board";
+import {
+  excludedUserIds,
+  firstIdeaPitches,
+  listBoardIdeas,
+  listBoardPeople,
+  poolEventsFor,
+} from "@/server/board";
 import { deckDetails, nextDeckCards } from "@/server/deck";
 import { listEventInterestIds, listUpcomingEvents } from "@/server/events";
 import { matchedFirstName } from "@/server/matches";
@@ -56,6 +66,12 @@ export default async function BoardPage({
     !deck && state.tab === "ideas" ? await listBoardIdeas(state.filters, shown, exclude) : null;
   const people =
     !deck && state.tab === "people" ? await listBoardPeople(state.filters, shown, exclude) : null;
+  const peopleIds = people?.rows.map((p) => p.user_id) ?? [];
+  // Where people are going is for members; visitors see only the 3 per event.
+  const [pitches, looking] = await Promise.all([
+    firstIdeaPitches(peopleIds),
+    viewer === "onboarded" ? poolEventsFor(peopleIds) : Promise.resolve(new Map()),
+  ]);
   const deckData = deck ? await nextDeckCards(user!, state.filters.event) : null;
   const topCard = deckData?.cards[0];
   const topDetails = topCard ? await deckDetails(user!.id, topCard) : null;
@@ -84,48 +100,7 @@ export default async function BoardPage({
   const tabHref = (tab: BoardState["tab"]) => boardHref({ ...state, tab, shown: PAGE_SIZE });
 
   return (
-    <main className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-8">
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <Link href="/" className="text-lg font-bold tracking-tight">
-          HackaMatch
-        </Link>
-        <nav className="flex items-center gap-4 text-sm">
-          <Link href="/events" className="underline">
-            Events
-          </Link>
-          {viewer === "onboarded" ? (
-            <>
-              {deck ? (
-                <Link href="/?view=list" className="underline">
-                  Browse all
-                </Link>
-              ) : (
-                <Link href="/" className="underline">
-                  Discover
-                </Link>
-              )}
-              <Link href="/ideas/new" className="underline">
-                Post an idea
-              </Link>
-              <Link href="/matches" className="underline">
-                Matches
-              </Link>
-              <Link href="/me" className="underline">
-                Profile
-              </Link>
-            </>
-          ) : viewer === "not-onboarded" ? (
-            <Link href="/onboarding" className="underline">
-              Finish joining
-            </Link>
-          ) : (
-            <Link href="/login" className="underline">
-              Sign in
-            </Link>
-          )}
-        </nav>
-      </header>
-
+    <main className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-6">
       {deckData ? (
         <DeckView
           cards={deckData.cards}
@@ -142,69 +117,59 @@ export default async function BoardPage({
         <>
           <Outcome params={params} />
 
-          {deleted ? (
-            <p
-              role="status"
-              className="rounded-lg bg-neutral-100 px-4 py-3 text-sm dark:bg-neutral-900"
-            >
-              Your account has been deleted.
-            </p>
-          ) : null}
+          {deleted ? <Notice>Your account has been deleted.</Notice> : null}
 
           {viewer === "anon" ? (
-            <section className="flex flex-col gap-3 py-6">
-              <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-                Find someone to build your idea with, or an idea worth your weekend.
+            <section className="flex flex-col items-start gap-4 py-8">
+              <h1 className="max-w-2xl text-4xl font-bold tracking-tight sm:text-5xl">
+                Find someone to build with.
               </h1>
-              <p className="text-neutral-600 dark:text-neutral-400">
-                For Cornell students. One sentence to join; matches come to you.
-              </p>
-              <Link
+              <p className="text-lg text-muted">Cornell students only. One sentence to join.</p>
+              <Button
                 href={`/join?${new URLSearchParams({ next: "/onboarding", from: "hero" })}`}
                 prefetch={false}
-                className="self-start rounded-lg bg-neutral-900 px-4 py-2 font-medium text-white dark:bg-neutral-100 dark:text-neutral-900"
+                size="lg"
               >
                 Join with your Cornell email
-              </Link>
+              </Button>
             </section>
           ) : (
             <h1 className="sr-only">Board</h1>
           )}
 
-          <nav
-            aria-label="Board tabs"
-            className="flex gap-2 border-b border-neutral-200 dark:border-neutral-800"
-          >
-            {(["ideas", "people"] as const).map((tab) => (
-              <Link
-                key={tab}
-                href={tabHref(tab)}
-                aria-current={state.tab === tab ? "page" : undefined}
-                className={`-mb-px border-b-2 px-3 py-2 text-sm font-medium ${
-                  state.tab === tab
-                    ? "border-neutral-900 dark:border-neutral-100"
-                    : "border-transparent text-neutral-500"
-                }`}
-              >
-                {tab === "ideas" ? "Ideas" : "Builders"}
-              </Link>
-            ))}
-          </nav>
-
-          <BoardFilters
-            state={state}
-            events={events}
-            domains={slugsOf("domains")}
-            skills={[...slugsOf("skills"), ...slugsOf("stack")]}
-          />
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <nav aria-label="Board tabs" className="flex gap-1 rounded-xl bg-surface p-1">
+              {(["ideas", "people"] as const).map((tab) => (
+                <Link
+                  key={tab}
+                  href={tabHref(tab)}
+                  aria-current={state.tab === tab ? "page" : undefined}
+                  className={`rounded-lg px-4 py-1.5 text-sm font-medium ${
+                    state.tab === tab ? "bg-bg text-ink shadow-sm" : "text-muted"
+                  }`}
+                >
+                  {tab === "ideas" ? "Ideas" : "Builders"}
+                </Link>
+              ))}
+            </nav>
+            <BoardFilters
+              state={state}
+              events={events}
+              domains={slugsOf("domains")}
+              skills={[...slugsOf("skills"), ...slugsOf("stack")]}
+            />
+          </div>
 
           <h2 className="sr-only">{state.tab === "ideas" ? "Ideas" : "Builders"}</h2>
           {rows.length === 0 ? (
-            <p className="py-12 text-center text-neutral-500">
-              {hasFilters(state.filters)
-                ? "Nothing matches these filters yet."
-                : "Nothing here yet."}
-            </p>
+            <EmptyState
+              icon={SearchX}
+              title={
+                hasFilters(state.filters)
+                  ? "Nothing matches these filters yet."
+                  : "Nothing here yet."
+              }
+            />
           ) : (
             <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {ideas?.rows.map((idea) => (
@@ -232,6 +197,8 @@ export default async function BoardPage({
                 <li key={person.user_id}>
                   <PersonCard
                     person={person}
+                    ideaPitch={pitches.get(person.user_id) ?? null}
+                    lookingEvents={looking.get(person.user_id)}
                     actions={
                       <CardActions
                         viewer={viewer}
@@ -261,7 +228,7 @@ export default async function BoardPage({
             <Link
               href={boardHref({ ...state, shown: state.shown + PAGE_SIZE })}
               scroll={false}
-              className="self-center rounded-lg border border-neutral-300 px-4 py-2 text-sm dark:border-neutral-700"
+              className="self-center rounded-lg border border-line px-4 py-2 text-sm"
             >
               Load more
             </Link>

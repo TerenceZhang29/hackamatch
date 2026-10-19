@@ -23,14 +23,11 @@ export function IdeaTags({
   const meta = [domain ? tagLabel(domain) : null, scopeLabel(scope)].filter(Boolean);
   return (
     <div className="flex flex-col gap-2">
-      {meta.length ? <p className="text-sm text-neutral-500">{meta.join(" · ")}</p> : null}
+      {meta.length ? <p className="text-sm text-muted">{meta.join(" · ")}</p> : null}
       {skillsNeeded.length ? (
         <ul className="flex flex-wrap gap-2" aria-label="Skills needed">
           {skillsNeeded.map((skill) => (
-            <li
-              key={skill}
-              className="rounded-full bg-neutral-100 px-3 py-1 text-sm dark:bg-neutral-800"
-            >
+            <li key={skill} className="rounded-full bg-surface px-3 py-1 text-sm">
               {tagLabel(skill)}
             </li>
           ))}

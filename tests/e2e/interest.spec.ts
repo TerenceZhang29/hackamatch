@@ -57,7 +57,7 @@ test("A says Interested on B's idea, B gets an email, B says Interested, both ar
         .getByRole("article")
         .filter({ has: builder.page.locator(`a[href="/ideas/${idea.id}"]`) });
     await card().getByRole("button", { name: "Interested" }).click();
-    await expect(builder.page.getByText("Sent. If they're interested too")).toBeVisible();
+    await expect(builder.page.getByText("Sent", { exact: true })).toBeVisible();
     await expect(card()).toHaveCount(0);
 
     // The owner gets one email with one-click links, and no contact details.
@@ -78,7 +78,7 @@ test("A says Interested on B's idea, B gets an email, B says Interested, both ar
     const waiting = owner.page.getByRole("region", { name: /Waiting on you/ });
     await expect(waiting.getByRole("article")).toHaveCount(1);
     await expect(waiting.getByText("New")).toBeVisible();
-    await expect(waiting.getByText(`About your idea: ${idea.pitch}`)).toBeVisible();
+    await expect(waiting.getByText(`Your idea: ${idea.pitch}`)).toBeVisible();
     await waiting.getByRole("button", { name: "Interested" }).click();
     await expect(owner.page.getByText("It's a match!")).toBeVisible();
     await expect(
@@ -110,13 +110,15 @@ test("Pass hides the person and sends nothing", async ({ browser }) => {
   const viewer = await member(browser, { role: "I can build", sentence: "I build Go backends" });
   try {
     const target = newEmail();
-    const targetId = await createUser(target, { name: "Pass Target" });
+    // A unique first name: the same test on the other device makes its own target at once.
+    const first = `Pass${Date.now() % 1_000_000}`;
+    const targetId = await createUser(target, { name: `${first} Target` });
     await viewer.page.goto(`/people/${targetId}`);
     await viewer.page.getByRole("button", { name: "Pass" }).click();
-    await expect(viewer.page.getByText("Passed. You won't see them again.")).toBeVisible();
+    await expect(viewer.page.getByText("Passed", { exact: true })).toBeVisible();
     await expect(viewer.page.getByText("You passed.")).toBeVisible();
     await viewer.page.goto("/?tab=people");
-    await expect(viewer.page.getByRole("article", { name: "Pass T." })).toHaveCount(0);
+    await expect(viewer.page.getByRole("article", { name: `${first} T.` })).toHaveCount(0);
     expect(await readOutbox(target)).toEqual([]);
   } finally {
     await viewer.close();
@@ -141,7 +143,7 @@ test("the 16th Interested in a day is refused", async ({ browser }) => {
     const targetId = await createUser(target, { name: "Limit Target" });
     await viewer.page.goto(`/people/${targetId}`);
     await viewer.page.getByRole("button", { name: "Interested" }).click();
-    await expect(viewer.page.getByText("You've said Interested to 15 people today")).toBeVisible();
+    await expect(viewer.page.getByText("That's 15 today. Back tomorrow.")).toBeVisible();
     expect(await readOutbox(target)).toEqual([]);
   } finally {
     await viewer.close();
@@ -164,7 +166,7 @@ test("after 3 interest emails in a day, more interest waits on /matches without 
 
     await viewer.page.goto(`/people/${targetId}`);
     await viewer.page.getByRole("button", { name: "Interested" }).click();
-    await expect(viewer.page.getByText("Sent. If they're interested too")).toBeVisible();
+    await expect(viewer.page.getByText("Sent", { exact: true })).toBeVisible();
     await expect(viewer.page.getByText("You said you're interested.")).toBeVisible();
     expect(await readOutbox(target)).toEqual([]);
 
@@ -189,7 +191,7 @@ test("the board's Interested works without JavaScript", async ({ browser }) => {
     const page = await context.newPage();
     await page.goto(`/people/${targetId}`);
     await page.getByRole("button", { name: "Interested" }).click();
-    await expect(page.getByText("Sent. If they're interested too")).toBeVisible();
+    await expect(page.getByText("Sent", { exact: true })).toBeVisible();
     await eventually(
       () => readOutbox(target),
       (emails) => emails.length === 1,

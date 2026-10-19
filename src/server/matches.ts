@@ -487,3 +487,24 @@ export async function undoPass(matchId: string, viewerId: string): Promise<boole
   if (error) throw new Error(`undoPass: ${error.message}`);
   return true;
 }
+
+/** How many matches are waiting on the user's answer (for the Matches tab's badge). */
+export async function countWaiting(userId: string): Promise<number> {
+  const supabase = createServiceClient();
+  const [a, b] = await Promise.all([
+    supabase
+      .from("matches")
+      .select("id", { count: "exact", head: true })
+      .eq("user_a", userId)
+      .eq("a_response", "pending")
+      .is("revealed_at", null),
+    supabase
+      .from("matches")
+      .select("id", { count: "exact", head: true })
+      .eq("user_b", userId)
+      .eq("b_response", "pending")
+      .is("revealed_at", null),
+  ]);
+  if (a.error || b.error) throw new Error(`countWaiting: ${(a.error ?? b.error)!.message}`);
+  return (a.count ?? 0) + (b.count ?? 0);
+}

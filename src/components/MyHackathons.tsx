@@ -1,12 +1,13 @@
+import { ChevronDown } from "lucide-react";
 import Link from "next/link";
+import { buttonClass } from "@/components/ui/Button";
 import { STATUS_LABELS, teamSummary } from "@/lib/my-events";
 import { formatDateRange } from "@/lib/time";
 import type { MyEvent, MyHackathons as Data, TeamMate } from "@/server/events";
 import { Choice, KeepMatchingPrompt } from "./EventPool";
 
 const RETURN_TO = "/matches";
-const smallButton =
-  "rounded-lg border border-neutral-300 px-3 py-1.5 text-sm dark:border-neutral-700";
+const smallButton = buttonClass("outline", "sm");
 
 /** Team members as names, each linking to your pair page with them when there is one. */
 function Members({ members }: { members: TeamMate[] }) {
@@ -33,19 +34,27 @@ function EventLine({ event }: { event: MyEvent }) {
     <details
       open={event.askToKeepMatching}
       aria-label={event.name}
-      className="group rounded-xl border border-neutral-200 dark:border-neutral-800"
+      className="group rounded-2xl bg-surface"
     >
-      <summary className="flex cursor-pointer flex-wrap items-center gap-x-2 gap-y-1 px-4 py-3 text-sm">
+      <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-3 [&::-webkit-details-marker]:hidden">
         {/* Spaces between the parts so the line reads as one sentence to screen readers. */}
-        <span className="font-semibold">{event.name}</span>{" "}
-        <span className="text-neutral-500">{formatDateRange(event.startDate, event.endDate)}</span>{" "}
-        <span>· {teamSummary(event)}</span>{" "}
-        <span className="text-neutral-500">· {STATUS_LABELS[event.status]}</span>
-        <span aria-hidden="true" className="ml-auto text-neutral-400 group-open:rotate-90">
-          ▸
+        <span className="flex min-w-0 flex-1 flex-col">
+          <span className="truncate text-sm font-semibold">
+            {event.name}{" "}
+            <span className="font-normal text-muted">
+              {formatDateRange(event.startDate, event.endDate)}
+            </span>
+          </span>{" "}
+          <span className="truncate text-sm text-muted">
+            {teamSummary(event)} · {STATUS_LABELS[event.status]}
+          </span>
         </span>
+        <ChevronDown
+          aria-hidden="true"
+          className="size-4 shrink-0 text-muted transition group-open:rotate-180"
+        />
       </summary>
-      <div className="flex flex-col gap-3 border-t border-neutral-200 px-4 py-3 text-sm dark:border-neutral-800">
+      <div className="flex flex-col gap-3 border-t border-line px-4 py-3 text-sm">
         {event.teams.map((team) => (
           <p key={team.id}>
             <span className="font-medium">Your team:</span>{" "}
@@ -66,12 +75,12 @@ function EventLine({ event }: { event: MyEvent }) {
               </span>
             ))}
             {event.teams.length ? null : (
-              <span className="text-neutral-500">. Pick a team on their page.</span>
+              <span className="text-muted">. Pick a team on their page.</span>
             )}
           </p>
         ) : null}
         {!event.teams.length && !event.matchedNoTeam.length ? (
-          <p className="text-neutral-500">
+          <p className="text-muted">
             No matches for this event yet.{" "}
             <Link href={`/e/${event.slug}`} className="underline">
               See who&apos;s going →
@@ -132,7 +141,7 @@ export function MyHackathons({ data }: { data: Data }) {
           ))}
         </ul>
       ) : (
-        <p className="text-sm text-neutral-500">
+        <p className="text-sm text-muted">
           You&apos;re not going to any hackathons yet.{" "}
           <Link href="/events" className="underline">
             Browse upcoming hackathons →
@@ -140,7 +149,7 @@ export function MyHackathons({ data }: { data: Data }) {
         </p>
       )}
       {data.sideProjects.length ? (
-        <div className="flex flex-col gap-1 rounded-xl border border-neutral-200 px-4 py-3 text-sm dark:border-neutral-800">
+        <div className="flex flex-col gap-1 rounded-xl bg-surface px-4 py-3 text-sm">
           <p className="font-semibold">Side projects</p>
           {data.sideProjects.map((team) => (
             <p key={team.id}>

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { scopeLabel } from "@/components/IdeaTags";
 import { tagLabel } from "@/lib/taxonomy/labels";
+import { Avatar } from "@/components/ui/Avatar";
+import { Chip } from "@/components/ui/Chip";
 import { CardFrame, Chips } from "./Card";
 
 export interface IdeaCardData {
@@ -33,18 +35,23 @@ export function IdeaCard({
   ].filter(Boolean);
   return (
     <CardFrame label={idea.pitch ?? "Idea"}>
-      <p className="text-xs font-medium text-neutral-500">
-        {idea.featured ? "Featured · " : ""}
-        {idea.owner_display}
-      </p>
-      <Heading className="text-base font-semibold">
+      <div className="flex items-center gap-2">
+        <Avatar name={idea.owner_display} size={32} />
+        <p className="text-xs font-medium text-muted">{idea.owner_display}</p>
+        {idea.featured ? (
+          <span className="ml-auto">
+            <Chip tone="accent">Featured</Chip>
+          </span>
+        ) : null}
+      </div>
+      <Heading className="line-clamp-3 text-base font-semibold">
         <Link href={`/ideas/${idea.id}`} className="hover:underline">
           {idea.pitch ?? "New idea"}
         </Link>
       </Heading>
-      {meta.length ? <p className="text-sm text-neutral-500">{meta.join(" · ")}</p> : null}
+      {meta.length ? <p className="text-sm text-muted">{meta.join(" · ")}</p> : null}
       <Chips tags={idea.skills_needed} label="Skills needed" />
-      {actions}
+      <div className="mt-auto">{actions}</div>
     </CardFrame>
   );
 }

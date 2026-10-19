@@ -35,7 +35,7 @@ export async function PairStatus({
     return <CardAnswerButtons kind={kind} targetId={targetId} returnTo={returnTo} />;
   }
   return (
-    <p className="text-sm text-neutral-600 dark:text-neutral-400">
+    <p className="text-sm text-muted">
       {mine === "interested"
         ? "You said you're interested. We'll email you both if it's mutual."
         : "You passed."}

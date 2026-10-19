@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ArrowLeft, CalendarDays, Compass, ExternalLink, Users } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { CardAnswerButtons } from "@/components/AnswerButtons";
@@ -7,10 +8,18 @@ import { EventPoolPanel } from "@/components/EventPool";
 import { IdeaCard } from "@/components/IdeaCard";
 import { PersonCard } from "@/components/PersonCard";
 import { SeeAllPrompt } from "@/components/SeeAllPrompt";
+import { Button, buttonClass } from "@/components/ui/Button";
+import { Chip, chipClass } from "@/components/ui/Chip";
 import { getUser } from "@/lib/auth";
 import { EVENT_PAGE_SIZE, parseShown, VISITOR_LIMIT } from "@/lib/board";
 import { formatDateRange } from "@/lib/time";
-import { excludedUserIds, listBoardIdeas, listBoardPeople } from "@/server/board";
+import {
+  excludedUserIds,
+  firstIdeaPitches,
+  listBoardIdeas,
+  listBoardPeople,
+  poolEventsFor,
+} from "@/server/board";
 import {
   addEventInterests,
   countEventInterest,
@@ -28,8 +37,7 @@ function eventHref(slug: string, people: number, ideas: number) {
   return query ? `/e/${slug}?${query}` : `/e/${slug}`;
 }
 
-const showMoreClass =
-  "self-center rounded-lg border border-neutral-300 px-4 py-2 text-sm dark:border-neutral-700";
+const showMoreClass = buttonClass("secondary", "sm", "self-center");
 
 export async function generateMetadata({
   params,
@@ -39,9 +47,6 @@ export async function generateMetadata({
   const event = await getEventBySlug((await params).slug);
   return { title: event ? `${event.name} · HackaMatch` : "HackaMatch" };
 }
-
-const primaryButton =
-  "rounded-lg bg-neutral-900 px-4 py-2 font-medium text-white dark:bg-neutral-100 dark:text-neutral-900";
 
 /**
  * The link organizers share. Shows the event, everyone going and its ideas,
@@ -85,69 +90,69 @@ export default async function EventPage({
     viewer === "onboarded" ? getEventPool(user!.id, event.id) : Promise.resolve(null),
   ]);
   const here = eventHref(slug, peopleShown, ideasShown);
+  const peopleIds = people.rows.map((p) => p.user_id);
+  const [pitches, looking] = await Promise.all([
+    firstIdeaPitches(peopleIds),
+    viewer === "onboarded" ? poolEventsFor(peopleIds) : Promise.resolve(new Map()),
+  ]);
 
   return (
-    <main className="mx-auto flex max-w-5xl flex-col gap-8 px-4 py-8">
-      <header className="flex items-center justify-between">
-        <Link href="/" className="text-lg font-bold tracking-tight">
-          HackaMatch
+    <main className="mx-auto flex max-w-5xl flex-col gap-8 px-4 py-6">
+      <section className="flex flex-col gap-4">
+        <Link
+          href="/events"
+          aria-label="All events"
+          className="-ml-2 self-start rounded-full p-2 text-muted"
+        >
+          <ArrowLeft aria-hidden="true" className="size-5" />
         </Link>
-        {viewer === "anon" ? (
-          <Link href="/login" className="text-sm underline">
-            Sign in
-          </Link>
-        ) : null}
-      </header>
-
-      <Link href="/events" className="-mb-4 self-start text-sm underline">
-        ← All events
-      </Link>
-
-      <section className="flex flex-col gap-3">
         <h1 className="text-3xl font-bold tracking-tight">{event.name}</h1>
-        <p className="text-neutral-600 dark:text-neutral-400">
-          {formatDateRange(event.start_date, event.end_date)} · Teams of {event.team_size_min}–
-          {event.team_size_max}
+        <div className="flex flex-wrap items-center gap-2">
+          <Chip>
+            <CalendarDays aria-hidden="true" className="size-3" />
+            {formatDateRange(event.start_date, event.end_date)}
+          </Chip>
+          <Chip>
+            Teams of {event.team_size_min}–{event.team_size_max}
+          </Chip>
+          <Chip tone="accent">
+            <Users aria-hidden="true" className="size-3" />
+            {count} looking
+          </Chip>
           {event.url ? (
-            <>
-              {" · "}
-              <a href={event.url} className="underline" rel="noopener noreferrer">
-                Event site
-              </a>
-            </>
+            <a href={event.url} className={chipClass()} rel="noopener noreferrer">
+              <ExternalLink aria-hidden="true" className="size-3" />
+              Event site
+            </a>
           ) : null}
-        </p>
-        {event.description ? <p>{event.description}</p> : null}
-        <p className="font-medium">
-          {count === 1 ? "1 person is" : `${count} people are`} looking for teammates for this
-          event.
-        </p>
+        </div>
+        {event.description ? <p className="text-muted">{event.description}</p> : null}
 
         {ended ? (
-          <p className="text-neutral-500">This event has ended.</p>
+          <Chip>This event has ended.</Chip>
         ) : viewer === "anon" ? (
-          <Link
+          <Button
             href={`/join?${new URLSearchParams({ next: joinPath, from: "event" })}`}
             prefetch={false}
-            className={`self-start ${primaryButton}`}
+            size="lg"
+            className="self-start"
           >
             Find a team for this event
-          </Link>
+          </Button>
         ) : viewer === "not-onboarded" ? (
-          <Link
+          <Button
             href={`/onboarding?${new URLSearchParams({ next: joinPath })}`}
-            className={`self-start ${primaryButton}`}
+            size="lg"
+            className="self-start"
           >
             Finish joining to find a team
-          </Link>
+          </Button>
         ) : (
-          <>
-            <Link
-              href={`/?event=${slug}`}
-              className="self-start rounded-lg border border-neutral-300 px-4 py-2 font-medium dark:border-neutral-700"
-            >
+          <div className="flex flex-col gap-4 rounded-2xl bg-surface p-4">
+            <Button href={`/?event=${slug}`} variant="outline" className="self-start">
+              <Compass aria-hidden="true" className="size-4" />
               Find teammates for this event
-            </Link>
+            </Button>
             <EventPoolPanel
               eventId={event.id}
               eventName={event.name}
@@ -155,7 +160,7 @@ export default async function EventPage({
               pool={pool!}
               confirmNotGoing={query.confirm === "not-going"}
             />
-          </>
+          </div>
         )}
       </section>
 
@@ -183,7 +188,7 @@ export default async function EventPage({
             ))}
           </ul>
         ) : (
-          <p className="text-sm text-neutral-500">No ideas tagged with this event yet.</p>
+          <p className="text-sm text-muted">No ideas tagged with this event yet.</p>
         )}
         {!ideas.hasMore ? null : viewer === "onboarded" ? (
           <Link
@@ -208,6 +213,8 @@ export default async function EventPage({
               <li key={person.user_id}>
                 <PersonCard
                   person={person}
+                  ideaPitch={pitches.get(person.user_id) ?? null}
+                  lookingEvents={looking.get(person.user_id)}
                   actions={
                     <CardActions
                       viewer={viewer}
@@ -226,7 +233,7 @@ export default async function EventPage({
             ))}
           </ul>
         ) : (
-          <p className="text-sm text-neutral-500">No one has tagged this event yet.</p>
+          <p className="text-sm text-muted">No one has tagged this event yet.</p>
         )}
         {!people.hasMore ? null : viewer === "onboarded" ? (
           <Link

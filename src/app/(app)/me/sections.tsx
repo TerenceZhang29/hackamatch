@@ -1,11 +1,13 @@
 "use client";
 
+import { buttonClass } from "@/components/ui/Button";
+import { inputClass } from "@/components/ui/Field";
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { EventPicker, type PickableEvent } from "@/components/EventPicker";
 import { TagEditor, type TagGroup, type TagValues } from "@/components/TagEditor";
-import type { INTENTS, ROLES } from "@/app/onboarding/schema";
-import { NAME_MAX, SENTENCE_MAX } from "@/app/onboarding/schema";
+import type { INTENTS, ROLES } from "@/app/(focus)/onboarding/schema";
+import { NAME_MAX, SENTENCE_MAX } from "@/app/(focus)/onboarding/schema";
 import { displayName } from "@/lib/display-name";
 import {
   changeIdeaStatus,
@@ -22,17 +24,11 @@ import {
 type Role = (typeof ROLES)[number];
 type Intent = (typeof INTENTS)[number];
 
-const inputClass =
-  "rounded-lg border border-neutral-300 bg-transparent px-3 py-2 outline-none focus:border-neutral-900 dark:border-neutral-700 dark:focus:border-neutral-100";
-const primaryButton =
-  "rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-900";
-const secondaryButton =
-  "rounded-lg border border-neutral-300 px-3 py-1.5 text-sm disabled:opacity-60 dark:border-neutral-700";
+const primaryButton = buttonClass("primary", "sm");
+const secondaryButton = buttonClass("outline", "sm");
 const chip = (on: boolean) =>
-  `rounded-full border px-4 py-2 text-sm ${
-    on
-      ? "border-neutral-900 bg-neutral-900 text-white dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-900"
-      : "border-neutral-300 dark:border-neutral-700"
+  `rounded-full px-4 py-2 text-sm font-medium transition ${
+    on ? "bg-accent text-accent-ink" : "bg-bg text-ink ring-1 ring-line hover:bg-surface-2"
   }`;
 
 /** Runs a server action and keeps its outcome for display. */
@@ -47,10 +43,10 @@ function useAction() {
 function Outcome({ result, saved = "Saved" }: { result: ActionResult | null; saved?: string }) {
   if (!result) return null;
   if (!result.ok) {
-    return <p className="text-sm text-red-600 dark:text-red-400">{result.error}</p>;
+    return <p className="text-sm text-danger-ink">{result.error}</p>;
   }
   return (
-    <p role="status" className="text-sm text-neutral-600 dark:text-neutral-400">
+    <p role="status" className="text-sm text-muted">
       {result.notice ?? saved}
     </p>
   );
@@ -67,16 +63,11 @@ export function Section({
 }) {
   const id = title.toLowerCase().replaceAll(/[^a-z]+/g, "-");
   return (
-    <section
-      aria-labelledby={id}
-      className="flex flex-col gap-3 border-t border-neutral-200 pt-6 dark:border-neutral-800"
-    >
-      <h2 id={id} className="text-lg font-semibold">
+    <section aria-labelledby={id} className="flex flex-col gap-3 rounded-2xl bg-surface p-5">
+      <h2 id={id} className="text-base font-semibold">
         {title}
       </h2>
-      {description ? (
-        <p className="text-sm text-neutral-600 dark:text-neutral-400">{description}</p>
-      ) : null}
+      {description ? <p className="text-sm text-muted">{description}</p> : null}
       {children}
     </section>
   );
@@ -105,7 +96,7 @@ export function NameSection({ name }: { name: string }) {
         autoComplete="name"
         className={inputClass}
       />
-      <p className="text-sm text-neutral-600 dark:text-neutral-400">
+      <p className="text-sm text-muted">
         {value.trim()
           ? `Public pages show "${displayName(value)}"; matches see "${firstName}".`
           : 'With no name, public pages show "Cornell student".'}
@@ -265,7 +256,7 @@ export function EventsSection({
   const [value, setValue] = useState(selected);
   const action = useAction();
   if (events.length === 0) {
-    return <p className="text-sm text-neutral-500">No upcoming hackathons yet.</p>;
+    return <p className="text-sm text-muted">No upcoming hackathons yet.</p>;
   }
   return (
     <div className="flex flex-col gap-2">
@@ -309,7 +300,7 @@ function IdeaItem({ idea }: { idea: IdeaRow }) {
   const [status, setStatus] = useState(idea.status);
   const action = useAction();
   return (
-    <li className="flex flex-col gap-2 rounded-lg border border-neutral-200 p-3 dark:border-neutral-800">
+    <li className="flex flex-col gap-2 rounded-xl bg-bg p-3">
       <Link href={`/ideas/${idea.id}`} className="font-medium hover:underline">
         {idea.pitch ?? idea.raw_text}
       </Link>
@@ -324,7 +315,7 @@ function IdeaItem({ idea }: { idea: IdeaRow }) {
               setStatus(value);
               action.run(() => changeIdeaStatus({ ideaId: idea.id, status: value }));
             }}
-            className={`${secondaryButton} ${status === value ? "border-neutral-900 font-medium dark:border-neutral-100" : ""}`}
+            className={status === value ? primaryButton : secondaryButton}
           >
             {STATUS_LABELS[value]}
           </button>
@@ -410,7 +401,7 @@ export function DeleteSection() {
         <button
           type="submit"
           disabled={action.pending || confirm.trim().toLowerCase() !== "delete"}
-          className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+          className={buttonClass("danger", "sm")}
         >
           {action.pending ? "Deleting…" : "Delete account"}
         </button>

@@ -1,16 +1,18 @@
-const MESSAGES: Record<string, string> = {
-  sent: "Sent. If they're interested too, we'll email you both each other's contact details.",
-  passed: "Passed. You won't see them again.",
-  matched: "It's a match! We've emailed you both each other's contact details.",
-  limit: "You've said Interested to 15 people today. Come back tomorrow.",
-  unavailable: "That person or idea isn't available any more.",
-  self: "That's you!",
-  busy: "That's a lot of answers in a short time. Wait a few minutes and try again.",
+import { Notice } from "@/components/ui/Notice";
+
+const MESSAGES: Record<string, { text: string; tone: "neutral" | "success" | "danger" }> = {
+  sent: { text: "Sent", tone: "neutral" },
+  passed: { text: "Passed", tone: "neutral" },
+  matched: { text: "It's a match! Check your email.", tone: "success" },
+  limit: { text: "That's 15 today. Back tomorrow.", tone: "danger" },
+  unavailable: { text: "No longer available.", tone: "danger" },
+  self: { text: "That's you!", tone: "danger" },
+  busy: { text: "Too fast. Try again in a few minutes.", tone: "danger" },
 };
 
 type Params = Record<string, string | string[] | undefined>;
 
-/** The banner after an Interested / Pass redirect (`?sent=1`, `?error=limit`, …). */
+/** One short line after an Interested / Pass redirect (`?sent=1`, `?error=limit`, …). */
 export function Outcome({ params }: { params: Params }) {
   const error = typeof params.error === "string" ? params.error : null;
   const key = error
@@ -24,16 +26,5 @@ export function Outcome({ params }: { params: Params }) {
           : null;
   const message = key ? MESSAGES[key] : null;
   if (!message) return null;
-  return (
-    <p
-      role="status"
-      className={`rounded-lg px-4 py-3 text-sm ${
-        error
-          ? "bg-red-50 text-red-800 dark:bg-red-950 dark:text-red-200"
-          : "bg-neutral-100 dark:bg-neutral-900"
-      }`}
-    >
-      {message}
-    </p>
-  );
+  return <Notice tone={message.tone}>{message.text}</Notice>;
 }

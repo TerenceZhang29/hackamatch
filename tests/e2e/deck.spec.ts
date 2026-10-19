@@ -197,7 +197,7 @@ test("Undo takes back the last Pass, and only a Pass", async ({ page }) => {
   const viewer = await signInAs(page, "builder");
   await ideaFor(event.id, "Second idea to undo");
   await ideaFor(event.id, "First idea to undo");
-  const undo = page.getByRole("button", { name: "↶ Undo" });
+  const undo = page.getByRole("button", { name: "Undo" });
   const matchCount = async () =>
     (
       await query<{ n: number }>(
@@ -209,7 +209,7 @@ test("Undo takes back the last Pass, and only a Pass", async ({ page }) => {
   // A Pass that made the match row: Undo deletes it and the card comes back.
   await page.goto(`/?event=${event.slug}`);
   await page.getByRole("button", { name: "Pass" }).click();
-  await expect(page.getByText("Passed.")).toBeVisible();
+  await expect(page.getByText("Passed", { exact: true })).toBeVisible();
   expect(await matchCount()).toBe(1);
   await undo.click();
   await expect(page.getByRole("article", { name: "First idea to undo" })).toBeVisible();
@@ -231,7 +231,7 @@ test("Undo on someone who was waiting on you puts them back in your queue", asyn
 
   await page.goto(`/?event=${event.slug}`);
   await page.getByRole("button", { name: "Pass" }).click();
-  await page.getByRole("button", { name: "↶ Undo" }).click();
+  await page.getByRole("button", { name: "Undo" }).click();
   await expect(page.getByRole("article", { name: "Omar W." })).toBeVisible();
   const [row] = await query<{ mine: string; theirs: string }>(
     `select case when user_a = $2 then a_response else b_response end as mine,
@@ -269,18 +269,29 @@ test("cards show what you have in common, and the full profile opens in place", 
 
   await page.goto(`/?event=${event.slug}`);
   const card = page.getByRole("article", { name: "Lee C." });
-  await expect(card.getByRole("list", { name: "You both" })).toContainText("react");
-  await expect(card.getByRole("list", { name: "You both" })).toContainText("health");
-  await expect(card.getByRole("list", { name: "You both" })).toContainText(
+  // The card's lines, in order: role tags, Looking for, Ideas, Builds, You both, Area.
+  await expect(card.getByRole("list", { name: "Role" })).toHaveText(["Builds"]);
+  await expect(card.getByText("Builds:")).toBeVisible();
+  await expect(card).toContainText("Builds: react, go");
+  // Looking for: the hackathons Lee is going to and still looking at, soonest first.
+  await expect(card.getByRole("list", { name: "Looking for teammates at" })).toContainText(
     `Deck Hack ${event.slug}`,
   );
-  await expect(card.getByText("Their ideas")).toHaveCount(0);
+  // You both: the shared hackathon first, then shared areas (not skills).
+  await expect(card.getByRole("list", { name: "You both" }).getByRole("listitem")).toHaveText([
+    `Deck Hack ${event.slug}`,
+    "health",
+  ]);
+  await expect(card.getByRole("list", { name: "Area" })).toContainText("climate");
+  await expect(card.getByText("All ideas")).toHaveCount(0);
 
   // A tap anywhere on the card opens the full profile, like the link does.
-  await card.getByText("Test summary").click();
+  await card.getByRole("heading", { name: "Lee C." }).click();
   await expect(page).toHaveURL(`/?event=${event.slug}&more=1`);
-  await expect(card.getByText("Their ideas")).toBeVisible();
+  await expect(card.getByText("Hackathons", { exact: true })).toBeVisible();
+  await expect(card.getByText("All ideas")).toBeVisible();
   await expect(card.getByText("Lee's side idea")).toBeVisible();
+  await expect(card.getByRole("list", { name: "All skills" })).toContainText("react");
   await expect(card.getByText("Secret full text")).toHaveCount(0);
   await expect(page.getByText(/@cornell\.edu/)).toHaveCount(0);
 
@@ -308,7 +319,7 @@ test("idea cards tick the skills you have", async ({ page }) => {
 
   await page.goto(`/?event=${event.slug}`);
   const needs = page.getByRole("list", { name: "Needs" });
-  await expect(needs.getByRole("listitem")).toHaveText(["frontend ✓", "backend"]);
+  await expect(needs.getByRole("listitem")).toHaveText(["frontend, you have this", "backend"]);
 });
 
 test("event chips narrow the deck; the event page opens its deck", async ({ page }) => {

@@ -55,7 +55,7 @@ test("a new user lands on onboarding, a returning onboarded user on matches", as
 
   await signIn(page, email);
   await expect(page).toHaveURL("/matches");
-  await expect(page.getByRole("heading", { name: "Your matches" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Matches", level: 1 })).toBeVisible();
 
   // The onboarding clock is set on the first click only.
   const again = await getUserRow(email);

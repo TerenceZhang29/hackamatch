@@ -1,4 +1,7 @@
+import { LogOut } from "lucide-react";
 import Link from "next/link";
+import { Avatar } from "@/components/ui/Avatar";
+import { buttonClass } from "@/components/ui/Button";
 import type { Metadata } from "next";
 import { requireOnboarded } from "@/lib/auth";
 import { getConfig } from "@/lib/config";
@@ -34,40 +37,27 @@ export default async function MePage() {
     : null;
 
   return (
-    <main className="mx-auto flex max-w-2xl flex-col gap-8 px-4 py-12">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-3xl font-bold tracking-tight">Your profile</h1>
-        {user.name ? (
-          <p className="text-xl font-medium">{user.name}</p>
-        ) : (
-          <p className="text-neutral-600 dark:text-neutral-400">
-            <a href="#me-name" className="underline">
+    <main className="mx-auto flex max-w-2xl flex-col gap-4 px-4 py-6">
+      <h1 className="sr-only">Your profile</h1>
+      <header className="flex items-center gap-4">
+        <Avatar name={user.name?.trim() || "Cornell student"} size={72} />
+        <div className="flex min-w-0 flex-col gap-1">
+          {user.name ? (
+            <p className="text-2xl font-bold tracking-tight">{user.name}</p>
+          ) : (
+            <a href="#me-name" className="text-lg font-semibold text-accent underline">
               Add your name
-            </a>{" "}
-            so matches know who you are.
-          </p>
-        )}
-        {profile.summary ? (
-          <p className="text-neutral-600 dark:text-neutral-400">{profile.summary}</p>
-        ) : null}
-        <nav className="mt-2 flex gap-4 text-sm">
-          <Link href="/matches" className="underline">
-            Matches
-          </Link>
-          <Link href="/" className="underline">
-            Board
-          </Link>
-          <Link href="/ideas/new" className="underline">
-            Post an idea
-          </Link>
-        </nav>
+            </a>
+          )}
+          {profile.summary ? <p className="text-sm text-muted">{profile.summary}</p> : null}
+        </div>
       </header>
 
       <Section title="Your name">
         <NameSection name={user.name ?? ""} />
       </Section>
 
-      <Section title="Your sentence" description="We use it to suggest your tags and find matches.">
+      <Section title="Your sentence">
         <SentenceSection sentence={user.raw_bio ?? ""} />
       </Section>
 
@@ -101,7 +91,7 @@ export default async function MePage() {
             }))}
           />
         ) : (
-          <p className="text-sm text-neutral-500">
+          <p className="text-sm text-muted">
             No ideas yet.{" "}
             <Link href="/ideas/new" className="underline">
               Post one
@@ -111,10 +101,7 @@ export default async function MePage() {
         )}
       </Section>
 
-      <Section
-        title="Notifications"
-        description={`Matches are emailed to ${user.cornell_email}. Pausing takes you off the board and out of matching; your matches stay.`}
-      >
+      <Section title="Notifications" description={`Emails go to ${user.cornell_email}.`}>
         <PauseSection pausedLabel={pausedLabel} />
       </Section>
 
@@ -122,12 +109,9 @@ export default async function MePage() {
         <DeleteSection />
       </Section>
 
-      <form
-        action="/logout"
-        method="post"
-        className="border-t border-neutral-200 pt-6 dark:border-neutral-800"
-      >
-        <button type="submit" className="text-sm underline">
+      <form action="/logout" method="post">
+        <button type="submit" className={buttonClass("secondary", "md", "w-full")}>
+          <LogOut aria-hidden="true" className="size-4" />
           Sign out
         </button>
       </form>

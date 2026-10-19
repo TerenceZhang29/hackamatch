@@ -41,7 +41,7 @@ export default async function OnboardingPage({
           domains: slugsOf("domains"),
         }}
       />
-      <form action="/logout" method="post" className="mt-10 text-center text-sm text-neutral-500">
+      <form action="/logout" method="post" className="mt-10 text-center text-sm text-muted">
         Signed in as <span className="break-all">{user.cornell_email}</span> ·{" "}
         <button type="submit" className="underline">
           Sign out

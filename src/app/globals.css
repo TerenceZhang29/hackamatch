@@ -1,18 +1,82 @@
 @import "tailwindcss";
 
+/*
+ * Design tokens (docs/design.md). Neutral surfaces, one indigo accent, green
+ * only for "you both" / matches, red only for errors. Dark values follow the
+ * system setting, like Tailwind's `dark:` variant.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: #ffffff;
+  --surface: #f5f5f7;
+  --surface-2: #ebebef;
+  --ink: #16161a;
+  --muted: #6b6b76;
+  --line: #e4e4ea;
+  --accent: #4f46e5; /* indigo-600 */
+  --accent-ink: #ffffff;
+  --accent-soft: #eef0ff;
+  --accent-soft-ink: #3730a3;
+  --success-soft: #e7f7ee;
+  --success-ink: #166534;
+  --danger-soft: #fdecec;
+  --danger-ink: #b42318;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --bg: #0b0b0f;
+    --surface: #17171d;
+    --surface-2: #22222a;
+    --ink: #ededf2;
+    --muted: #9b9ba8;
+    --line: #2a2a33;
+    --accent: #818cf8; /* indigo-400 */
+    --accent-ink: #0b0b0f;
+    --accent-soft: #1f2050;
+    --accent-soft-ink: #c7cbff;
+    --success-soft: #0f2a1b;
+    --success-ink: #86efac;
+    --danger-soft: #3a1414;
+    --danger-ink: #fca5a5;
   }
 }
 
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-soft-ink: var(--accent-soft-ink);
+  --color-success-soft: var(--success-soft);
+  --color-success-ink: var(--success-ink);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-ink: var(--danger-ink);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--bg);
+  color: var(--ink);
+}
+
+/* One visible focus ring for every control. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 0.5rem;
+}
+
+/* Respect "reduce motion": no transitions or animations. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+  }
 }

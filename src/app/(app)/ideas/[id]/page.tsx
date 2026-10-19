@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { buttonClass } from "@/components/ui/Button";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 import { IdeaTags } from "@/components/IdeaTags";
@@ -34,21 +36,25 @@ export default async function IdeaPage({
   const own = user ? await getOwnIdea(user.id, id) : null;
   if (own) {
     return (
-      <main className="mx-auto flex max-w-2xl flex-col gap-6 px-4 py-12">
-        <Link href="/me" className="text-sm underline">
-          ← Your profile
+      <main className="mx-auto flex max-w-2xl flex-col gap-4 px-4 py-6">
+        <Link
+          href="/me"
+          aria-label="Your profile"
+          className="-ml-2 self-start rounded-full p-2 text-muted"
+        >
+          <ArrowLeft aria-hidden="true" className="size-5" />
         </Link>
         <header className="flex flex-col gap-2">
-          <p className="text-sm font-medium text-neutral-500">Your idea</p>
+          <p className="text-sm font-medium text-muted">Your idea</p>
           <h1 className="text-2xl font-bold tracking-tight">
             {own.pitch ?? "Writing your pitch…"}
           </h1>
           {STATUS_NOTES[own.status] ? (
-            <p className="text-sm text-neutral-500">{STATUS_NOTES[own.status]}</p>
+            <p className="text-sm text-muted">{STATUS_NOTES[own.status]}</p>
           ) : null}
         </header>
-        <section className="flex flex-col gap-2">
-          <p className="text-sm font-medium text-neutral-500">
+        <section className="flex flex-col gap-2 rounded-2xl bg-surface p-5">
+          <p className="text-sm font-medium text-muted">
             Full text (shown only after a mutual match)
           </p>
           <p className="whitespace-pre-line">{own.raw_text}</p>
@@ -72,25 +78,29 @@ export default async function IdeaPage({
   const fullText = user ? await getRevealedIdeaText(user.id, id) : null;
 
   return (
-    <main className="mx-auto flex max-w-2xl flex-col gap-6 px-4 py-12">
-      <Link href="/" className="text-sm underline">
-        ← All ideas
+    <main className="mx-auto flex max-w-2xl flex-col gap-4 px-4 py-6">
+      <Link
+        href="/"
+        aria-label="All ideas"
+        className="-ml-2 self-start rounded-full p-2 text-muted"
+      >
+        <ArrowLeft aria-hidden="true" className="size-5" />
       </Link>
       <header className="flex flex-col gap-2">
-        <p className="text-sm font-medium text-neutral-500">
+        <p className="text-sm font-medium text-muted">
           {idea.featured ? "Featured idea · " : "Idea · "}
           {idea.owner_display}
         </p>
         <h1 className="text-2xl font-bold tracking-tight">{idea.pitch ?? "New idea"}</h1>
         {STATUS_NOTES[idea.status] ? (
-          <p className="text-sm text-neutral-500">{STATUS_NOTES[idea.status]}</p>
+          <p className="text-sm text-muted">{STATUS_NOTES[idea.status]}</p>
         ) : null}
       </header>
       <Outcome params={outcome} />
       <IdeaTags domain={idea.domain} scope={idea.scope} skillsNeeded={idea.skills_needed} />
       {fullText ? (
-        <section className="flex flex-col gap-2">
-          <p className="text-sm font-medium text-neutral-500">Full idea</p>
+        <section className="flex flex-col gap-2 rounded-2xl bg-surface p-5">
+          <p className="text-sm font-medium text-muted">Full idea</p>
           <p className="whitespace-pre-line">{fullText}</p>
         </section>
       ) : null}
@@ -109,7 +119,7 @@ export default async function IdeaPage({
       ) : (
         <Link
           href={loginPath(`/ideas/${id}`)}
-          className="self-start rounded-lg bg-neutral-900 px-4 py-2 font-medium text-white dark:bg-neutral-100 dark:text-neutral-900"
+          className={buttonClass("primary", "md", "self-start")}
         >
           Sign in to connect
         </Link>

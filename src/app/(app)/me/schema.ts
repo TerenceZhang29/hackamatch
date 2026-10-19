@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { INTENTS, ROLES, SENTENCE_MAX, nameField } from "@/app/onboarding/schema";
+import { INTENTS, ROLES, SENTENCE_MAX, nameField } from "@/app/(focus)/onboarding/schema";
 import { PAUSE_CHOICES } from "@/lib/pause";
 
 /** Input schemas for the /me server actions. */

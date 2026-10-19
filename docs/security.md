@@ -4,28 +4,28 @@ Audit for P1-18, done 2026-10-14 against commit `ee97818` plus the P1-18 changes
 
 ## Access control
 
-- [x] **Every server action authenticates before doing anything.** Session actions call `requireUser()` (onboarding), `requireOnboarded()` (members) or `requireAdmin()` (admin) first. The exceptions are deliberate: `requestMagicLink` and `confirmSignIn` (signing in) and the one-click actions in `src/app/r/[token]/actions.ts`, which verify an HMAC-signed token that authorizes exactly one user (and one match). Inventory, with the check each one makes:
+- [x] **Every server action authenticates before doing anything.** Session actions call `requireUser()` (onboarding), `requireOnboarded()` (members) or `requireAdmin()` (admin) first. The exceptions are deliberate: `requestMagicLink` and `confirmSignIn` (signing in) and the one-click actions in `src/app/(focus)/r/[token]/actions.ts`, which verify an HMAC-signed token that authorizes exactly one user (and one match). Inventory, with the check each one makes:
 
   | File | Actions | Check |
   | --- | --- | --- |
-  | `src/app/login/actions.ts` | `requestMagicLink` | public; domain allow-list, rate limits |
-  | `src/app/auth/confirm/actions.ts` | `confirmSignIn` | Supabase token-hash verification |
-  | `src/app/onboarding/actions.ts` | `submitSentence`, `joinPool` | `requireUser` |
-  | `src/app/me/actions.ts` | 7 actions | `requireOnboarded`; ideas checked by owner |
-  | `src/app/ideas/new/actions.ts` | `previewIdea`, `postIdea` | `requireOnboarded` |
-  | `src/app/ideas/[id]/actions.ts` | 3 actions | `requireOnboarded`; owner check in the query |
+  | `src/app/(focus)/login/actions.ts` | `requestMagicLink` | public; domain allow-list, rate limits |
+  | `src/app/(focus)/auth/confirm/actions.ts` | `confirmSignIn` | Supabase token-hash verification |
+  | `src/app/(focus)/onboarding/actions.ts` | `submitSentence`, `joinPool` | `requireUser` |
+  | `src/app/(app)/me/actions.ts` | 7 actions | `requireOnboarded`; ideas checked by owner |
+  | `src/app/(app)/ideas/new/actions.ts` | `previewIdea`, `postIdea` | `requireOnboarded` |
+  | `src/app/(app)/ideas/[id]/actions.ts` | 3 actions | `requireOnboarded`; owner check in the query |
   | `src/app/actions/respond.ts` | `answerCard`, `answerMatch` | `requireOnboarded`; match membership checked |
-  | `src/app/matches/[id]/actions.ts` | 4 actions | `requireOnboarded`; revealed-match membership checked |
-  | `src/app/e/[slug]/actions.ts` | `setEventInterestAction` | `requireOnboarded` |
+  | `src/app/(app)/matches/[id]/actions.ts` | 4 actions | `requireOnboarded`; revealed-match membership checked |
+  | `src/app/(app)/e/[slug]/actions.ts` | `setEventInterestAction` | `requireOnboarded` |
   | `src/app/admin/actions.ts` | 6 actions | `requireAdmin` |
-  | `src/app/r/[token]/actions.ts` | `respondFromToken`, `pauseFromToken` | signed token |
-  | `src/app/r/[token]/unsubscribe/route.ts` | `POST` | signed pause token; `GET` changes nothing |
+  | `src/app/(focus)/r/[token]/actions.ts` | `respondFromToken`, `pauseFromToken` | signed token |
+  | `src/app/(focus)/r/[token]/unsubscribe/route.ts` | `POST` | signed pause token; `GET` changes nothing |
   | `src/app/join/route.ts` | `GET` | public; records a click and redirects (sanitized `next`) |
   | `src/app/logout/route.ts` | `POST` | signs out the current session |
 
 - [x] **Every input is validated with zod** before use: all actions above parse their input, and so do the token payloads (`verifyToken` checks shape as well as signature).
 - [x] **Admin pages are hidden:** `requireAdmin` in `src/app/admin/layout.tsx`, every admin page and every admin action; non-admins get a 404.
-- [x] **The service-role client is confined.** ESLint (`eslint.config.mjs`) only allows importing it from `src/server/**`, `src/app/admin/**`, `src/app/r/**`, `src/app/api/cron/**`, `src/lib/analytics.ts`, `scripts/**` and `tests/**`. Current importers: the `src/server` services, `src/app/r/[token]/page.tsx`, `src/app/admin/events/[id]/page.tsx` and `src/lib/analytics.ts`.
+- [x] **The service-role client is confined.** ESLint (`eslint.config.mjs`) only allows importing it from `src/server/**`, `src/app/admin/**`, `src/app/(focus)/r/**`, `src/app/api/cron/**`, `src/lib/analytics.ts`, `scripts/**` and `tests/**`. Current importers: the `src/server` services, `src/app/(focus)/r/[token]/page.tsx`, `src/app/admin/events/[id]/page.tsx` and `src/lib/analytics.ts`.
 - [x] **Row-level security is on for every table**, and `anon` / `authenticated` have only the grants their policies need; new tables get none by default. Server-only SQL functions (`respond_to_pair`, `interests_today`, `team_up`, `hit_rate_limit`, and since 2026-10-18 the board functions `public_board_ideas`, `public_board_people`, `public_person`, `public_idea`) are not executable by `anon` or `authenticated` (DB tests check this). The board functions became server-only so that the page limits (visitors see 3 cards per event) can't be skipped by calling them with the public API key.
 
 ## Privacy

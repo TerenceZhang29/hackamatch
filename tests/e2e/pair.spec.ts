@@ -48,9 +48,6 @@ test("the pair page shows contact details, the full idea and a message to copy",
   const { matchId, otherEmail } = await revealedMatch(page);
   await page.goto(`/matches/${matchId}`);
   await expect(page.getByRole("heading", { name: "You and Maya" })).toBeVisible();
-  await expect(
-    page.getByText("Matches never expire, and you both stay in the pool."),
-  ).toBeVisible();
   const other = page.getByRole("article", { name: "Maya Pair" });
   await expect(other.getByRole("link", { name: otherEmail })).toHaveAttribute(
     "href",

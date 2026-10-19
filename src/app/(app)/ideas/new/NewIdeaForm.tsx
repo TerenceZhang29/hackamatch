@@ -1,15 +1,15 @@
 "use client";
 
+import { Lock } from "lucide-react";
+import { buttonClass } from "@/components/ui/Button";
+import { inputClass } from "@/components/ui/Field";
 import { useState, useTransition } from "react";
 import { IdeaTags } from "@/components/IdeaTags";
 import type { ExtractedIdea } from "@/lib/llm/extract-idea";
 import { IDEA_TEXT_MAX } from "../schema";
 import { postIdea, previewIdea } from "./actions";
 
-const inputClass =
-  "rounded-lg border border-neutral-300 bg-transparent px-3 py-2 outline-none focus:border-neutral-900 dark:border-neutral-700 dark:focus:border-neutral-100";
-const primaryButton =
-  "rounded-lg bg-neutral-900 px-4 py-2 font-medium text-white disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-900";
+const primaryButton = buttonClass("primary", "md");
 
 export function NewIdeaForm({ events }: { events: { id: string; name: string }[] }) {
   const [text, setText] = useState("");
@@ -44,7 +44,7 @@ export function NewIdeaForm({ events }: { events: { id: string; name: string }[]
   }
 
   const errorText = error ? (
-    <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+    <p role="alert" className="text-sm text-danger-ink">
       {error}
     </p>
   ) : null;
@@ -53,27 +53,26 @@ export function NewIdeaForm({ events }: { events: { id: string; name: string }[]
     const idea = preview.idea;
     return (
       <div className="flex flex-col gap-6">
-        <h1 className="text-3xl font-bold tracking-tight">How it will look</h1>
+        <h1 className="text-2xl font-bold tracking-tight">How it will look</h1>
         {idea ? (
-          <div className="flex flex-col gap-3 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
-            <p className="text-sm font-medium text-neutral-500">Public pitch</p>
+          <div className="flex flex-col gap-3 rounded-2xl bg-surface p-4">
+            <p className="text-sm font-medium text-muted">Public pitch</p>
             <p className="text-lg">{idea.pitch}</p>
             <IdeaTags domain={idea.domain} scope={idea.scope} skillsNeeded={idea.skills_needed} />
           </div>
         ) : (
-          <p role="status" className="text-neutral-600 dark:text-neutral-400">
-            We&apos;ll write the public pitch and tags in a moment. You can post now.
+          <p role="status" className="text-muted">
+            Pitch and tags coming in a moment.
           </p>
         )}
-        <p className="text-sm text-neutral-500">
-          Others see only the pitch and tags. Your full text is shown to someone only after you both
-          say you&apos;re interested.
+        <p className="flex items-center gap-1.5 text-sm text-muted">
+          <Lock aria-hidden="true" className="size-4" />
+          Only the pitch is public
         </p>
         {idea?.clarifying_question ? (
           <div className="flex flex-col gap-2">
             <label htmlFor="answer" className="text-sm font-medium">
-              {idea.clarifying_question}{" "}
-              <span className="font-normal text-neutral-500">(optional)</span>
+              {idea.clarifying_question} <span className="font-normal text-muted">(optional)</span>
             </label>
             <input
               id="answer"
@@ -89,7 +88,7 @@ export function NewIdeaForm({ events }: { events: { id: string; name: string }[]
           <button
             type="button"
             onClick={() => setPreview(null)}
-            className="rounded-lg border border-neutral-300 px-4 py-2 dark:border-neutral-700"
+            className="rounded-lg border border-line px-4 py-2"
           >
             Edit
           </button>
@@ -108,7 +107,7 @@ export function NewIdeaForm({ events }: { events: { id: string; name: string }[]
 
   return (
     <form className="flex flex-col gap-4" onSubmit={onPreview}>
-      <h1 className="text-3xl font-bold tracking-tight">Post an idea</h1>
+      <h1 className="text-2xl font-bold tracking-tight">Post an idea</h1>
       <label htmlFor="idea-text" className="text-sm font-medium">
         Your idea in one or two sentences
       </label>
@@ -127,7 +126,7 @@ export function NewIdeaForm({ events }: { events: { id: string; name: string }[]
       {events.length ? (
         <div className="flex flex-col gap-2">
           <label htmlFor="idea-event" className="text-sm font-medium">
-            For a hackathon <span className="font-normal text-neutral-500">(optional)</span>
+            For a hackathon <span className="font-normal text-muted">(optional)</span>
           </label>
           <select
             id="idea-event"

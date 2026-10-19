@@ -24,7 +24,7 @@ test("the logged-out board shows seeded ideas and never emails or full idea text
   page,
 }) => {
   const response = await page.goto("/");
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("Find someone to build");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Find someone to build with");
   await expect(page.getByRole("article", { name: SEEDED_PITCH })).toBeVisible();
   // Featured ideas come first.
   await expect(page.getByRole("article").first()).toContainText("Featured");
@@ -43,6 +43,7 @@ test("the logged-out board shows seeded ideas and never emails or full idea text
 
 test("filters change the results and the URL can be shared", async ({ page }) => {
   await page.goto("/");
+  await page.getByText("Filter", { exact: true }).click();
   await page.getByLabel("Skill", { exact: true }).selectOption("ml");
   await page.getByRole("button", { name: "Apply" }).click();
   await expect(page).toHaveURL("/?skill=ml");
@@ -138,6 +139,7 @@ test("the board works without JavaScript", async ({ browser }) => {
   try {
     const page = await context.newPage();
     await page.goto("/");
+    await page.getByText("Filter", { exact: true }).click();
     await page.getByLabel("Area", { exact: true }).selectOption("climate");
     await page.getByRole("button", { name: "Apply" }).click();
     await expect(page).toHaveURL("/?domain=climate");

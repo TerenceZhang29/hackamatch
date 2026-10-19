@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { nameSchema } from "@/app/me/schema";
+import { nameSchema } from "@/app/(app)/me/schema";
 
 describe("nameSchema", () => {
   it("trims the name", () => {

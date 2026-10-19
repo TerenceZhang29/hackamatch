@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { Heart } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 
 export type Viewer = "anon" | "not-onboarded" | "onboarded";
 
@@ -22,14 +23,11 @@ export function CardActions({
       ? `/join?${new URLSearchParams({ next: cardPath, from: "card" })}`
       : "/onboarding";
   return (
-    <div className="flex gap-2">
-      <Link
-        href={href}
-        prefetch={false}
-        className="rounded-lg bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white dark:bg-neutral-100 dark:text-neutral-900"
-      >
+    <div className="mt-auto flex gap-2">
+      <Button href={href} prefetch={false} size="sm">
+        {viewer === "anon" ? <Heart aria-hidden="true" className="size-4" /> : null}
         {viewer === "anon" ? "Interested" : "Finish joining to connect"}
-      </Link>
+      </Button>
     </div>
   );
 }

@@ -1,11 +1,10 @@
+import { Check } from "lucide-react";
 import Link from "next/link";
 import { eventPoolAction } from "@/app/actions/event-pool";
+import { buttonClass } from "@/components/ui/Button";
+import { Chip } from "@/components/ui/Chip";
 import { joinNames } from "@/lib/my-events";
 import type { EventPool } from "@/server/events";
-
-const primaryButton =
-  "rounded-lg bg-neutral-900 px-4 py-2 font-medium text-white dark:bg-neutral-100 dark:text-neutral-900";
-const secondaryButton = "rounded-lg border border-neutral-300 px-4 py-2 dark:border-neutral-700";
 
 /** One button that posts a pool choice for an event. */
 export function Choice({
@@ -50,23 +49,24 @@ export function KeepMatchingPrompt({
     <div
       role="group"
       aria-label={`Keep matching for ${eventName}?`}
-      className="flex flex-col gap-3 rounded-lg border border-green-600 bg-green-50 p-4 dark:bg-green-950"
+      className="flex flex-col gap-3 rounded-2xl bg-accent-soft p-4"
     >
-      <p className="font-medium">Keep matching for {eventName}?</p>
-      <p className="text-sm text-neutral-600 dark:text-neutral-400">
-        If your team is set, leave this event&apos;s pool and nobody there will see you. You can
-        come back any time.
-      </p>
+      <p className="font-semibold text-accent-soft-ink">Keep matching for {eventName}?</p>
       <div className="flex flex-wrap gap-2">
         <Choice
           eventId={eventId}
           choice="keep-looking"
           returnTo={returnTo}
-          className={secondaryButton}
+          className={buttonClass("outline", "sm")}
         >
           Keep looking
         </Choice>
-        <Choice eventId={eventId} choice="have-team" returnTo={returnTo} className={primaryButton}>
+        <Choice
+          eventId={eventId}
+          choice="have-team"
+          returnTo={returnTo}
+          className={buttonClass("primary", "sm")}
+        >
           I have my team
         </Choice>
       </div>
@@ -96,9 +96,9 @@ export function EventPoolPanel({
         eventId={eventId}
         choice="going"
         returnTo={here}
-        className={`self-start ${primaryButton}`}
+        className={buttonClass("primary", "md", "self-start")}
       >
-        I&apos;m interested in this event
+        I&apos;m going
       </Choice>
     );
   }
@@ -106,37 +106,36 @@ export function EventPoolPanel({
 
   return (
     <div className="flex flex-col gap-3">
-      {pool.leftPool ? (
-        <div className="flex flex-wrap items-center gap-3">
-          <p className="font-medium">
-            You&apos;re going and have your team. You&apos;re hidden from this event&apos;s list.
-          </p>
+      <div className="flex flex-wrap items-center gap-2">
+        <Chip tone="success">
+          <Check aria-hidden="true" className="size-3" strokeWidth={3} /> Going
+        </Chip>
+        <Chip tone={pool.leftPool ? "neutral" : "accent"}>
+          {pool.leftPool ? "Have a team" : "Looking"}
+        </Chip>
+        {pool.leftPool ? (
           <Choice
             eventId={eventId}
             choice="looking-again"
             returnTo={here}
-            className={secondaryButton}
+            className={buttonClass("ghost", "sm")}
           >
             I&apos;m looking again
           </Choice>
-        </div>
-      ) : (
-        <p className="font-medium">You&apos;re in for this event.</p>
-      )}
+        ) : null}
+      </div>
 
       {matched ? (
-        <p>
-          You&apos;ve matched with{" "}
-          {pool.matches.length === 1 ? "1 person" : `${pool.matches.length} people`} for this event:{" "}
+        <p className="text-sm">
+          <span className="text-muted">Matched: </span>
           {pool.matches.map((match, index) => (
             <span key={match.matchId}>
               {index > 0 ? ", " : null}
-              <Link href={`/matches/${match.matchId}`} className="underline">
+              <Link href={`/matches/${match.matchId}`} className="font-medium underline">
                 {match.firstName}
               </Link>
             </span>
           ))}
-          .
         </p>
       ) : null}
 
@@ -148,14 +147,10 @@ export function EventPoolPanel({
         <div
           role="group"
           aria-label="Not going?"
-          className="flex flex-col gap-3 rounded-lg border border-amber-500 bg-amber-50 p-4 dark:bg-amber-950"
+          className="flex flex-col gap-3 rounded-2xl bg-danger-soft p-4"
         >
-          <p className="font-medium">
-            You&apos;ve matched with {joinNames(pool.matches.map((m) => m.firstName))} for this
-            event. Let them know you&apos;re not going.
-          </p>
-          <p className="text-sm text-neutral-600 dark:text-neutral-400">
-            Your matches and contact details stay. You&apos;ll no longer count as going.
+          <p className="font-semibold text-danger-ink">
+            Tell {joinNames(pool.matches.map((m) => m.firstName))} you&apos;re not going?
           </p>
           <div className="flex flex-wrap gap-2">
             <Choice
@@ -163,17 +158,17 @@ export function EventPoolPanel({
               choice="not-going"
               returnTo={here}
               confirmed
-              className={primaryButton}
+              className={buttonClass("primary", "sm")}
             >
               Yes, I&apos;m not going
             </Choice>
-            <Link href={here} className={secondaryButton}>
+            <Link href={here} className={buttonClass("outline", "sm")}>
               Cancel
             </Link>
           </div>
         </div>
       ) : (
-        <div className="flex flex-wrap items-center gap-4 text-sm">
+        <div className="flex flex-wrap items-center gap-4 text-sm text-muted">
           {matched && !pool.leftPool && !pool.askToKeepMatching ? (
             <Choice eventId={eventId} choice="have-team" returnTo={here} className="underline">
               I have my team
