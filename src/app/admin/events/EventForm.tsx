@@ -1,4 +1,5 @@
 import type { AdminEvent } from "@/server/admin";
+import { EVENT_NAME_MAX } from "@/lib/event-name";
 import { saveEventAction } from "../actions";
 import { button, input } from "../ui";
 
@@ -15,7 +16,16 @@ export function EventForm({
       <input type="hidden" name="eventId" value={event?.id ?? ""} />
       <label className="flex flex-col gap-1 text-sm sm:col-span-2">
         Name
-        <input name="name" required defaultValue={event?.name} className={input} />
+        <input
+          name="name"
+          required
+          maxLength={EVENT_NAME_MAX}
+          defaultValue={event?.name}
+          className={input}
+        />
+        <span className="text-xs text-neutral-500">
+          {EVENT_NAME_MAX} characters max, so it fits on cards.
+        </span>
       </label>
       <label className="flex flex-col gap-1 text-sm">
         Start date

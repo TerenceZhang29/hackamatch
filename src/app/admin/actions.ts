@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { EVENT_NAME_MAX } from "@/lib/event-name";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
@@ -68,7 +69,11 @@ const eventSchema = z
       .nullable()
       .default(null)
       .or(z.literal("").transform(() => null)),
-    name: z.string().trim().min(3, "Name the event").max(120),
+    name: z
+      .string()
+      .trim()
+      .min(3, "Name the event")
+      .max(EVENT_NAME_MAX, `Keep the name to ${EVENT_NAME_MAX} characters or fewer`),
     description: optional,
     url: optional.pipe(
       z

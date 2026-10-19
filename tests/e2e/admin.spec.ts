@@ -49,6 +49,16 @@ test("an admin creates an event, and edits it without changing its link", async 
   createdEvents.push(name);
 
   await page.goto("/admin/events");
+  // Names are capped at 40 characters: the field stops typing, and the server says why.
+  await expect(page.getByLabel("Name")).toHaveAttribute("maxlength", "40");
+  await expect(page.getByText("40 characters max, so it fits on cards.")).toBeVisible();
+  await page.getByLabel("Name").evaluate((el) => el.removeAttribute("maxlength"));
+  await page.getByLabel("Name").fill("A hackathon name that is far too long for a chip");
+  await page.getByLabel("Start date").fill("2030-03-01");
+  await page.getByLabel("End date").fill("2030-03-02");
+  await page.getByRole("button", { name: "Create event" }).click();
+  await expect(page.getByText("Keep the name to 40 characters or fewer")).toBeVisible();
+
   await page.getByLabel("Name").fill(name);
   await page.getByLabel("Start date").fill("2030-03-01");
   await page.getByLabel("End date").fill("2030-02-01");
