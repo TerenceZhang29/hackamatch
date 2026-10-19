@@ -16,7 +16,7 @@ async function ownerWithIdea(email: string, status = "open") {
 describe("public_idea", () => {
   it("returns public fields and never raw_text, to logged-out visitors", async () => {
     const { ideaId, owner } = await ownerWithIdea("db-501@cornell.edu");
-    const { rows, fields } = await db.asAnon("select * from public.public_idea($1)", [ideaId]);
+    const { rows, fields } = await db.asService("select * from public.public_idea($1)", [ideaId]);
     expect(rows).toHaveLength(1);
     expect(fields.map((f) => f.name)).not.toContain("raw_text");
     expect(JSON.stringify(rows[0])).not.toContain("secret");
@@ -27,10 +27,10 @@ describe("public_idea", () => {
     const filled = await ownerWithIdea("db-502@cornell.edu", "filled");
     const archived = await ownerWithIdea("db-503@cornell.edu", "archived");
     expect(
-      (await db.asAnon("select id from public.public_idea($1)", [filled.ideaId])).rowCount,
+      (await db.asService("select id from public.public_idea($1)", [filled.ideaId])).rowCount,
     ).toBe(1);
     expect(
-      (await db.asAnon("select id from public.public_idea($1)", [archived.ideaId])).rowCount,
+      (await db.asService("select id from public.public_idea($1)", [archived.ideaId])).rowCount,
     ).toBe(0);
   });
 
@@ -40,6 +40,8 @@ describe("public_idea", () => {
       "update public.users set paused_until = now() + interval '1 day' where id = $1",
       [owner],
     );
-    expect((await db.asAnon("select id from public.public_idea($1)", [ideaId])).rowCount).toBe(0);
+    expect((await db.asService("select id from public.public_idea($1)", [ideaId])).rowCount).toBe(
+      0,
+    );
   });
 });

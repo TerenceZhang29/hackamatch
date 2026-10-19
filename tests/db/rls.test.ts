@@ -51,8 +51,23 @@ describe("anon (logged-out visitors)", () => {
     expect(settings.rows[0]?.allowed_email_domains).toEqual(["cornell.edu"]);
   });
 
+  it("cannot call the board functions directly; only the server can", async () => {
+    const user = await db.createAuthUser("db-224@cornell.edu", { onboarded: true });
+    for (const call of [
+      "select * from public.public_board_ideas(20, 0)",
+      "select * from public.public_board_people(20, 0, p_event_slug => 'cornell-tech-fall-hack')",
+      "select * from public.public_person('00000000-0000-4000-a000-000000000201')",
+      "select * from public.public_idea('00000000-0000-0000-0000-000000000000')",
+    ]) {
+      const anon = await db.expectError(() => db.asAnon(call));
+      expect(anon?.message, call).toMatch(PERMISSION_DENIED);
+      const member = await db.expectError(() => db.asUser(user, call));
+      expect(member?.message, call).toMatch(PERMISSION_DENIED);
+    }
+  });
+
   it("sees open seeded ideas on the board without private fields", async () => {
-    const { rows, fields } = await db.asAnon("select * from public.public_board_ideas(20, 0)");
+    const { rows, fields } = await db.asService("select * from public.public_board_ideas(20, 0)");
     expect(rows).toHaveLength(5);
     expect(fields.map((f) => f.name).sort()).toEqual(
       [
@@ -71,11 +86,11 @@ describe("anon (logged-out visitors)", () => {
   });
 
   it("filters board ideas by event and caps the page size", async () => {
-    const byEvent = await db.asAnon(
+    const byEvent = await db.asService(
       "select id from public.public_board_ideas(20, 0, 'cornell-tech-fall-hack')",
     );
     expect(byEvent.rowCount).toBe(3);
-    const capped = await db.asAnon("select id from public.public_board_ideas(1000, 0)");
+    const capped = await db.asService("select id from public.public_board_ideas(1000, 0)");
     expect(capped.rowCount).toBe(5);
   });
 
@@ -83,7 +98,7 @@ describe("anon (logged-out visitors)", () => {
     const owner = await db.createAuthUser("db-201@cornell.edu", { onboarded: true });
     const ideaId = await createIdea(owner);
     const visible = () =>
-      db.asAnon("select id from public.public_board_ideas(100, 0) where id = $1", [ideaId]);
+      db.asService("select id from public.public_board_ideas(100, 0) where id = $1", [ideaId]);
 
     expect((await visible()).rowCount).toBe(1);
     await db.asPostgres(
@@ -94,7 +109,7 @@ describe("anon (logged-out visitors)", () => {
   });
 
   it("sees people on the board with display names and no contact details", async () => {
-    const { rows, fields } = await db.asAnon<{ display_name: string; role: string }>(
+    const { rows, fields } = await db.asService<{ display_name: string; role: string }>(
       "select * from public.public_board_people(50, 0)",
     );
     // 11 onboarded seed users, minus Lena (paused).
@@ -105,7 +120,7 @@ describe("anon (logged-out visitors)", () => {
   });
 
   it("filters people by role, counting 'both' on either side", async () => {
-    const builders = await db.asAnon<{ role: string }>(
+    const builders = await db.asService<{ role: string }>(
       "select role from public.public_board_people(50, 0, 'builder')",
     );
     expect(new Set(builders.rows.map((r) => r.role))).toEqual(new Set(["builder", "both"]));

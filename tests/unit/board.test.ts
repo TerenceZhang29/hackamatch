@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { boardHref, hasFilters, PAGE_SIZE, parseBoardParams } from "@/lib/board";
+import {
+  boardHref,
+  EVENT_PAGE_SIZE,
+  hasFilters,
+  MAX_SHOWN,
+  PAGE_SIZE,
+  parseBoardParams,
+  parseShown,
+} from "@/lib/board";
 
 describe("parseBoardParams", () => {
   it("defaults to the ideas tab with no filters", () => {
@@ -64,5 +72,18 @@ describe("boardHref", () => {
   it("knows when filters are applied", () => {
     expect(hasFilters(parseBoardParams({}).filters)).toBe(false);
     expect(hasFilters(parseBoardParams({ intent: "hackathon" }).filters)).toBe(true);
+  });
+});
+
+describe("parseShown", () => {
+  it("rounds up to whole pages, from one page to MAX_SHOWN", () => {
+    expect(parseShown(undefined, EVENT_PAGE_SIZE)).toBe(12);
+    expect(parseShown("24", EVENT_PAGE_SIZE)).toBe(24);
+    expect(parseShown("13", EVENT_PAGE_SIZE)).toBe(24);
+    expect(parseShown("1", EVENT_PAGE_SIZE)).toBe(12);
+    expect(parseShown("-5", EVENT_PAGE_SIZE)).toBe(12);
+    expect(parseShown("9999", EVENT_PAGE_SIZE)).toBe(MAX_SHOWN);
+    expect(parseShown("lots", EVENT_PAGE_SIZE)).toBe(12);
+    expect(parseShown(["36", "12"], EVENT_PAGE_SIZE)).toBe(36);
   });
 });

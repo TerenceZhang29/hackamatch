@@ -5,7 +5,9 @@ import { CardAnswerButtons } from "@/components/AnswerButtons";
 import { CardActions, type Viewer } from "@/components/CardActions";
 import { IdeaCard } from "@/components/IdeaCard";
 import { PersonCard } from "@/components/PersonCard";
+import { SeeAllPrompt } from "@/components/SeeAllPrompt";
 import { getUser } from "@/lib/auth";
+import { EVENT_PAGE_SIZE, parseShown, VISITOR_LIMIT } from "@/lib/board";
 import { formatDateRange } from "@/lib/time";
 import { excludedUserIds, listBoardIdeas, listBoardPeople } from "@/server/board";
 import {
@@ -17,7 +19,17 @@ import {
 } from "@/server/events";
 import { setEventInterestAction } from "./actions";
 
-const SHOWN = 6;
+/** The event page URL with how many people and ideas to show; defaults are left out. */
+function eventHref(slug: string, people: number, ideas: number) {
+  const params = new URLSearchParams();
+  if (people > EVENT_PAGE_SIZE) params.set("people", String(people));
+  if (ideas > EVENT_PAGE_SIZE) params.set("ideas", String(ideas));
+  const query = params.toString();
+  return query ? `/e/${slug}?${query}` : `/e/${slug}`;
+}
+
+const showMoreClass =
+  "self-center rounded-lg border border-neutral-300 px-4 py-2 text-sm dark:border-neutral-700";
 
 export async function generateMetadata({
   params,
@@ -32,16 +44,18 @@ const primaryButton =
   "rounded-lg bg-neutral-900 px-4 py-2 font-medium text-white dark:bg-neutral-100 dark:text-neutral-900";
 
 /**
- * The link organizers share. Shows the event and who is looking for a team,
- * and lets people say they're in. `?join=1` (where sign-in returns new and
- * returning users) tags the event for an onboarded member.
+ * The link organizers share. Shows the event, everyone going and its ideas,
+ * and lets people say they're in. Members see every card ("Show more" pages
+ * through `?people=` / `?ideas=`); visitors see VISITOR_LIMIT of each and a
+ * prompt to sign in. `?join=1` (where sign-in returns new and returning users)
+ * tags the event for an onboarded member.
  */
 export default async function EventPage({
   params,
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ join?: string }>;
+  searchParams: Promise<{ join?: string; people?: string; ideas?: string }>;
 }) {
   const { slug } = await params;
   if (!/^[a-z0-9-]{1,80}$/.test(slug)) notFound();
@@ -51,21 +65,27 @@ export default async function EventPage({
   const user = await getUser();
   const viewer: Viewer = !user ? "anon" : user.onboarded_at ? "onboarded" : "not-onboarded";
   const joinPath = `/e/${slug}?join=1`;
+  const query = await searchParams;
 
-  if ((await searchParams).join === "1" && viewer === "onboarded" && !ended) {
+  if (query.join === "1" && viewer === "onboarded" && !ended) {
     await addEventInterests(user!.id, [event.id]);
     redirect(`/e/${slug}`);
   }
 
   const exclude = await excludedUserIds(viewer === "onboarded" ? user!.id : null);
   const filters = { event: slug, domain: null, skill: null, intent: null };
+  const peopleShown =
+    viewer === "onboarded" ? parseShown(query.people, EVENT_PAGE_SIZE) : VISITOR_LIMIT;
+  const ideasShown =
+    viewer === "onboarded" ? parseShown(query.ideas, EVENT_PAGE_SIZE) : VISITOR_LIMIT;
   const [count, ideas, people, interests] = await Promise.all([
     countEventInterest(event.id),
-    listBoardIdeas(filters, SHOWN, exclude),
-    listBoardPeople(filters, SHOWN, exclude),
+    listBoardIdeas(filters, ideasShown, exclude),
+    listBoardPeople(filters, peopleShown, exclude, null),
     viewer === "onboarded" ? listEventInterestIds(user!.id) : Promise.resolve([]),
   ]);
   const interested = interests.includes(event.id);
+  const here = eventHref(slug, peopleShown, ideasShown);
 
   return (
     <main className="mx-auto flex max-w-5xl flex-col gap-8 px-4 py-8">
@@ -156,7 +176,7 @@ export default async function EventPage({
                       viewer={viewer}
                       cardPath={`/ideas/${idea.id}`}
                       onboarded={
-                        <CardAnswerButtons kind="idea" targetId={idea.id} returnTo={`/e/${slug}`} />
+                        <CardAnswerButtons kind="idea" targetId={idea.id} returnTo={here} />
                       }
                     />
                   }
@@ -167,11 +187,22 @@ export default async function EventPage({
         ) : (
           <p className="text-sm text-neutral-500">No ideas tagged with this event yet.</p>
         )}
+        {!ideas.hasMore ? null : viewer === "onboarded" ? (
+          <Link
+            href={eventHref(slug, peopleShown, ideasShown + EVENT_PAGE_SIZE)}
+            scroll={false}
+            className={showMoreClass}
+          >
+            Show more ideas
+          </Link>
+        ) : (
+          <SeeAllPrompt viewer={viewer} next={`/e/${slug}`} what="ideas for this event" />
+        )}
       </section>
 
-      <section aria-labelledby="event-builders" className="flex flex-col gap-3">
-        <h2 id="event-builders" className="text-lg font-semibold">
-          Builders going
+      <section aria-labelledby="event-people" className="flex flex-col gap-3">
+        <h2 id="event-people" className="text-lg font-semibold">
+          People going
         </h2>
         {people.rows.length ? (
           <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -187,7 +218,7 @@ export default async function EventPage({
                         <CardAnswerButtons
                           kind="person"
                           targetId={person.user_id}
-                          returnTo={`/e/${slug}`}
+                          returnTo={here}
                         />
                       }
                     />
@@ -197,15 +228,24 @@ export default async function EventPage({
             ))}
           </ul>
         ) : (
-          <p className="text-sm text-neutral-500">No builders have tagged this event yet.</p>
+          <p className="text-sm text-neutral-500">No one has tagged this event yet.</p>
+        )}
+        {!people.hasMore ? null : viewer === "onboarded" ? (
+          <Link
+            href={eventHref(slug, peopleShown + EVENT_PAGE_SIZE, ideasShown)}
+            scroll={false}
+            className={showMoreClass}
+          >
+            Show more people
+          </Link>
+        ) : (
+          <SeeAllPrompt
+            viewer={viewer}
+            next={`/e/${slug}`}
+            what={count === 1 ? "1 person going" : `${count} people going`}
+          />
         )}
       </section>
-
-      {ideas.hasMore || people.hasMore ? (
-        <Link href={`/?event=${slug}`} className="self-center text-sm underline">
-          See everyone on the board
-        </Link>
-      ) : null}
     </main>
   );
 }

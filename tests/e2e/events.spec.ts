@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
-import { onboard, signIn } from "./auth";
-import { deleteUser, query, uniqueEmail } from "./helpers";
+import { randomUUID } from "node:crypto";
+import { onboard, signIn, signInOnboarded } from "./auth";
+import { createUser, deleteUser, query, uniqueEmail } from "./helpers";
 
 const created: string[] = [];
 const newEmail = () => {
@@ -9,9 +10,43 @@ const newEmail = () => {
   return email;
 };
 
+const createdEvents: string[] = [];
+
 test.afterEach(async () => {
   for (const email of created.splice(0)) await deleteUser(email);
+  for (const slug of createdEvents.splice(0)) {
+    await query(`delete from public.events where slug = $1`, [slug]);
+  }
 });
+
+/** A private upcoming event with `people` members going (alternating idea / builder) and `ideas` ideas. */
+async function eventWithPeople(people: number, ideas: number) {
+  const slug = `e2e-${randomUUID().slice(0, 8)}`;
+  createdEvents.push(slug);
+  const [event] = await query<{ id: string }>(
+    `insert into public.events (slug, name, start_date, end_date)
+     values ($1, 'E2E Hack', current_date + 5, current_date + 6) returning id`,
+    [slug],
+  );
+  const ids: string[] = [];
+  for (let n = 0; n < people; n++) {
+    const id = await createUser(newEmail(), {
+      name: `Person${n} Test`,
+      role: n % 2 ? "builder" : "idea",
+    });
+    ids.push(id);
+    await query(`insert into public.event_interests (user_id, event_id) values ($1, $2)`, [
+      id,
+      event!.id,
+    ]);
+  }
+  await query(
+    `insert into public.ideas (owner_id, event_id, raw_text, pitch)
+     select $1, $2, 'Idea number ' || n, 'E2E idea ' || n from generate_series(1, $3::int) as n`,
+    [ids[0], event!.id, ideas],
+  );
+  return slug;
+}
 
 const SLUG = "cornell-tech-fall-hack";
 const interestCount = async (email: string) =>
@@ -34,9 +69,10 @@ test("the public event page shows the event, who is looking, and its ideas", asy
       name: "Let nurses swap shifts in minutes instead of days.",
     }),
   ).toBeVisible();
-  await expect(
-    page.getByRole("region", { name: "Builders going" }).getByRole("article", { name: "Sofia C." }),
-  ).toBeVisible();
+  // Visitors see 3 people and a prompt to sign in for the rest.
+  const going = page.getByRole("region", { name: "People going" });
+  await expect(going.getByRole("article")).toHaveCount(3);
+  await expect(going).toContainText(/See all \d+ people going/);
   expect(await response!.text()).not.toMatch(/@cornell\.edu/);
 });
 
@@ -140,4 +176,34 @@ test("/events marks the events a member is going to", async ({ page }) => {
   await expect(page.getByRole("link", { name: /Cornell Tech Fall Hack/ })).not.toContainText(
     "You're going",
   );
+});
+
+test("visitors see 3 people and 3 ideas per event; members see everyone, every role", async ({
+  page,
+}) => {
+  const slug = await eventWithPeople(14, 4);
+  await page.goto(`/e/${slug}`);
+  const going = page.getByRole("region", { name: "People going" });
+  const ideas = page.getByRole("region", { name: "Ideas for this event" });
+  await expect(going.getByRole("article")).toHaveCount(3);
+  await expect(going).toContainText("See all 14 people going");
+  await expect(ideas.getByRole("article")).toHaveCount(3);
+  await expect(ideas).toContainText("See all ideas for this event");
+  await expect(page.getByRole("link", { name: /Show more/ })).toHaveCount(0);
+
+  await going.getByRole("link", { name: "Sign in with your Cornell email" }).click();
+  await expect(page).toHaveURL(`/login?next=${encodeURIComponent(`/e/${slug}`)}`);
+
+  await signInOnboarded(page, newEmail());
+  await page.goto(`/e/${slug}`);
+  await expect(going.getByRole("article")).toHaveCount(12);
+  await expect(going.getByText("Has an idea").first()).toBeVisible();
+  await expect(going.getByText("Builder").first()).toBeVisible();
+  await expect(ideas.getByRole("article")).toHaveCount(4);
+  await expect(page.getByText(/Sign in with your Cornell email|See all/)).toHaveCount(0);
+
+  await page.getByRole("link", { name: "Show more people" }).click();
+  await expect(page).toHaveURL(`/e/${slug}?people=24`);
+  await expect(going.getByRole("article")).toHaveCount(14);
+  await expect(page.getByRole("link", { name: "Show more people" })).toHaveCount(0);
 });

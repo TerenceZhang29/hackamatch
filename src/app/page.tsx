@@ -7,6 +7,7 @@ import { CardActions, type Viewer } from "@/components/CardActions";
 import { IdeaCard } from "@/components/IdeaCard";
 import { Outcome } from "@/components/Outcome";
 import { PersonCard } from "@/components/PersonCard";
+import { SeeAllPrompt } from "@/components/SeeAllPrompt";
 import { track } from "@/lib/analytics";
 import { getUser } from "@/lib/auth";
 import {
@@ -15,6 +16,7 @@ import {
   hasFilters,
   PAGE_SIZE,
   parseBoardParams,
+  VISITOR_LIMIT,
   type BoardState,
 } from "@/lib/board";
 import { slugsOf } from "@/lib/taxonomy/skills";
@@ -40,10 +42,12 @@ export default async function BoardPage({
   ]);
   const eventNames = new Map(events.map((event) => [event.id, event.name]));
 
-  const ideas =
-    state.tab === "ideas" ? await listBoardIdeas(state.filters, state.shown, exclude) : null;
+  // Who is going to an event is for members; visitors see a few cards and a sign-in prompt.
+  const capped = viewer !== "onboarded" && state.filters.event !== null;
+  const shown = capped ? VISITOR_LIMIT : state.shown;
+  const ideas = state.tab === "ideas" ? await listBoardIdeas(state.filters, shown, exclude) : null;
   const people =
-    state.tab === "people" ? await listBoardPeople(state.filters, state.shown, exclude) : null;
+    state.tab === "people" ? await listBoardPeople(state.filters, shown, exclude) : null;
   const rows = ideas?.rows ?? people?.rows ?? [];
   const hasMore = (ideas ?? people)?.hasMore ?? false;
 
@@ -200,7 +204,13 @@ export default async function BoardPage({
         </ul>
       )}
 
-      {hasMore ? (
+      {hasMore && capped ? (
+        <SeeAllPrompt
+          viewer={viewer}
+          next={boardHref({ ...state, shown: PAGE_SIZE })}
+          what={state.tab === "ideas" ? "ideas for this event" : "builders going to this event"}
+        />
+      ) : hasMore ? (
         <Link
           href={boardHref({ ...state, shown: state.shown + PAGE_SIZE })}
           scroll={false}

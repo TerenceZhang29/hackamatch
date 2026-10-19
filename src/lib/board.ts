@@ -12,6 +12,10 @@ export const PAGE_SIZE = 20;
 /** The URL parameters the board reads. */
 export const BOARD_PARAM_KEYS = ["tab", "event", "domain", "skill", "intent", "n"] as const;
 export const MAX_SHOWN = 100;
+/** Cards per list on an event page; "Show more" adds this many. */
+export const EVENT_PAGE_SIZE = 12;
+/** Cards per event list a visitor sees (signed out or not onboarded) before a sign-in prompt. */
+export const VISITOR_LIMIT = 3;
 
 export interface BoardFilters {
   event: string | null;
@@ -36,6 +40,14 @@ const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const DOMAINS = new Set(slugsOf("domains"));
 const SKILLS = new Set([...slugsOf("skills"), ...slugsOf("stack")]);
 
+/** A "show N" count from the URL, rounded up to whole pages, from one page up to MAX_SHOWN. */
+export function parseShown(value: string | string[] | undefined, pageSize: number): number {
+  const requested = Number(first(value) ?? pageSize);
+  return Number.isFinite(requested)
+    ? Math.min(MAX_SHOWN, Math.max(pageSize, Math.ceil(requested / pageSize) * pageSize))
+    : pageSize;
+}
+
 /** Reads the board state from URL search params; anything unknown is ignored. */
 export function parseBoardParams(params: Params): BoardState {
   const tab = first(params.tab) === "people" ? "people" : "ideas";
@@ -43,10 +55,7 @@ export function parseBoardParams(params: Params): BoardState {
   const domain = first(params.domain);
   const skill = first(params.skill);
   const intent = first(params.intent);
-  const requested = Number(first(params.n) ?? PAGE_SIZE);
-  const shown = Number.isFinite(requested)
-    ? Math.min(MAX_SHOWN, Math.max(PAGE_SIZE, Math.ceil(requested / PAGE_SIZE) * PAGE_SIZE))
-    : PAGE_SIZE;
+  const shown = parseShown(params.n, PAGE_SIZE);
 
   return {
     tab,

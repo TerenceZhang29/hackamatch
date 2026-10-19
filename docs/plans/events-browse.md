@@ -1,6 +1,6 @@
 # Plan: browse upcoming hackathons and see who is looking for a team
 
-Requested by the owner on 2026-10-18. Status: **plan, not built**.
+Requested by the owner on 2026-10-18. Status: **steps 1–2 built** (2026-10-18); step 3 not started.
 
 ## The ask
 Any user can see every upcoming hackathon, pick one, and see who intends to go and is looking for partners. From there they can ask for a match.
@@ -71,16 +71,16 @@ The pool check (`left_pool_at is null`) goes into `public_board_people`, `public
 
 ## Privacy and visitors (decided 2026-10-18)
 - **`/events` is public.** Anyone can see the upcoming events, the dates and the "N looking for a team" counts.
-- **Signed-out visitors see at most 3 people cards and 3 idea cards per event**, each followed by a sign-in prompt: "Sign in with your Cornell email to see all N people going" (or "all N ideas").
+- **Signed-out visitors see at most 3 people cards and 3 idea cards per event**, each followed by a sign-in prompt: "Sign in with your Cornell email to see all N people going" (or "…all ideas for this event"; ideas have no count). Signed-in users who haven't finished onboarding get "Finish joining to see all …".
   - This applies on `/e/<slug>` and on the board's event filter (`/?event=<slug>`).
   - The "See everyone on the board" link becomes that sign-in prompt for visitors.
   - Signed-in members (onboarded) see everyone, with Show more.
   - `/people/<id>` stays public: it shows one card, reachable only by its link.
-- **The limit is enforced on the server, not just hidden in the page.** The board functions (`public_board_ideas`, `public_board_people`, `public_person`) are granted to `anon` and `authenticated`. That lets anyone holding the public Supabase key call them directly and get the whole list. The app only calls them through the service client (`src/server/board.ts`), so the migration revokes `execute` from `anon` and `authenticated`, and the server applies the 3-card limit.
+- **The limit is enforced on the server, not just hidden in the page.** The board functions (`public_board_ideas`, `public_board_people`, `public_person`) are granted to `anon` and `authenticated`. That lets anyone holding the public Supabase key call them directly and get the whole list. The app only calls them through the service client (`src/server/board.ts`), so `20261018000000_board_fns_server_only.sql` revokes `execute` on them (and on `public_idea`) from `anon` and `authenticated`, and the server applies the 3-card limit.
 - **Unchanged:** cards show "First L.", role, summary and tags only. Email, NetID, full name, GitHub/LinkedIn and contact details are revealed only after both people say Interested.
 
 ## Cost
-$0. No new paid calls. Pages and queries only. Step 3 needs one migration.
+$0. No new paid calls. Pages and queries only. Step 2 adds one migration (revoking direct access), and step 3 adds another.
 
 ## Tests
 - **Unit:** the `shown` parsing for the event page.

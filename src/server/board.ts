@@ -41,15 +41,17 @@ export async function listBoardIdeas(
   return { rows: data.slice(0, limit), hasMore: data.length > limit };
 }
 
+/** Builders (and "both") by default; `role: null` lists every role, as event pages do. */
 export async function listBoardPeople(
   filters: BoardFilters,
   limit: number,
   exclude: string[],
+  role: "builder" | null = "builder",
 ): Promise<{ rows: BoardPerson[]; hasMore: boolean }> {
   const { data, error } = await createServiceClient().rpc("public_board_people", {
     p_limit: limit + 1,
     p_offset: 0,
-    p_role: "builder",
+    p_role: role ?? undefined,
     p_event_slug: filters.event ?? undefined,
     p_domain: filters.domain ?? undefined,
     p_skill: filters.skill ?? undefined,

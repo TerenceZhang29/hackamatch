@@ -45,6 +45,18 @@ export function setupTestDb() {
       await client.query("reset role");
       return result;
     },
+    /** Runs SQL as the app's server (Supabase `service_role`, which bypasses RLS). */
+    async asService<T extends pg.QueryResultRow = pg.QueryResultRow>(
+      sql: string,
+      params?: unknown[],
+    ) {
+      await client.query(
+        `set local role service_role; select set_config('request.jwt.claims', '{"role":"service_role"}', true)`,
+      );
+      const result = await client.query<T>(sql, params);
+      await client.query("reset role");
+      return result;
+    },
     /** Runs SQL as a signed-in user (Supabase `authenticated` role). */
     async asUser<T extends pg.QueryResultRow = pg.QueryResultRow>(
       userId: string,

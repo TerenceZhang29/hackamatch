@@ -9,7 +9,7 @@ const SOFIA = "00000000-0000-4000-a000-000000000201";
 describe("public_board_ideas filters", () => {
   const ideaPitches = async (args: string, params: unknown[] = []) =>
     (
-      await db.asAnon<{ pitch: string }>(
+      await db.asService<{ pitch: string }>(
         `select pitch from public.public_board_ideas(${args})`,
         params,
       )
@@ -39,7 +39,7 @@ describe("public_board_ideas filters", () => {
 describe("public_board_people filters", () => {
   const names = async (args: string, params: unknown[] = []) =>
     (
-      await db.asAnon<{ display_name: string }>(
+      await db.asService<{ display_name: string }>(
         `select display_name from public.public_board_people(${args})`,
         params,
       )
@@ -58,7 +58,7 @@ describe("public_board_people filters", () => {
   });
 
   it("returns intents and leaves out excluded people", async () => {
-    const { rows } = await db.asAnon<{ display_name: string; intents: string[] }>(
+    const { rows } = await db.asService<{ display_name: string; intents: string[] }>(
       "select display_name, intents::text[] from public.public_board_people(p_exclude_user_ids => $1)",
       [[SOFIA]],
     );
@@ -72,13 +72,17 @@ describe("public_board_people filters", () => {
 
 describe("public_person", () => {
   it("returns one person's public card, or nothing when they are not in the pool", async () => {
-    const { rows, fields } = await db.asAnon("select * from public.public_person($1)", [SOFIA]);
+    const { rows, fields } = await db.asService("select * from public.public_person($1)", [SOFIA]);
     expect(rows).toHaveLength(1);
     expect(fields.map((f) => f.name)).not.toContain("cornell_email");
 
     const paused = "00000000-0000-4000-a000-000000000302";
-    expect((await db.asAnon("select * from public.public_person($1)", [paused])).rowCount).toBe(0);
+    expect((await db.asService("select * from public.public_person($1)", [paused])).rowCount).toBe(
+      0,
+    );
     const admin = "00000000-0000-4000-a000-000000000001";
-    expect((await db.asAnon("select * from public.public_person($1)", [admin])).rowCount).toBe(0);
+    expect((await db.asService("select * from public.public_person($1)", [admin])).rowCount).toBe(
+      0,
+    );
   });
 });

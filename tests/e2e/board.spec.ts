@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
-import { signIn } from "./auth";
+import { signIn, signInOnboarded } from "./auth";
 import { createUser, deleteUser, query, uniqueEmail } from "./helpers";
 
 const created: string[] = [];
@@ -59,7 +59,7 @@ test("filters change the results and the URL can be shared", async ({ page }) =>
   await expect(shared.getByLabel("Skill", { exact: true })).toHaveValue("react");
 });
 
-test("load more shows the next page", async ({ page }) => {
+test("visitors see 3 cards for an event; members can load more", async ({ page }) => {
   const slug = `e2e-${randomUUID().slice(0, 8)}`;
   createdEvents.push(slug);
   const [event] = await query<{ id: string }>(
@@ -76,6 +76,13 @@ test("load more shows the next page", async ({ page }) => {
     [owner, event!.id],
   );
 
+  // Visitors see 3 cards for an event, then a prompt to sign in.
+  await page.goto(`/?event=${slug}`);
+  await expect(page.getByRole("article")).toHaveCount(3);
+  await expect(page.getByText("See all ideas for this event")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Load more" })).toHaveCount(0);
+
+  await signInOnboarded(page, newEmail());
   await page.goto(`/?event=${slug}`);
   await expect(page.getByRole("article")).toHaveCount(20);
   await page.getByRole("link", { name: "Load more" }).click();
