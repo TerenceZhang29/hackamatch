@@ -17,6 +17,7 @@ import {
   excludedUserIds,
   firstIdeaPitches,
   listBoardIdeas,
+  demoIds,
   listBoardPeople,
   poolEventsFor,
 } from "@/server/board";
@@ -91,9 +92,13 @@ export default async function EventPage({
   ]);
   const here = eventHref(slug, peopleShown, ideasShown);
   const peopleIds = people.rows.map((p) => p.user_id);
-  const [pitches, looking] = await Promise.all([
+  const [pitches, looking, demo] = await Promise.all([
     firstIdeaPitches(peopleIds),
     viewer === "onboarded" ? poolEventsFor(peopleIds) : Promise.resolve(new Map()),
+    demoIds(
+      peopleIds,
+      ideas.rows.map((i) => i.id),
+    ),
   ]);
 
   return (
@@ -174,6 +179,7 @@ export default async function EventPage({
               <li key={idea.id}>
                 <IdeaCard
                   idea={idea}
+                  isDemo={demo.ideas.has(idea.id)}
                   actions={
                     <CardActions
                       viewer={viewer}
@@ -215,6 +221,7 @@ export default async function EventPage({
                   person={person}
                   ideaPitch={pitches.get(person.user_id) ?? null}
                   lookingEvents={looking.get(person.user_id)}
+                  isDemo={demo.users.has(person.user_id)}
                   actions={
                     <CardActions
                       viewer={viewer}

@@ -24,7 +24,10 @@
     "db:types": "supabase gen types typescript --local > src/types/db.ts && prettier --write src/types/db.ts",
     "check:analytics": "node scripts/check-analytics.mts",
     "import:phase0": "tsx --env-file=.env.local --conditions=react-server scripts/import-phase0.ts",
-    "seed:dev": "tsx --env-file=.env.local --conditions=react-server scripts/seed-dev.ts"
+    "seed:dev": "tsx --env-file=.env.local --conditions=react-server scripts/seed-dev.ts",
+    "demo:sql": "tsx scripts/demo/sql.ts",
+    "demo:seed:local": "pnpm demo:sql && docker exec -i supabase_db_hackamatch psql -U postgres -v ON_ERROR_STOP=1 -q < supabase/demo/seed.sql",
+    "demo:remove:local": "docker exec -i supabase_db_hackamatch psql -U postgres -v ON_ERROR_STOP=1 -q < supabase/demo/remove.sql"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.133.0",

@@ -85,7 +85,13 @@ const eventSchema = z
     endDate: z.iso.date("Pick an end date"),
     teamSizeMin: z.coerce.number().int().min(1).max(20),
     teamSizeMax: z.coerce.number().int().min(1).max(20),
-    organizerEmail: optional,
+    organizerEmail: optional.pipe(
+      z
+        .email("The organizer email doesn't look right")
+        .max(254)
+        .transform((e) => e.toLowerCase())
+        .nullable(),
+    ),
   })
   .refine((e) => e.endDate >= e.startDate, { message: "The end date is before the start date" })
   .refine((e) => e.teamSizeMax >= e.teamSizeMin, {
@@ -106,11 +112,10 @@ export async function saveEventAction(data: FormData) {
     );
   }
   const { eventId, organizerEmail, ...input } = parsed.data;
+  // The organizer may not use HackaMatch: keep their email, and link their
+  // account if they have one (signing up later links it too).
   const organizerId = organizerEmail ? await findUserIdByEmail(organizerEmail) : null;
-  if (organizerEmail && !organizerId) {
-    redirect(`${back}?error=${encodeURIComponent(`No user ${organizerEmail}`)}`);
-  }
-  const saved = await saveEvent({ ...input, organizerId }, eventId);
+  const saved = await saveEvent({ ...input, organizerEmail, organizerId }, eventId);
   revalidatePath("/admin/events");
   revalidatePath("/");
   redirect(`/admin/events?saved=${saved.slug}`);

@@ -53,6 +53,7 @@ export default async function AdminUsers({
                     <br />
                     <span className="text-neutral-500">{user.email}</span>
                     {user.isAdmin ? <span className="ml-1 text-xs">(admin)</span> : null}
+                    {user.isDemo ? <span className="ml-1 text-xs">(demo)</span> : null}
                   </td>
                   <td className={td}>{user.role ?? "–"}</td>
                   <td className={td}>{user.intents.join(", ") || "–"}</td>

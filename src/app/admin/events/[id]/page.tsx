@@ -32,7 +32,7 @@ export default async function EditEvent({
       <p className="text-sm text-neutral-500">
         Share link: <code>/e/{event.slug}</code> (kept when the name changes)
       </p>
-      <EventForm event={event} organizerEmail={organizer?.cornell_email} />
+      <EventForm event={event} organizerEmail={event.organizer_email ?? organizer?.cornell_email} />
     </AdminShell>
   );
 }

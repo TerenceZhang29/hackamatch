@@ -69,6 +69,8 @@ test("an admin creates an event, and edits it without changing its link", async 
   await page.getByLabel("Start date").fill("2030-03-01");
   await page.getByLabel("End date").fill("2030-03-02");
   await page.getByLabel("Max team size").fill("5");
+  // The organizer doesn't need a HackaMatch account.
+  await page.getByLabel(/Organizer email/).fill("organizer@example.org");
   await page.getByRole("button", { name: "Create event" }).click();
   const slug = name.toLowerCase().replaceAll(" ", "-");
   await expect(page.getByRole("status")).toHaveText(`Saved (${slug})`);
@@ -79,11 +81,16 @@ test("an admin creates an event, and edits it without changing its link", async 
   await page.getByRole("button", { name: "Save event" }).click();
   createdEvents.push(`${name} (renamed)`);
   await expect(page.getByRole("status")).toHaveText(`Saved (${slug})`);
-  const [row] = await query<{ team_size_max: number }>(
-    `select team_size_max from public.events where slug = $1`,
-    [slug],
-  );
+  const [row] = await query<{
+    team_size_max: number;
+    organizer_email: string | null;
+    organizer_id: string | null;
+  }>(`select team_size_max, organizer_email, organizer_id from public.events where slug = $1`, [
+    slug,
+  ]);
   expect(row!.team_size_max).toBe(5);
+  expect(row!.organizer_email).toBe("organizer@example.org");
+  expect(row!.organizer_id).toBeNull();
 });
 
 test("a manual match emails both people, and each can answer from the email", async ({

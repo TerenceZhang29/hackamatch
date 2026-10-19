@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { DemoChip } from "@/components/DemoChip";
 import { buttonClass } from "@/components/ui/Button";
 import { notFound } from "next/navigation";
 import { z } from "zod";
@@ -10,6 +11,7 @@ import { PairStatus } from "@/components/PairStatus";
 import { getUser } from "@/lib/auth";
 import { loginPath } from "@/lib/auth-helpers";
 import { slugsOf } from "@/lib/taxonomy/skills";
+import { demoIds } from "@/server/board";
 import { getOwnIdea, getPublicIdea, getRevealedIdeaText } from "@/server/ideas";
 import { OwnerControls } from "./OwnerControls";
 
@@ -87,9 +89,12 @@ export default async function IdeaPage({
         <ArrowLeft aria-hidden="true" className="size-5" />
       </Link>
       <header className="flex flex-col gap-2">
-        <p className="text-sm font-medium text-muted">
-          {idea.featured ? "Featured idea · " : "Idea · "}
-          {idea.owner_display}
+        <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-muted">
+          <span>
+            {idea.featured ? "Featured idea · " : "Idea · "}
+            {idea.owner_display}
+          </span>
+          {(await demoIds([idea.owner_id])).users.has(idea.owner_id) ? <DemoChip /> : null}
         </p>
         <h1 className="text-2xl font-bold tracking-tight">{idea.pitch ?? "New idea"}</h1>
         {STATUS_NOTES[idea.status] ? (

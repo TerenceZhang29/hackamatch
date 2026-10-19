@@ -85,7 +85,7 @@ export function EventForm({
         />
       </label>
       <label className="flex flex-col gap-1 text-sm sm:col-span-2">
-        Organizer email (optional)
+        Organizer email (optional; they don&apos;t need a HackaMatch account)
         <input
           name="organizerEmail"
           type="email"

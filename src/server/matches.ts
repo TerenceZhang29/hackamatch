@@ -160,8 +160,32 @@ async function ideaPitch(ideaId: string | null): Promise<string | null> {
   return data?.pitch ?? null;
 }
 
+/** Whether a user is a demo profile. */
+async function isDemoUser(userId: string): Promise<boolean> {
+  const { data, error } = await createServiceClient()
+    .from("users")
+    .select("is_demo")
+    .eq("id", userId)
+    .maybeSingle();
+  if (error) throw new Error(`isDemoUser: ${error.message}`);
+  return data?.is_demo ?? false;
+}
+
+/** Whether either person in a match is a demo profile (docs/plans/demo-profiles.md). */
+export async function involvesDemo(match: Pick<Match, "user_a" | "user_b">): Promise<boolean> {
+  const { data, error } = await createServiceClient()
+    .from("users")
+    .select("id")
+    .in("id", [match.user_a, match.user_b])
+    .eq("is_demo", true);
+  if (error) throw new Error(`involvesDemo: ${error.message}`);
+  return data.length > 0;
+}
+
 /** Emails both people their match's contact details and a suggested first message. */
 async function sendMutualEmails(match: Match) {
+  // No email (and no AI-written message) for anything involving a demo profile.
+  if (await involvesDemo(match)) return;
   const people = await loadPeople([match.user_a, match.user_b]);
   const pitch = await ideaPitch(match.idea_id);
   const matchUrl = new URL(`/matches/${match.id}`, getConfig().APP_URL).toString();
@@ -206,6 +230,7 @@ export async function sendInboundInterest(
   variant: InboundInterestProps["variant"],
   reason: string | null = null,
 ) {
+  if (await involvesDemo(match)) return "skipped" as const;
   const otherId = otherUserId(match, recipientId);
   const people = await loadPeople([otherId]);
   const other = people.get(otherId);
@@ -335,6 +360,19 @@ export async function answerFromBoard(
     actorId,
   );
   if (response === "pass") return { ok: true, matchId: row.match_id, revealed: false };
+
+  // Demo profiles answer Interested straight away, so testers can try the
+  // whole flow; involvesDemo keeps every email of this match from going out.
+  if (await isDemoUser(resolved.userId)) {
+    const { error: demoError } = await supabase.rpc("respond_to_pair", {
+      p_actor: resolved.userId,
+      p_target: actorId,
+      p_idea: resolved.ideaId as string,
+      p_response: "interested",
+      p_source: "board",
+    });
+    if (demoError) throw new Error(`answerFromBoard: ${demoError.message}`);
+  }
 
   const revealed = await revealIfMutual(row.match_id);
   if (revealed) return { ok: true, matchId: row.match_id, revealed: true };

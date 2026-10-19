@@ -221,3 +221,48 @@ export async function createMatch(
   );
   return row!.id;
 }
+
+/**
+ * Creates a demo profile the way supabase/demo/seed.sql does (no email in
+ * auth.users, is_demo, notifications off), going to `eventId`, with one idea.
+ * Delete it with deleteDemo(id).
+ */
+export async function createDemoUser(
+  name: string,
+  opts: { role?: "idea" | "builder" | "both"; eventId?: string; pitch?: string } = {},
+) {
+  const id = randomUUID();
+  await withDb(async (client) => {
+    await client.query("begin");
+    await client.query("set local hackamatch.demo_seed = 'on'");
+    await client.query(
+      `insert into auth.users (instance_id, id, aud, role, email, raw_user_meta_data)
+       values ('00000000-0000-0000-0000-000000000000', $1, 'authenticated', 'authenticated', null,
+               jsonb_build_object('name', $2::text, 'demo_email', $3::text))`,
+      [id, name, `demo-${id.slice(0, 8)}@hackamatch.invalid`],
+    );
+    await client.query(
+      `update public.users set is_demo = true, notify_channel = 'none', role = $2,
+         intents = '{hackathon}', onboarded_at = now() where id = $1`,
+      [id, opts.role ?? "idea"],
+    );
+    if (opts.pitch) {
+      await client.query(
+        `insert into public.ideas (owner_id, event_id, raw_text, pitch) values ($1, $2, 'Demo text', $3)`,
+        [id, opts.eventId ?? null, opts.pitch],
+      );
+    }
+    if (opts.eventId) {
+      await client.query(`insert into public.event_interests (user_id, event_id) values ($1, $2)`, [
+        id,
+        opts.eventId,
+      ]);
+    }
+    await client.query("commit");
+  });
+  return id;
+}
+
+export async function deleteDemo(id: string) {
+  await withDb((client) => client.query(`delete from auth.users where id = $1`, [id]));
+}

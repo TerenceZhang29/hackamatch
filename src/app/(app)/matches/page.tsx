@@ -2,6 +2,7 @@ import { ChevronRight, Hourglass, Inbox, Users } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { MatchAnswerButtons } from "@/components/AnswerButtons";
+import { DemoChip } from "@/components/DemoChip";
 import { MyHackathons } from "@/components/MyHackathons";
 import { Outcome } from "@/components/Outcome";
 import { Avatar } from "@/components/ui/Avatar";
@@ -10,6 +11,7 @@ import { Chip } from "@/components/ui/Chip";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Notice } from "@/components/ui/Notice";
 import { requireOnboarded } from "@/lib/auth";
+import { demoIds } from "@/server/board";
 import { listMyEvents } from "@/server/events";
 import { listMatchesForUser, type MatchListItem } from "@/server/matches";
 
@@ -29,7 +31,7 @@ const SECTIONS = [
 type SectionKey = (typeof SECTIONS)[number]["key"];
 
 /** One match as a compact row: avatar, name, one line of context, and its action. */
-function MatchRow({ match }: { match: MatchListItem }) {
+function MatchRow({ match, isDemo }: { match: MatchListItem; isDemo: boolean }) {
   const href = match.section === "mutual" ? `/matches/${match.id}` : `/people/${match.otherId}`;
   const line = match.ideaPitch
     ? `${match.ideaIsMine ? "Your idea: " : ""}${match.ideaPitch}`
@@ -46,6 +48,7 @@ function MatchRow({ match }: { match: MatchListItem }) {
             {match.otherName}
           </Link>
           {match.isNew ? <Chip tone="accent">New</Chip> : null}
+          {isDemo ? <DemoChip /> : null}
         </h3>
         {line ? <p className="truncate text-sm text-muted">{line}</p> : null}
         {match.reason ? <p className="truncate text-xs text-muted">{match.reason}</p> : null}
@@ -83,6 +86,7 @@ export default async function MatchesPage({
     asked ?? SECTIONS.find((s) => bySection(s.key).length > 0)?.key ?? "waiting";
   const section = SECTIONS.find((s) => s.key === current)!;
   const items = bySection(current);
+  const demo = await demoIds(items.map((m) => m.otherId));
 
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-6 px-4 py-6">
@@ -119,7 +123,7 @@ export default async function MatchesPage({
             <ul className="flex flex-col gap-2">
               {items.map((match) => (
                 <li key={match.id}>
-                  <MatchRow match={match} />
+                  <MatchRow match={match} isDemo={demo.users.has(match.otherId)} />
                 </li>
               ))}
             </ul>

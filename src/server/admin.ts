@@ -14,6 +14,7 @@ export interface AdminUserRow {
   intents: Enums<"user_intent">[];
   isAdmin: boolean;
   isOrganizer: boolean;
+  isDemo: boolean;
   onboardedAt: string | null;
   pausedUntil: string | null;
   lastActiveAt: string;
@@ -26,7 +27,7 @@ export async function listUsers(search: string | null): Promise<AdminUserRow[]> 
   let query = supabase
     .from("users")
     .select(
-      "id, cornell_email, name, role, intents, is_admin, is_organizer, onboarded_at, paused_until, last_active_at",
+      "id, cornell_email, name, role, intents, is_admin, is_organizer, is_demo, onboarded_at, paused_until, last_active_at",
     )
     .order("created_at", { ascending: false })
     .limit(500);
@@ -59,6 +60,7 @@ export async function listUsers(search: string | null): Promise<AdminUserRow[]> 
     intents: u.intents,
     isAdmin: u.is_admin,
     isOrganizer: u.is_organizer,
+    isDemo: u.is_demo,
     onboardedAt: u.onboarded_at,
     pausedUntil: u.paused_until,
     lastActiveAt: u.last_active_at,
@@ -155,6 +157,9 @@ export interface EventInput {
   endDate: string;
   teamSizeMin: number;
   teamSizeMax: number;
+  /** Any address; the organizer doesn't need an account. */
+  organizerEmail: string | null;
+  /** Their account, when one with that email exists. */
   organizerId: string | null;
 }
 
@@ -172,6 +177,7 @@ export async function saveEvent(
     end_date: input.endDate,
     team_size_min: input.teamSizeMin,
     team_size_max: input.teamSizeMax,
+    organizer_email: input.organizerEmail,
     organizer_id: input.organizerId,
   };
   if (eventId) {
@@ -301,12 +307,30 @@ export async function adminCounts() {
     if (error) throw new Error(`adminCounts: ${error.message}`);
     return n ?? 0;
   };
-  const [users, ideas, events, matches, teams] = await Promise.all([
-    count("users"),
-    count("ideas"),
+  // Real people only: demo profiles (docs/plans/demo-profiles.md) are counted apart.
+  const realUsers = async (demo: boolean) => {
+    const { count: n, error } = await supabase
+      .from("users")
+      .select("id", { count: "exact", head: true })
+      .eq("is_demo", demo);
+    if (error) throw new Error(`adminCounts: ${error.message}`);
+    return n ?? 0;
+  };
+  const realIdeas = async () => {
+    const { count: n, error } = await supabase
+      .from("ideas")
+      .select("id, users!inner(is_demo)", { count: "exact", head: true })
+      .eq("users.is_demo", false);
+    if (error) throw new Error(`adminCounts: ${error.message}`);
+    return n ?? 0;
+  };
+  const [users, ideas, events, matches, teams, demo] = await Promise.all([
+    realUsers(false),
+    realIdeas(),
     count("events"),
     count("matches"),
     count("teams"),
+    realUsers(true),
   ]);
-  return { users, ideas, events, matches, teams };
+  return { users, ideas, events, matches, teams, demo };
 }

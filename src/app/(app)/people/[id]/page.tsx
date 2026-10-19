@@ -8,7 +8,7 @@ import { Outcome } from "@/components/Outcome";
 import { PairStatus } from "@/components/PairStatus";
 import { PersonCard } from "@/components/PersonCard";
 import { getUser } from "@/lib/auth";
-import { firstIdeaPitches, getPublicPerson, poolEventsFor } from "@/server/board";
+import { demoIds, firstIdeaPitches, getPublicPerson, poolEventsFor } from "@/server/board";
 
 export const metadata: Metadata = { title: "Builder · HackaMatch" };
 
@@ -45,6 +45,7 @@ export default async function PersonPage({
         person={person}
         ideaPitch={pitch}
         lookingEvents={viewer === "onboarded" ? (await poolEventsFor([id])).get(id) : undefined}
+        isDemo={(await demoIds([id])).users.has(id)}
         headingLevel={2}
         actions={
           <CardActions

@@ -4,6 +4,7 @@ import { tagLabel } from "@/lib/taxonomy/labels";
 import { Avatar } from "@/components/ui/Avatar";
 import { Chip } from "@/components/ui/Chip";
 import { CardFrame, Chips } from "./Card";
+import { DemoChip } from "./DemoChip";
 
 export interface IdeaCardData {
   id: string;
@@ -18,11 +19,14 @@ export interface IdeaCardData {
 export function IdeaCard({
   idea,
   eventName,
+  isDemo = false,
   actions,
   headingLevel = 3,
 }: {
   idea: IdeaCardData;
   eventName?: string | null;
+  /** The owner is a demo profile (docs/plans/demo-profiles.md). */
+  isDemo?: boolean;
   actions?: React.ReactNode;
   /** The card title's heading level, so it fits the page's outline. */
   headingLevel?: 2 | 3;
@@ -38,11 +42,10 @@ export function IdeaCard({
       <div className="flex items-center gap-2">
         <Avatar name={idea.owner_display} size={32} />
         <p className="text-xs font-medium text-muted">{idea.owner_display}</p>
-        {idea.featured ? (
-          <span className="ml-auto">
-            <Chip tone="accent">Featured</Chip>
-          </span>
-        ) : null}
+        <span className="ml-auto flex gap-1.5">
+          {isDemo ? <DemoChip /> : null}
+          {idea.featured ? <Chip tone="accent">Featured</Chip> : null}
+        </span>
       </div>
       <Heading className="line-clamp-3 text-base font-semibold">
         <Link href={`/ideas/${idea.id}`} className="hover:underline">

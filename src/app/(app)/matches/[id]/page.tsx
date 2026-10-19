@@ -11,6 +11,7 @@ import { Notice } from "@/components/ui/Notice";
 import { Section } from "@/components/ui/Section";
 import { requireOnboarded } from "@/lib/auth";
 import { formatDateRange } from "@/lib/time";
+import { demoIds } from "@/server/board";
 import { getEventPool } from "@/server/events";
 import { getPairPage } from "@/server/teams";
 import { addMemberAction, markIdeaFilled, teamUpAction, toggleVote } from "./actions";
@@ -66,6 +67,7 @@ export default async function PairPage({
     ).filter((id): id is string => id !== null),
   );
   const other = pair.other;
+  const otherIsDemo = (await demoIds([other.id])).users.has(other.id);
 
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-6 px-4 py-6">
@@ -81,6 +83,12 @@ export default async function PairPage({
         </div>
         <h1 className="text-2xl font-bold tracking-tight">You and {other.firstName}</h1>
       </header>
+      {otherIsDemo ? (
+        <Notice>
+          {other.firstName} is a demo profile for testing: not a real person, and nothing is
+          emailed.
+        </Notice>
+      ) : null}
       {notice ? <Notice tone="success">{notice}</Notice> : null}
       {error ? <Notice tone="danger">{error}</Notice> : null}
 

@@ -1,6 +1,7 @@
 import { CalendarDays, ChevronDown, ChevronUp, Star } from "lucide-react";
 import Link from "next/link";
 import { scopeLabel } from "@/components/IdeaTags";
+import { DemoChip } from "@/components/DemoChip";
 import { PersonLines, RoleTags } from "@/components/PersonLines";
 import { Avatar } from "@/components/ui/Avatar";
 import { Chip, TagList } from "@/components/ui/Chip";
@@ -89,6 +90,11 @@ export function DeckCardView({
         <div className="flex items-center gap-3">
           <Avatar name={person.display_name} size={56} />
           <h2 className="text-2xl font-bold">{person.display_name}</h2>
+          {details.isDemo ? (
+            <span className="ml-auto">
+              <DemoChip />
+            </span>
+          ) : null}
         </div>
         <PersonLines
           person={person}
@@ -159,6 +165,7 @@ export function DeckCardView({
         <Avatar name={idea.owner_display} size={40} />
         <p className="text-sm font-medium">{idea.owner_display}</p>
         {owner ? <RoleTags role={owner.role} /> : null}
+        {details.isDemo ? <DemoChip /> : null}
         {idea.featured ? (
           <span className="ml-auto">
             <Chip tone="accent">Featured</Chip>

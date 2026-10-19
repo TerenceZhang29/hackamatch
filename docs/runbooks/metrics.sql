@@ -1,6 +1,8 @@
 -- HackaMatch pilot metrics. Read-only queries: paste one into the Supabase
 -- SQL editor (production) or run it with psql (local). Each query sets its
 -- inputs in a `params` block at the top; edit the values there.
+-- Demo profiles (users.is_demo, docs/plans/demo-profiles.md) and anything they
+-- are part of are left out everywhere.
 
 -- ---------------------------------------------------------------------------
 -- 1. Phase 1 gate: at least 10 teams at the pilot event.
@@ -15,6 +17,10 @@ select
 from public.events e
 cross join params p
 left join public.teams t on t.event_id = e.id
+  and not exists (
+    select 1 from public.team_members tm join public.users u on u.id = tm.user_id
+    where tm.team_id = t.id and u.is_demo
+  )
 where e.slug = p.event_slug
 group by e.id;
 
@@ -26,13 +32,21 @@ group by e.id;
 with params as (select '2026-01-01'::date as phase0_start)
 select
   (select count(*) from public.users u, params p
-    where u.onboarded_at >= p.phase0_start) as signups,
+    where u.onboarded_at >= p.phase0_start and not u.is_demo) as signups,
   (select count(*) from public.teams t, params p
-    where t.created_at >= p.phase0_start) as teams,
+    where t.created_at >= p.phase0_start
+      and not exists (
+        select 1 from public.team_members tm join public.users u on u.id = tm.user_id
+        where tm.team_id = t.id and u.is_demo
+      )) as teams,
   (select count(*) from public.users u, params p
-    where u.onboarded_at >= p.phase0_start) >= 40
+    where u.onboarded_at >= p.phase0_start and not u.is_demo) >= 40
   and (select count(*) from public.teams t, params p
-    where t.created_at >= p.phase0_start) >= 5 as gate_passed;
+    where t.created_at >= p.phase0_start
+      and not exists (
+        select 1 from public.team_members tm join public.users u on u.id = tm.user_id
+        where tm.team_id = t.id and u.is_demo
+      )) >= 5 as gate_passed;
 
 -- ---------------------------------------------------------------------------
 -- 3. Sign-up funnel since a date: link requested -> link clicked -> joined.
@@ -63,6 +77,9 @@ select
   count(m.teamed_up_at) as teamed_up,
   round(100.0 * count(m.revealed_at) / nullif(count(*), 0), 1) as mutual_pct
 from public.matches m
+where not exists (
+  select 1 from public.users u where u.id in (m.user_a, m.user_b) and u.is_demo
+)
 group by m.source
 order by m.source;
 

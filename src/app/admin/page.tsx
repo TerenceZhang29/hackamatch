@@ -8,7 +8,7 @@ export default async function AdminHome() {
   const counts = await adminCounts();
   return (
     <AdminShell title="Admin">
-      <dl className="grid grid-cols-2 gap-4 sm:grid-cols-5">
+      <dl className="grid grid-cols-2 gap-4 sm:grid-cols-6">
         {(
           [
             ["Users", counts.users, "/admin/users"],
@@ -16,6 +16,7 @@ export default async function AdminHome() {
             ["Events", counts.events, "/admin/events"],
             ["Matches", counts.matches, "/admin/matches"],
             ["Teams", counts.teams, "/admin/matches"],
+            ["Demo profiles", counts.demo, "/admin/users"],
           ] as const
         ).map(([label, value, href]) => (
           <div

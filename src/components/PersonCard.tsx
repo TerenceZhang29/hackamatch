@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Avatar } from "@/components/ui/Avatar";
 import type { Intent, PoolEvent } from "@/lib/person-card";
 import { CardFrame } from "./Card";
+import { DemoChip } from "./DemoChip";
 import { PersonLines } from "./PersonLines";
 
 export interface PersonCardData {
@@ -19,6 +20,7 @@ export function PersonCard({
   person,
   ideaPitch = null,
   lookingEvents,
+  isDemo = false,
   actions,
   headingLevel = 3,
 }: {
@@ -27,6 +29,8 @@ export function PersonCard({
   ideaPitch?: string | null;
   /** Members only (see poolEventsFor); visitors don't see who's going where. */
   lookingEvents?: readonly PoolEvent[];
+  /** A demo profile (docs/plans/demo-profiles.md). */
+  isDemo?: boolean;
   actions?: React.ReactNode;
   /** The card title's heading level, so it fits the page's outline. */
   headingLevel?: 2 | 3;
@@ -41,6 +45,11 @@ export function PersonCard({
             {person.display_name}
           </Link>
         </Heading>
+        {isDemo ? (
+          <span className="ml-auto">
+            <DemoChip />
+          </span>
+        ) : null}
       </div>
       <PersonLines person={person} ideaPitch={ideaPitch} lookingEvents={lookingEvents} />
       <div className="mt-auto">{actions}</div>

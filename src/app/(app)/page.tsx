@@ -30,6 +30,7 @@ import {
   excludedUserIds,
   firstIdeaPitches,
   listBoardIdeas,
+  demoIds,
   listBoardPeople,
   poolEventsFor,
 } from "@/server/board";
@@ -68,9 +69,10 @@ export default async function BoardPage({
     !deck && state.tab === "people" ? await listBoardPeople(state.filters, shown, exclude) : null;
   const peopleIds = people?.rows.map((p) => p.user_id) ?? [];
   // Where people are going is for members; visitors see only the 3 per event.
-  const [pitches, looking] = await Promise.all([
+  const [pitches, looking, demo] = await Promise.all([
     firstIdeaPitches(peopleIds),
     viewer === "onboarded" ? poolEventsFor(peopleIds) : Promise.resolve(new Map()),
+    demoIds(peopleIds, ideas?.rows.map((i) => i.id) ?? []),
   ]);
   const deckData = deck ? await nextDeckCards(user!, state.filters.event) : null;
   const topCard = deckData?.cards[0];
@@ -177,6 +179,7 @@ export default async function BoardPage({
                   <IdeaCard
                     idea={idea}
                     eventName={idea.event_id ? eventNames.get(idea.event_id) : null}
+                    isDemo={demo.ideas.has(idea.id)}
                     actions={
                       <CardActions
                         viewer={viewer}
@@ -199,6 +202,7 @@ export default async function BoardPage({
                     person={person}
                     ideaPitch={pitches.get(person.user_id) ?? null}
                     lookingEvents={looking.get(person.user_id)}
+                    isDemo={demo.users.has(person.user_id)}
                     actions={
                       <CardActions
                         viewer={viewer}

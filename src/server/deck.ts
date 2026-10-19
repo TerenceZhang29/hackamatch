@@ -78,6 +78,8 @@ export interface DeckDetails {
   personIdeas: string[];
   /** Idea card: the owner's public card (null if they're not in the pool). */
   owner: BoardPerson | null;
+  /** The person, or the idea's owner, is a demo profile. */
+  isDemo: boolean;
 }
 
 /**
@@ -132,6 +134,10 @@ export async function deckDetails(viewerId: string, card: DeckCard): Promise<Dec
   if (profile.error) throw new Error(`deckDetails: ${profile.error.message}`);
   if (personIdeas.error) throw new Error(`deckDetails: ${personIdeas.error.message}`);
   const p = profile.data;
+  const subject = personId ?? ownerId;
+  const { data: demo } = subject
+    ? await supabase.from("users").select("is_demo").eq("id", subject).maybeSingle()
+    : { data: null };
   return {
     viewer: {
       tags: [...(p?.skills ?? []), ...(p?.stack ?? []), ...(p?.domains ?? [])],
@@ -140,5 +146,6 @@ export async function deckDetails(viewerId: string, card: DeckCard): Promise<Dec
     personEvents,
     personIdeas: personIdeas.data.map((i) => i.pitch!).filter(Boolean),
     owner,
+    isDemo: demo?.is_demo ?? false,
   };
 }

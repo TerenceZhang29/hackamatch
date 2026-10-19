@@ -114,3 +114,36 @@ export async function poolEventsFor(userIds: readonly string[]): Promise<Map<str
   for (const [id, list] of byUser) byUser.set(id, nearestPoolEvents(list));
   return byUser;
 }
+
+/**
+ * Which of these people, and ideas by owner, are demo profiles, so cards can
+ * say "Demo" (docs/plans/demo-profiles.md).
+ */
+export async function demoIds(
+  userIds: readonly string[],
+  ideaIds: readonly string[] = [],
+): Promise<{ users: Set<string>; ideas: Set<string> }> {
+  const supabase = createServiceClient();
+  const [users, ideas] = await Promise.all([
+    userIds.length
+      ? supabase
+          .from("users")
+          .select("id")
+          .in("id", [...userIds])
+          .eq("is_demo", true)
+      : Promise.resolve({ data: [] as { id: string }[], error: null }),
+    ideaIds.length
+      ? supabase
+          .from("ideas")
+          .select("id, users!inner(is_demo)")
+          .in("id", [...ideaIds])
+          .eq("users.is_demo", true)
+      : Promise.resolve({ data: [] as { id: string }[], error: null }),
+  ]);
+  if (users.error) throw new Error(`demoIds: ${users.error.message}`);
+  if (ideas.error) throw new Error(`demoIds: ${ideas.error.message}`);
+  return {
+    users: new Set(users.data.map((u) => u.id)),
+    ideas: new Set(ideas.data.map((i) => i.id)),
+  };
+}

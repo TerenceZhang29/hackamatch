@@ -57,3 +57,8 @@ Audit for P1-18, done 2026-10-14 against commit `ee97818` plus the P1-18 changes
 
 - Admin user search builds a PostgREST `or` filter from the search text after stripping `%`, `,` and parentheses. It is admin-only; switch to a SQL function if the search grows.
 - `LOGIN_RATE_LIMIT_PER_IP` treats everyone behind one NAT (a campus network) as one client. Watch for false refusals at the pilot and raise it if needed.
+
+- [x] **Demo profiles can't receive or cause email** (docs/plans/demo-profiles.md):
+  - They have no email in `auth.users`, so Supabase Auth has nothing to send to, and their `.invalid` domain is refused outside the demo seed.
+  - `send()` refuses demo users and any address outside the allowed domains.
+  - Match emails stop when either person is a demo profile.

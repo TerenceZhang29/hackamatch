@@ -1,6 +1,7 @@
 import "server-only";
 import { render } from "@react-email/render";
 import type { ReactElement } from "react";
+import { isAllowedEmailDomain } from "@/lib/auth-helpers";
 import { getConfig } from "@/lib/config";
 import { createServiceClient } from "@/lib/supabase/service";
 import { localDateString } from "@/lib/time";
@@ -89,7 +90,7 @@ export async function send(options: {
   const config = getConfig();
   const { data: user, error } = await supabase
     .from("users")
-    .select("cornell_email, notify_channel")
+    .select("cornell_email, notify_channel, is_demo")
     .eq("id", options.userId)
     .single();
   if (error) {
@@ -97,8 +98,20 @@ export async function send(options: {
     return "failed";
   }
 
+  // Never email a demo profile, or any address outside the allowed domains
+  // (docs/plans/demo-profiles.md). The attempt is logged as skipped.
+  const { data: settings } = await supabase
+    .from("app_settings")
+    .select("allowed_email_domains")
+    .maybeSingle();
+  const allowed = isAllowedEmailDomain(
+    user.cornell_email,
+    settings?.allowed_email_domains ?? config.ALLOWED_EMAIL_DOMAINS,
+  );
+  const suppressed = user.is_demo ? "demo" : allowed ? null : "domain";
+
   const localDate = localDateString(config.APP_TIMEZONE);
-  const skip = user.notify_channel === "none";
+  const skip = user.notify_channel === "none" || suppressed !== null;
   const { data: log, error: logError } = await supabase
     .from("notification_log")
     .insert({
@@ -106,7 +119,11 @@ export async function send(options: {
       channel: user.notify_channel === "none" ? "none" : "email",
       kind: options.kind,
       local_date: localDate,
-      payload: { subject: options.subject, ...options.payload },
+      payload: {
+        subject: options.subject,
+        ...options.payload,
+        ...(suppressed ? { reason: suppressed } : {}),
+      },
       status: skip ? "skipped" : "sent",
     })
     .select("id")

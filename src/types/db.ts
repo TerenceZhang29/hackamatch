@@ -67,17 +67,20 @@ export type Database = {
         Row: {
           allowed_email_domains: string[];
           id: boolean;
+          show_demo: boolean;
           updated_at: string;
         };
         ComputedFields: never;
         Insert: {
           allowed_email_domains?: string[];
           id?: boolean;
+          show_demo?: boolean;
           updated_at?: string;
         };
         Update: {
           allowed_email_domains?: string[];
           id?: boolean;
+          show_demo?: boolean;
           updated_at?: string;
         };
         Relationships: [];
@@ -137,6 +140,7 @@ export type Database = {
           id: string;
           name: string;
           nudge_sent_at: string | null;
+          organizer_email: string | null;
           organizer_id: string | null;
           slug: string;
           start_date: string;
@@ -152,6 +156,7 @@ export type Database = {
           id?: string;
           name: string;
           nudge_sent_at?: string | null;
+          organizer_email?: string | null;
           organizer_id?: string | null;
           slug: string;
           start_date: string;
@@ -166,6 +171,7 @@ export type Database = {
           id?: string;
           name?: string;
           nudge_sent_at?: string | null;
+          organizer_email?: string | null;
           organizer_id?: string | null;
           slug?: string;
           start_date?: string;
@@ -712,6 +718,7 @@ export type Database = {
           id: string;
           intents: Database["public"]["Enums"]["user_intent"][];
           is_admin: boolean;
+          is_demo: boolean;
           is_organizer: boolean;
           last_active_at: string;
           linkedin_text: string | null;
@@ -735,6 +742,7 @@ export type Database = {
           id: string;
           intents?: Database["public"]["Enums"]["user_intent"][];
           is_admin?: boolean;
+          is_demo?: boolean;
           is_organizer?: boolean;
           last_active_at?: string;
           linkedin_text?: string | null;
@@ -757,6 +765,7 @@ export type Database = {
           id?: string;
           intents?: Database["public"]["Enums"]["user_intent"][];
           is_admin?: boolean;
+          is_demo?: boolean;
           is_organizer?: boolean;
           last_active_at?: string;
           linkedin_text?: string | null;
@@ -784,6 +793,7 @@ export type Database = {
           id: string | null;
           intents: Database["public"]["Enums"]["user_intent"][] | null;
           is_admin: boolean | null;
+          is_demo: boolean | null;
           is_organizer: boolean | null;
           last_active_at: string | null;
           linkedin_text: string | null;
@@ -807,6 +817,7 @@ export type Database = {
           id?: string | null;
           intents?: Database["public"]["Enums"]["user_intent"][] | null;
           is_admin?: boolean | null;
+          is_demo?: boolean | null;
           is_organizer?: boolean | null;
           last_active_at?: string | null;
           linkedin_text?: string | null;
@@ -829,6 +840,7 @@ export type Database = {
           id?: string | null;
           intents?: Database["public"]["Enums"]["user_intent"][] | null;
           is_admin?: boolean | null;
+          is_demo?: boolean | null;
           is_organizer?: boolean | null;
           last_active_at?: string | null;
           linkedin_text?: string | null;
