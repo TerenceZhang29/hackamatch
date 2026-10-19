@@ -55,6 +55,7 @@ test("public pages", async ({ page }) => {
     ["/?tab=people", "builders"],
     ["/login", "login"],
     ["/e/cornell-tech-fall-hack", "event"],
+    ["/events", "events"],
     ["/people/00000000-0000-4000-a000-000000000201", "person"],
   ] as const) {
     await page.goto(path);

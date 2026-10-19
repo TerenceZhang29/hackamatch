@@ -64,6 +64,9 @@ export default async function BoardPage({
           HackaMatch
         </Link>
         <nav className="flex items-center gap-4 text-sm">
+          <Link href="/events" className="underline">
+            Events
+          </Link>
           {viewer === "onboarded" ? (
             <>
               <Link href="/ideas/new" className="underline">

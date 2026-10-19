@@ -80,6 +80,10 @@ export default async function EventPage({
         ) : null}
       </header>
 
+      <Link href="/events" className="-mb-4 self-start text-sm underline">
+        ← All events
+      </Link>
+
       <section className="flex flex-col gap-3">
         <h1 className="text-3xl font-bold tracking-tight">{event.name}</h1>
         <p className="text-neutral-600 dark:text-neutral-400">

@@ -102,3 +102,42 @@ test("the event page has no horizontal scroll", async ({ page }) => {
   );
   expect(overflow).toBeLessThanOrEqual(0);
 });
+
+test("/events lists upcoming hackathons only, and links to each event page", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("link", { name: "Events", exact: true }).click();
+  await expect(page).toHaveURL("/events");
+  await expect(page.getByRole("heading", { name: "Upcoming hackathons" })).toBeVisible();
+
+  const fallHack = page.getByRole("link", { name: /Cornell Tech Fall Hack/ });
+  await expect(fallHack).toContainText(/\d+ (person|people) looking for a team/);
+  await expect(fallHack).toContainText("Teams of 2–4");
+  await expect(page.getByRole("link", { name: /Health AI Buildathon/ })).toBeVisible();
+  await expect(page.getByText("Spring Startup Sprint")).toHaveCount(0);
+  await expect(page.getByText("You're going")).toHaveCount(0);
+
+  await fallHack.click();
+  await expect(page).toHaveURL(`/e/${SLUG}`);
+  await page.getByRole("link", { name: "← All events" }).click();
+  await expect(page).toHaveURL("/events");
+});
+
+test("/events marks the events a member is going to", async ({ page }) => {
+  const email = newEmail();
+  await signIn(page, email);
+  await onboard(page, { role: "I can build", sentence: "I build Go backends" });
+  await expect(page).toHaveURL("/matches?welcome=1");
+
+  // Not the Fall Hack: a new builder there could push seeded cards off its page in parallel tests.
+  await page.goto("/e/health-ai-buildathon");
+  await page.getByRole("button", { name: "I'm interested in this event" }).click();
+  await expect(page.getByText("You're in for this event.")).toBeVisible();
+
+  await page.goto("/events");
+  await expect(page.getByRole("link", { name: /Health AI Buildathon/ })).toContainText(
+    "You're going",
+  );
+  await expect(page.getByRole("link", { name: /Cornell Tech Fall Hack/ })).not.toContainText(
+    "You're going",
+  );
+});
