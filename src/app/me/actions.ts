@@ -10,7 +10,12 @@ import { pausedUntilFor } from "@/lib/pause";
 import { LIMITS } from "@/lib/rate-limit";
 import { allow } from "@/server/rate-limit";
 import { createClient } from "@/lib/supabase/server";
-import { addEventInterests, filterUpcomingEventIds, removeEventInterest } from "@/server/events";
+import {
+  addEventInterests,
+  filterUpcomingEventIds,
+  listEventMatches,
+  removeEventInterest,
+} from "@/server/events";
 import { setIdeaStatus } from "@/server/ideas";
 import {
   deleteAccount,
@@ -119,6 +124,14 @@ export async function setEventInterest(input: unknown): Promise<ActionResult> {
     if (upcoming.length === 0) return { ok: false, error: "That event has ended." };
     await addEventInterests(user.id, upcoming);
   } else {
+    // With matches for the event, "not going" is confirmed on the event page.
+    if ((await listEventMatches(user.id, eventId)).length > 0) {
+      return {
+        ok: false,
+        error:
+          "You've matched with people for this event. Use the event page to say you're not going.",
+      };
+    }
     await removeEventInterest(user.id, eventId);
   }
   revalidatePath("/me");

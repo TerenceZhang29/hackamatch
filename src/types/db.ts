@@ -86,17 +86,23 @@ export type Database = {
         Row: {
           created_at: string;
           event_id: string;
+          left_pool_at: string | null;
+          prompted_matches: number;
           user_id: string;
         };
         ComputedFields: never;
         Insert: {
           created_at?: string;
           event_id: string;
+          left_pool_at?: string | null;
+          prompted_matches?: number;
           user_id: string;
         };
         Update: {
           created_at?: string;
           event_id?: string;
+          left_pool_at?: string | null;
+          prompted_matches?: number;
           user_id?: string;
         };
         Relationships: [

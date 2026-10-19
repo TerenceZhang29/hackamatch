@@ -1,6 +1,6 @@
 # Plan: browse upcoming hackathons and see who is looking for a team
 
-Requested by the owner on 2026-10-18. Status: **steps 1–2 built** (2026-10-18); step 3 not started.
+Requested by the owner on 2026-10-18. Status: **steps 1–3 built** (steps 1–2 on 2026-10-18, step 3 on 2026-10-19). Filters (step 4) and past events (step 5) are not started.
 
 ## The ask
 Any user can see every upcoming hackathon, pick one, and see who intends to go and is looking for partners. From there they can ask for a match.
@@ -65,7 +65,14 @@ Each event has its own pool, and tagging the event joins it. The owner decided t
 - `left_pool_at timestamptz null`: set when you leave the pool, cleared when you rejoin;
 - `prompted_matches int default 0`: how many matches for the event you've already been asked about, so the prompt appears once per new match.
 
-The pool check (`left_pool_at is null`) goes into `public_board_people`, `public_board_ideas` (an idea's author who left) and `countEventInterest`. A new SQL function, `event_matches(p_user, p_event)`, counts and lists your matches for the event. All of this is one migration, so production needs `supabase db push`, which needs the owner's approval.
+The pool check (`left_pool_at is null`) goes into `public_board_people`, `public_board_ideas` (an idea's author who left) and `countEventInterest`. All of this is one migration (`20261019000000_event_pools.sql`), so production needs `supabase db push`, which needs the owner's approval.
+
+**As built (2026-10-19):**
+- Matches for an event are counted in `listEventMatches` (`src/server/events.ts`) rather than a new SQL function. It's a few small queries through the service client, so there's nothing new to grant or revoke.
+- Every choice goes through one server action, `eventPoolAction` (`src/app/actions/event-pool.ts`), used by both the event page and the pair page. The UI is in `src/components/EventPool.tsx`. The confirmation is a `?confirm=not-going` page state, so it works without JavaScript.
+- The prompt only appears for people who tagged the event. Picking an event on a pair page doesn't tag it, so someone who never said they're going isn't asked about leaving its pool.
+- Untagging an event on `/me` while you have matches for it is refused, with a pointer to the event page, so the confirmation can't be skipped.
+- Re-tagging after "I'm no longer going" starts fresh (`prompted_matches` 0), so you're asked once about your existing matches.
 
 **Dropping out after a match** (decided 2026-10-18): allowed, behind the confirmation above. There is no un-match.
 

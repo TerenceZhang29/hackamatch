@@ -3,8 +3,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 import { Chips } from "@/components/Card";
+import { KeepMatchingPrompt } from "@/components/EventPool";
 import { requireOnboarded } from "@/lib/auth";
 import { formatDateRange } from "@/lib/time";
+import { getEventPool } from "@/server/events";
 import { getPairPage, type PairPerson } from "@/server/teams";
 import { addMemberAction, markIdeaFilled, teamUpAction, toggleVote } from "./actions";
 import { CopyButton } from "./CopyButton";
@@ -81,6 +83,16 @@ export default async function PairPage({
 
   const overlapping = pair.events.filter((e) => e.mine && e.theirs);
   const teamOptions = [...overlapping, ...pair.events.filter((e) => !(e.mine && e.theirs))];
+  // Events you both picked count as a match there; ask once per new match whether to keep matching.
+  const askToKeepMatching = new Set(
+    (
+      await Promise.all(
+        overlapping.map(async (e) =>
+          (await getEventPool(user.id, e.id)).askToKeepMatching ? e.id : null,
+        ),
+      )
+    ).filter((id): id is string => id !== null),
+  );
 
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-8 px-4 py-12">
@@ -193,6 +205,15 @@ export default async function PairPage({
                       </span>
                     ) : event.theirs ? (
                       <span className="text-sm text-neutral-500">{pair.other.firstName} would</span>
+                    ) : null}
+                    {askToKeepMatching.has(event.id) ? (
+                      <div className="basis-full">
+                        <KeepMatchingPrompt
+                          eventId={event.id}
+                          eventName={event.name}
+                          returnTo={`/matches/${pair.matchId}`}
+                        />
+                      </div>
                     ) : null}
                     {event.otherAlreadyTeamed ? (
                       <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-900 dark:bg-amber-900 dark:text-amber-100">

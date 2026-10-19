@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { CardAnswerButtons } from "@/components/AnswerButtons";
 import { CardActions, type Viewer } from "@/components/CardActions";
+import { EventPoolPanel } from "@/components/EventPool";
 import { IdeaCard } from "@/components/IdeaCard";
 import { PersonCard } from "@/components/PersonCard";
 import { SeeAllPrompt } from "@/components/SeeAllPrompt";
@@ -14,10 +15,9 @@ import {
   addEventInterests,
   countEventInterest,
   getEventBySlug,
+  getEventPool,
   hasEnded,
-  listEventInterestIds,
 } from "@/server/events";
-import { setEventInterestAction } from "./actions";
 
 /** The event page URL with how many people and ideas to show; defaults are left out. */
 function eventHref(slug: string, people: number, ideas: number) {
@@ -55,7 +55,7 @@ export default async function EventPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ join?: string; people?: string; ideas?: string }>;
+  searchParams: Promise<{ join?: string; people?: string; ideas?: string; confirm?: string }>;
 }) {
   const { slug } = await params;
   if (!/^[a-z0-9-]{1,80}$/.test(slug)) notFound();
@@ -78,13 +78,12 @@ export default async function EventPage({
     viewer === "onboarded" ? parseShown(query.people, EVENT_PAGE_SIZE) : VISITOR_LIMIT;
   const ideasShown =
     viewer === "onboarded" ? parseShown(query.ideas, EVENT_PAGE_SIZE) : VISITOR_LIMIT;
-  const [count, ideas, people, interests] = await Promise.all([
+  const [count, ideas, people, pool] = await Promise.all([
     countEventInterest(event.id),
     listBoardIdeas(filters, ideasShown, exclude),
     listBoardPeople(filters, peopleShown, exclude, null),
-    viewer === "onboarded" ? listEventInterestIds(user!.id) : Promise.resolve([]),
+    viewer === "onboarded" ? getEventPool(user!.id, event.id) : Promise.resolve(null),
   ]);
-  const interested = interests.includes(event.id);
   const here = eventHref(slug, peopleShown, ideasShown);
 
   return (
@@ -142,22 +141,13 @@ export default async function EventPage({
             Finish joining to find a team
           </Link>
         ) : (
-          <form action={setEventInterestAction}>
-            <input type="hidden" name="slug" value={slug} />
-            <input type="hidden" name="interested" value={String(!interested)} />
-            {interested ? (
-              <p className="flex flex-wrap items-center gap-3">
-                <span className="font-medium">You&apos;re in for this event.</span>
-                <button type="submit" className="text-sm underline">
-                  I&apos;m not going after all
-                </button>
-              </p>
-            ) : (
-              <button type="submit" className={primaryButton}>
-                I&apos;m interested in this event
-              </button>
-            )}
-          </form>
+          <EventPoolPanel
+            eventId={event.id}
+            eventName={event.name}
+            slug={slug}
+            pool={pool!}
+            confirmNotGoing={query.confirm === "not-going"}
+          />
         )}
       </section>
 
