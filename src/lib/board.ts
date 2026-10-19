@@ -10,7 +10,7 @@ export type BoardIntent = (typeof BOARD_INTENTS)[number];
 
 export const PAGE_SIZE = 20;
 /** The URL parameters the board reads. */
-export const BOARD_PARAM_KEYS = ["tab", "event", "domain", "skill", "intent", "n"] as const;
+export const BOARD_PARAM_KEYS = ["tab", "event", "domain", "skill", "intent", "n", "view"] as const;
 export const MAX_SHOWN = 100;
 /** Cards per list on an event page; "Show more" adds this many. */
 export const EVENT_PAGE_SIZE = 12;
@@ -29,6 +29,8 @@ export interface BoardState {
   filters: BoardFilters;
   /** How many cards to show; "Load more" adds a page. */
   shown: number;
+  /** "list" keeps members on the list instead of the one-card deck at `/`. */
+  view: "list" | null;
 }
 
 type Params = Record<string, string | string[] | undefined>;
@@ -68,7 +70,18 @@ export function parseBoardParams(params: Params): BoardState {
         : null,
     },
     shown,
+    view: first(params.view) === "list" ? "list" : null,
   };
+}
+
+/**
+ * Whether a member's visit to `/` is for the one-card deck: no list view asked
+ * for and no list-only parameters (tabs, filters other than the event, paging),
+ * so shared board links still open the list.
+ */
+export function wantsDeck(params: Params): boolean {
+  if (first(params.view) === "list") return false;
+  return !(["tab", "domain", "skill", "intent", "n"] as const).some((key) => first(params[key]));
 }
 
 /** The board URL for a state; defaults are left out so URLs stay short and shareable. */
@@ -79,6 +92,7 @@ export function boardHref(state: BoardState): string {
     if (value) params.set(key, value);
   }
   if (state.shown > PAGE_SIZE) params.set("n", String(state.shown));
+  if (state.view) params.set("view", state.view);
   const query = params.toString();
   return query ? `/?${query}` : "/";
 }

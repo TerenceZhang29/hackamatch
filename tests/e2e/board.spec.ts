@@ -83,10 +83,10 @@ test("visitors see 3 cards for an event; members can load more", async ({ page }
   await expect(page.getByRole("link", { name: "Load more" })).toHaveCount(0);
 
   await signInOnboarded(page, newEmail());
-  await page.goto(`/?event=${slug}`);
+  await page.goto(`/?event=${slug}&view=list`);
   await expect(page.getByRole("article")).toHaveCount(20);
   await page.getByRole("link", { name: "Load more" }).click();
-  await expect(page).toHaveURL(`/?event=${slug}&n=40`);
+  await expect(page).toHaveURL(`/?event=${slug}&n=40&view=list`);
   await expect(page.getByRole("article")).toHaveCount(21);
   await expect(page.getByRole("link", { name: "Load more" })).toHaveCount(0);
 });
@@ -127,7 +127,7 @@ test("a signed-in member does not see their own card", async ({ page }) => {
      where u.cornell_email = $1`,
     [email],
   );
-  await page.goto("/");
+  await page.goto("/?view=list");
   await expect(page.getByRole("link", { name: "Post an idea" })).toBeVisible();
   await expect(page.getByRole("article", { name: SEEDED_PITCH })).toBeVisible();
   await expect(page.getByRole("article", { name: idea!.pitch })).toHaveCount(0);

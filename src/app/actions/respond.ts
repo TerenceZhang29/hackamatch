@@ -7,7 +7,7 @@ import { requireOnboarded } from "@/lib/auth";
 import { sanitizeNext } from "@/lib/auth-helpers";
 import { LIMITS } from "@/lib/rate-limit";
 import { allow } from "@/server/rate-limit";
-import { answerFromBoard, recordResponse } from "@/server/matches";
+import { answerFromBoard, recordResponse, undoPass } from "@/server/matches";
 
 const cardSchema = z.object({
   kind: z.enum(["person", "idea"]),
@@ -46,7 +46,29 @@ export async function answerCard(formData: FormData): Promise<void> {
   revalidatePath("/matches");
   if (!result.ok) redirect(withOutcome(back, "error", result.error));
   if (result.revealed) redirect(withOutcome(back, "matched", result.matchId));
-  redirect(withOutcome(back, response === "pass" ? "passed" : "sent", "1"));
+  // A Pass carries its match id, so the deck can offer "Undo" for it.
+  redirect(
+    response === "pass"
+      ? withOutcome(back, "passed", result.matchId)
+      : withOutcome(back, "sent", "1"),
+  );
+}
+
+const undoSchema = z.object({
+  matchId: z.guid(),
+  returnTo: z.string().max(2048).optional(),
+});
+
+/** "Undo" on the deck: takes back the viewer's last Pass. */
+export async function undoPassAction(formData: FormData): Promise<void> {
+  const user = await requireOnboarded();
+  const parsed = undoSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) redirect("/");
+  const back = sanitizeNext(parsed.data.returnTo) ?? "/";
+  if (!(await allow(LIMITS.answers, user.id))) redirect(withOutcome(back, "error", "busy"));
+  await undoPass(parsed.data.matchId, user.id);
+  revalidatePath("/");
+  redirect(back);
 }
 
 const matchSchema = z.object({

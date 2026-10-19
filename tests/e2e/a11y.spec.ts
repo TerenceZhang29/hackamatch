@@ -99,6 +99,10 @@ test("member pages", async ({ page }) => {
   const mutual = await createMatch(me!.id, partner, { interested: [me!.id, partner] });
   await query(`update public.matches set revealed_at = now() where id = $1`, [mutual]);
 
+  await page.goto("/");
+  await expectAccessible(page, "deck");
+  await page.goto("/?view=list");
+  await expectAccessible(page, "board list (member)");
   await page.goto("/matches");
   await expectAccessible(page, "matches");
   await page.goto(`/matches/${mutual}`);

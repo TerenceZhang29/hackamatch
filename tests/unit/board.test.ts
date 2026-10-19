@@ -7,6 +7,7 @@ import {
   PAGE_SIZE,
   parseBoardParams,
   parseShown,
+  wantsDeck,
 } from "@/lib/board";
 
 describe("parseBoardParams", () => {
@@ -15,6 +16,7 @@ describe("parseBoardParams", () => {
       tab: "ideas",
       filters: { event: null, domain: null, skill: null, intent: null },
       shown: PAGE_SIZE,
+      view: null,
     });
   });
 
@@ -36,6 +38,7 @@ describe("parseBoardParams", () => {
         intent: "cofounder",
       },
       shown: 40,
+      view: null,
     });
 
     const junk = parseBoardParams({
@@ -85,5 +88,23 @@ describe("parseShown", () => {
     expect(parseShown("9999", EVENT_PAGE_SIZE)).toBe(MAX_SHOWN);
     expect(parseShown("lots", EVENT_PAGE_SIZE)).toBe(12);
     expect(parseShown(["36", "12"], EVENT_PAGE_SIZE)).toBe(36);
+  });
+});
+
+describe("wantsDeck", () => {
+  it("opens the deck for a plain visit or an event, and the list otherwise", () => {
+    expect(wantsDeck({})).toBe(true);
+    expect(wantsDeck({ event: "cornell-tech-fall-hack" })).toBe(true);
+    expect(wantsDeck({ matched: "x", sent: "1" })).toBe(true);
+    expect(wantsDeck({ view: "list" })).toBe(false);
+    for (const key of ["tab", "domain", "skill", "intent", "n"]) {
+      expect(wantsDeck({ [key]: "x" }), key).toBe(false);
+    }
+    expect(wantsDeck({ tab: "" })).toBe(true);
+  });
+
+  it("keeps the list view in board links", () => {
+    const state = { ...parseBoardParams({ tab: "people" }), view: "list" as const };
+    expect(boardHref(state)).toBe("/?tab=people&view=list");
   });
 });

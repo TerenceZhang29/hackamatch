@@ -1,6 +1,6 @@
 # Plan: one card at a time ("the deck")
 
-Requested by the owner on 2026-10-19. Status: **plan, decided; not built**.
+Requested by the owner on 2026-10-19. Status: **built** (2026-10-19), all five steps. The code is in `src/components/deck/`, `src/server/deck.ts` and `src/lib/deck.ts`.
 
 ## The ask
 Make browsing feel easier and less overwhelming. Members see **one card at a time** and answer Interested or Pass, like a dating app, instead of scanning a list. In a later iteration, the matching score (Phase 2) decides which cards each person sees first.
@@ -40,6 +40,11 @@ Make browsing feel easier and less overwhelming. Members see **one card at a tim
      - Pass and Interested stay pinned at the bottom, and swiping left or right still works. Answering moves on to the next card, already collapsed.
      - Without JavaScript, `?more=1` opens the expanded card.
    - **Still private until a mutual match** (confirmed by the owner 2026-10-19, GitHub included): email, GitHub, LinkedIn, the full name and the full idea text. These come from `getPairPage` only, as today. The full profile uses only what `public_person` / `public_idea` / the board functions already return, plus the person's events (already shown to members on event pages) and their open ideas' pitches (already public on the board).
+
+## Changed while building (2026-10-19)
+- **People waiting on you stay in the deck.** The board hides everyone you have any match with, including people who said Interested in you and are waiting for your answer. With that rule, a mutual match could never happen in the deck. So the deck hides only people you've answered and revealed matches (`deckExcludedUserIds`). Answering a waiting person's card makes the match, exactly as answering on `/matches` does, so nothing new is revealed.
+- **A person's "Going to"** lists only events they're still in the pool for, so "I have my team" keeps its promise that nobody in that event's pool sees them.
+- **"N left"** counts cards in the look-ahead. For someone who does both, a person and their idea can both be in it, so the count can be slightly high.
 
 ## Design
 - **Layout:** one large card, with **Pass** and **Interested** buttons pinned at the bottom within thumb reach. A small "N left" count and the event chips sit at the top.

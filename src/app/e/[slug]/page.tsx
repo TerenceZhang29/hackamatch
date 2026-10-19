@@ -141,13 +141,21 @@ export default async function EventPage({
             Finish joining to find a team
           </Link>
         ) : (
-          <EventPoolPanel
-            eventId={event.id}
-            eventName={event.name}
-            slug={slug}
-            pool={pool!}
-            confirmNotGoing={query.confirm === "not-going"}
-          />
+          <>
+            <Link
+              href={`/?event=${slug}`}
+              className="self-start rounded-lg border border-neutral-300 px-4 py-2 font-medium dark:border-neutral-700"
+            >
+              Find teammates for this event
+            </Link>
+            <EventPoolPanel
+              eventId={event.id}
+              eventName={event.name}
+              slug={slug}
+              pool={pool!}
+              confirmNotGoing={query.confirm === "not-going"}
+            />
+          </>
         )}
       </section>
 

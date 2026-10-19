@@ -49,12 +49,16 @@ test("A says Interested on B's idea, B gets an email, B says Interested, both ar
   try {
     const idea = await ideaPitchOf(owner.email);
 
-    // The builder finds the idea on the board and says Interested.
-    await builder.page.goto("/");
-    const card = builder.page.getByRole("article", { name: idea.pitch });
-    await card.getByRole("button", { name: "Interested" }).click();
+    // The builder finds the idea on the board's list and says Interested.
+    await builder.page.goto("/?view=list");
+    // By its link, not its pitch: the same test on the other device makes an identical idea.
+    const card = () =>
+      builder.page
+        .getByRole("article")
+        .filter({ has: builder.page.locator(`a[href="/ideas/${idea.id}"]`) });
+    await card().getByRole("button", { name: "Interested" }).click();
     await expect(builder.page.getByText("Sent. If they're interested too")).toBeVisible();
-    await expect(builder.page.getByRole("article", { name: idea.pitch })).toHaveCount(0);
+    await expect(card()).toHaveCount(0);
 
     // The owner gets one email with one-click links, and no contact details.
     const inbound = await eventually(

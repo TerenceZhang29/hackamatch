@@ -445,3 +445,45 @@ export async function listMatchesForUser(userId: string): Promise<MatchListItem[
     };
   });
 }
+
+/** The other person's first name on a revealed match the viewer is in, for "You matched with …". */
+export async function matchedFirstName(matchId: string, viewerId: string): Promise<string | null> {
+  const match = await getMatch(matchId);
+  if (!match?.revealed_at || !sideOf(match, viewerId)) return null;
+  const { data, error } = await createServiceClient()
+    .from("users")
+    .select("name, cornell_email")
+    .eq("id", otherUserId(match, viewerId))
+    .maybeSingle();
+  if (error) throw new Error(`matchedFirstName: ${error.message}`);
+  return data ? firstName(data.name, data.cornell_email) : null;
+}
+
+/**
+ * Undoes the viewer's Pass on a match, from the deck's "Undo". Only a Pass on
+ * a match that isn't revealed can be undone. Nobody is told about a Pass, so
+ * undoing it has no other effects: a match that exists only because of this
+ * Pass (from the board, other side still pending) is deleted; otherwise the
+ * viewer's answer goes back to pending.
+ */
+export async function undoPass(matchId: string, viewerId: string): Promise<boolean> {
+  const match = await getMatch(matchId);
+  const side = match ? sideOf(match, viewerId) : null;
+  if (!match || !side || match.revealed_at) return false;
+  if (match[`${side}_response`] !== "pass") return false;
+  const other = side === "a" ? match.b_response : match.a_response;
+  const supabase = createServiceClient();
+  const { error } =
+    match.source === "board" && other === "pending"
+      ? await supabase.from("matches").delete().eq("id", matchId)
+      : await supabase
+          .from("matches")
+          .update(
+            side === "a"
+              ? { a_response: "pending", a_responded_at: null }
+              : { b_response: "pending", b_responded_at: null },
+          )
+          .eq("id", matchId);
+  if (error) throw new Error(`undoPass: ${error.message}`);
+  return true;
+}

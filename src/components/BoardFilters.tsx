@@ -29,6 +29,7 @@ export function BoardFilters({
   return (
     <form method="get" action="/" className="flex flex-wrap items-end gap-2" aria-label="Filters">
       {state.tab !== "ideas" ? <input type="hidden" name="tab" value={state.tab} /> : null}
+      {state.view ? <input type="hidden" name="view" value={state.view} /> : null}
       <div className="flex flex-col gap-1">
         <label htmlFor="filter-event" className="text-xs text-neutral-500">
           Hackathon
