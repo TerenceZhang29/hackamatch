@@ -108,7 +108,8 @@ function devSignups(count: number): string {
         ? `${pick(IDEAS)}, focused on ${area}`
         : role === "builder"
           ? `${pick(BUILDERS)}; I like ${area} projects`
-          : `I want to build ${pick(IDEAS).replace(/^An? /, "a ").toLowerCase()} and ${pick(BUILDERS).toLowerCase()}`;
+          : // Two sentences, idea first, as a student would write it; the pitch is the idea.
+            `${pick(IDEAS)}. ${pick(BUILDERS)}.`;
     const intents = INTENTS.filter(() => next() < 0.5);
     const events = EVENTS.filter(() => next() < 0.4);
     rows.push(

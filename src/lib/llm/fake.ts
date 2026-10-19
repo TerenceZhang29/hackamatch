@@ -16,8 +16,64 @@ function readTag(prompt: string, tag: string): string {
   return prompt.match(new RegExp(`<${tag}>([\\s\\S]*?)</${tag}>`))?.[1]?.trim() ?? "";
 }
 
-function firstWords(text: string, count: number): string {
-  return text.split(/\s+/).filter(Boolean).slice(0, count).join(" ");
+/** Words a cut pitch shouldn't end on ("…with", "…and the"). */
+const DANGLING = new Set([
+  "a",
+  "an",
+  "and",
+  "as",
+  "at",
+  "but",
+  "by",
+  "for",
+  "from",
+  "in",
+  "into",
+  "of",
+  "on",
+  "or",
+  "that",
+  "the",
+  "to",
+  "which",
+  "who",
+  "with",
+  "building",
+  "using",
+  "until",
+  "so",
+  "because",
+  "when",
+  "where",
+]);
+
+/**
+ * A pitch like the real model's: the first sentence, at most `max` words. A
+ * longer one stops at a natural break (a comma, or before a dangling word like
+ * "and") and ends with "…", so local cards don't stop mid-phrase.
+ */
+export function fakePitch(text: string, max = 20): string {
+  const sentence = text.trim().split(/(?<=[.!?])\s+/)[0] ?? "";
+  const words = sentence.split(/\s+/).filter(Boolean);
+  const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+  if (words.length <= max) return capitalize(words.join(" "));
+
+  let cut = words.slice(0, max);
+  const comma = cut.findLastIndex((w) => w.endsWith(","));
+  // Stop at a comma when it still leaves a meaningful pitch (6+ words).
+  if (comma >= 5) cut = cut.slice(0, comma + 1);
+  while (
+    cut.length > 1 &&
+    DANGLING.has(
+      cut
+        .at(-1)!
+        .toLowerCase()
+        .replace(/[,;:]$/, ""),
+    )
+  ) {
+    cut = cut.slice(0, -1);
+  }
+  return `${capitalize(cut.join(" ").replace(/[,;:]$/, ""))}…`;
 }
 
 function wordCount(text: string): number {
@@ -30,7 +86,7 @@ function fakeIdea(text: string) {
   else if (/\b(startup|company|co-?founder|long[- ]term|business)\b/i.test(text)) scope = "ongoing";
 
   return {
-    pitch: firstWords(text, 20),
+    pitch: fakePitch(text),
     domain: findTags("domains", text, PROSE_SKIP)[0] ?? null,
     skills_needed: findTags("skills", text, PROSE_SKIP),
     scope,
@@ -69,7 +125,7 @@ function fakeProfile(prompt: string) {
     role === "idea"
       ? wordCount(sentence) >= 3
       : role === "both" &&
-        /\b(app|platform|tool|website|marketplace|bot|service|idea|want to build|that helps)\b/i.test(
+        /\b(app|platform|tool|website|site|marketplace|bot|chatbot|service|dashboard|extension|network|map|game|plugin|idea|want to build|that helps)\b/i.test(
           sentence,
         );
 

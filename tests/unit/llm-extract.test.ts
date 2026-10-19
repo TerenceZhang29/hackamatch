@@ -5,7 +5,7 @@ vi.mock("@/lib/config", () => ({ getConfig: () => ({ LLM_PROVIDER: "fake" }) }))
 
 const { extractProfile } = await import("@/lib/llm/extract-profile");
 const { extractIdea } = await import("@/lib/llm/extract-idea");
-const { fakeLlm } = await import("@/lib/llm/fake");
+const { fakeLlm, fakePitch } = await import("@/lib/llm/fake");
 const { LlmError } = await import("@/lib/llm/client");
 const { profileSystemPrompt, ideaSystemPrompt } = await import("@/lib/llm/prompts");
 const { z } = await import("zod");
@@ -95,6 +95,28 @@ describe("extractIdea with the fake LLM", () => {
     const idea = await extractIdea({ text: "Uber for dogs" });
     expect(idea.clarifying_question).toBeTruthy();
     expect(idea.clarifying_question!.split(/\s+/).length).toBeLessThanOrEqual(15);
+  });
+});
+
+describe("fakePitch", () => {
+  it("keeps a short first sentence whole", () => {
+    expect(fakePitch("let nurses swap shifts in minutes. Also more detail here.")).toBe(
+      "Let nurses swap shifts in minutes.",
+    );
+  });
+
+  it("stops a long one at a natural break, with an ellipsis", () => {
+    const long =
+      "I want to build a dashboard that tracks campus energy use with data visualization and backend engineer in go, building more";
+    const pitch = fakePitch(long);
+    expect(pitch.endsWith("…")).toBe(true);
+    expect(pitch.split(/\s+/).length).toBeLessThanOrEqual(20);
+    expect(pitch).not.toMatch(/\b(and|with|building|in)…$/);
+    expect(
+      fakePitch(
+        "one two three four five six seven eight nine ten, and then more words keep going on and on until it is clearly too long",
+      ),
+    ).toBe("One two three four five six seven eight nine ten…");
   });
 });
 
