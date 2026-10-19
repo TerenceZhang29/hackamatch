@@ -225,3 +225,220 @@ export async function setInEventPool(userId: string, eventId: string, inPool: bo
     .eq("event_id", eventId);
   if (error) throw new Error(`setInEventPool: ${error.message}`);
 }
+
+/**
+ * Tags an event for team members who hadn't tagged it: going, but out of the
+ * pool, with their current matches for it counted as asked about. Members who
+ * already tagged it keep whatever they chose.
+ */
+export async function markGoingWithTeam(userIds: readonly string[], eventId: string) {
+  if (userIds.length === 0) return;
+  const supabase = createServiceClient();
+  const { data: existing, error } = await supabase
+    .from("event_interests")
+    .select("user_id")
+    .eq("event_id", eventId)
+    .in("user_id", [...userIds]);
+  if (error) throw new Error(`markGoingWithTeam: ${error.message}`);
+  const tagged = new Set(existing.map((row) => row.user_id));
+  const untagged = [...new Set(userIds)].filter((id) => !tagged.has(id));
+  if (untagged.length === 0) return;
+  const now = new Date().toISOString();
+  const rows = await Promise.all(
+    untagged.map(async (userId) => ({
+      user_id: userId,
+      event_id: eventId,
+      left_pool_at: now,
+      prompted_matches: (await listEventMatches(userId, eventId)).length,
+    })),
+  );
+  const { error: insertError } = await supabase
+    .from("event_interests")
+    .upsert(rows, { onConflict: "user_id,event_id", ignoreDuplicates: true });
+  if (insertError) throw new Error(`markGoingWithTeam: ${insertError.message}`);
+}
+
+export interface TeamMate {
+  id: string;
+  firstName: string;
+  /** Your pair page with them, when you have a mutual match. */
+  matchId: string | null;
+}
+
+export interface MyEvent {
+  id: string;
+  slug: string;
+  name: string;
+  startDate: string;
+  endDate: string;
+  /** looking: going and in the pool; have-team: going, left the pool; not-going: never tagged it. */
+  status: "looking" | "have-team" | "not-going";
+  askToKeepMatching: boolean;
+  /** Your teams for the event, without you. */
+  teams: { id: string; members: TeamMate[] }[];
+  /** Matches for the event who aren't on one of your teams for it. */
+  matchedNoTeam: EventMatch[];
+}
+
+export interface MyHackathons {
+  events: MyEvent[];
+  /** Teams with no event. */
+  sideProjects: { id: string; members: TeamMate[] }[];
+}
+
+/**
+ * Every upcoming event the user is involved in (tagged, on a team, or matched
+ * for it), soonest first, plus their side-project teams. A fixed handful of
+ * queries however many events or matches there are.
+ */
+export async function listMyEvents(userId: string): Promise<MyHackathons> {
+  const supabase = createServiceClient();
+  const [interests, matches, memberships] = await Promise.all([
+    supabase
+      .from("event_interests")
+      .select("event_id, left_pool_at, prompted_matches")
+      .eq("user_id", userId),
+    supabase
+      .from("matches")
+      .select("id, user_a, user_b, revealed_at")
+      .or(`user_a.eq.${userId},user_b.eq.${userId}`)
+      .not("revealed_at", "is", null)
+      .order("revealed_at"),
+    supabase.from("team_members").select("team_id, teams(id, event_id)").eq("user_id", userId),
+  ]);
+  for (const result of [interests, matches, memberships]) {
+    if (result.error) throw new Error(`listMyEvents: ${result.error.message}`);
+  }
+  const otherOf = (m: { user_a: string; user_b: string }) =>
+    m.user_a === userId ? m.user_b : m.user_a;
+  const matchIdWith = new Map(matches.data!.map((m) => [otherOf(m), m.id]));
+  const teams = memberships
+    .data!.map((row) => row.teams)
+    .filter((t): t is { id: string; event_id: string | null } => t !== null);
+
+  const [votes, teamMembers] = await Promise.all([
+    matches.data!.length
+      ? supabase
+          .from("match_event_votes")
+          .select("match_id, user_id, event_id")
+          .in(
+            "match_id",
+            matches.data!.map((m) => m.id),
+          )
+      : Promise.resolve({
+          data: [] as { match_id: string; user_id: string; event_id: string }[],
+          error: null,
+        }),
+    teams.length
+      ? supabase
+          .from("team_members")
+          .select("team_id, user_id")
+          .in(
+            "team_id",
+            teams.map((t) => t.id),
+          )
+      : Promise.resolve({ data: [] as { team_id: string; user_id: string }[], error: null }),
+  ]);
+  for (const result of [votes, teamMembers]) {
+    if (result.error) throw new Error(`listMyEvents: ${result.error.message}`);
+  }
+
+  // Matches for each event: both people picked it.
+  const pickedBy = new Map<string, Set<string>>();
+  for (const vote of votes.data!) {
+    const key = `${vote.match_id}:${vote.event_id}`;
+    pickedBy.set(key, (pickedBy.get(key) ?? new Set()).add(vote.user_id));
+  }
+  const eventMatchIds = new Map<string, string[]>();
+  for (const [key, users] of pickedBy) {
+    if (users.size < 2) continue;
+    const [matchId, eventId] = key.split(":") as [string, string];
+    eventMatchIds.set(eventId, [...(eventMatchIds.get(eventId) ?? []), matchId]);
+  }
+
+  const eventIds = [
+    ...new Set([
+      ...interests.data!.map((i) => i.event_id),
+      ...eventMatchIds.keys(),
+      ...teams.map((t) => t.event_id),
+    ]),
+  ].filter((id): id is string => !!id);
+  const peopleIds = [
+    ...new Set([
+      ...matches.data!.map(otherOf),
+      ...teamMembers.data!.map((m) => m.user_id).filter((id) => id !== userId),
+    ]),
+  ];
+  const today = localDateString(getConfig().APP_TIMEZONE);
+  const [events, people] = await Promise.all([
+    eventIds.length
+      ? supabase
+          .from("events")
+          .select("id, slug, name, start_date, end_date")
+          .in("id", eventIds)
+          .gte("end_date", today)
+          .order("start_date")
+      : Promise.resolve({
+          data: [] as {
+            id: string;
+            slug: string;
+            name: string;
+            start_date: string;
+            end_date: string;
+          }[],
+          error: null,
+        }),
+    peopleIds.length
+      ? supabase.from("users").select("id, name, cornell_email").in("id", peopleIds)
+      : Promise.resolve({
+          data: [] as { id: string; name: string | null; cornell_email: string }[],
+          error: null,
+        }),
+  ]);
+  for (const result of [events, people]) {
+    if (result.error) throw new Error(`listMyEvents: ${result.error.message}`);
+  }
+
+  const nameOf = (id: string) => {
+    const person = people.data!.find((p) => p.id === id);
+    return person ? firstName(person.name, person.cornell_email) : "Someone";
+  };
+  const teamOf = (team: { id: string }) => ({
+    id: team.id,
+    members: teamMembers
+      .data!.filter((m) => m.team_id === team.id && m.user_id !== userId)
+      .map((m) => ({
+        id: m.user_id,
+        firstName: nameOf(m.user_id),
+        matchId: matchIdWith.get(m.user_id) ?? null,
+      })),
+  });
+  const matchById = new Map(matches.data!.map((m) => [m.id, m]));
+
+  return {
+    events: events.data!.map((event) => {
+      const interest = interests.data!.find((i) => i.event_id === event.id);
+      const myTeams = teams.filter((t) => t.event_id === event.id).map(teamOf);
+      const onTeam = new Set(myTeams.flatMap((t) => t.members.map((m) => m.id)));
+      const eventMatches = (eventMatchIds.get(event.id) ?? [])
+        .map((id) => matchById.get(id)!)
+        .sort((x, y) => x.revealed_at!.localeCompare(y.revealed_at!));
+      const status = !interest ? "not-going" : interest.left_pool_at ? "have-team" : "looking";
+      return {
+        id: event.id,
+        slug: event.slug,
+        name: event.name,
+        startDate: event.start_date,
+        endDate: event.end_date,
+        status,
+        askToKeepMatching:
+          status === "looking" && eventMatches.length > (interest?.prompted_matches ?? 0),
+        teams: myTeams,
+        matchedNoTeam: eventMatches
+          .filter((m) => !onTeam.has(otherOf(m)))
+          .map((m) => ({ matchId: m.id, firstName: nameOf(otherOf(m)) })),
+      };
+    }),
+    sideProjects: teams.filter((t) => t.event_id === null).map(teamOf),
+  };
+}

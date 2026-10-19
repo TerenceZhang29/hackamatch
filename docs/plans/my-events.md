@@ -1,6 +1,6 @@
 # Plan: "Your hackathons" on the matches page
 
-Requested by the owner on 2026-10-19. Status: **plan, decided; not built**.
+Requested by the owner on 2026-10-19. Status: **built** (2026-10-19). `listMyEvents` and `markGoingWithTeam` are in `src/server/events.ts`, the section is `src/components/MyHackathons.tsx`, and the wording is `src/lib/my-events.ts`.
 
 ## The ask
 A section on `/matches` that shows, for every hackathon you're involved in, whether you're going, who you've matched with for it, and your team. No clicking into each mutual match to piece it together.

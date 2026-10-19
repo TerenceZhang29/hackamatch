@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { eventPoolAction } from "@/app/actions/event-pool";
-import type { EventMatch, EventPool } from "@/server/events";
+import { joinNames } from "@/lib/my-events";
+import type { EventPool } from "@/server/events";
 
 const primaryButton =
   "rounded-lg bg-neutral-900 px-4 py-2 font-medium text-white dark:bg-neutral-100 dark:text-neutral-900";
 const secondaryButton = "rounded-lg border border-neutral-300 px-4 py-2 dark:border-neutral-700";
 
 /** One button that posts a pool choice for an event. */
-function Choice({
+export function Choice({
   eventId,
   choice,
   returnTo,
@@ -33,14 +34,6 @@ function Choice({
       </button>
     </form>
   );
-}
-
-/** "Sofia", "Sofia and Omar", "Sofia, Omar and Lee". */
-export function joinNames(matches: EventMatch[]): string {
-  const names = matches.map((m) => m.firstName);
-  return names.length <= 1
-    ? (names[0] ?? "")
-    : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
 }
 
 /** Asked once per new match for an event: keep matching, or leave its pool. */
@@ -158,8 +151,8 @@ export function EventPoolPanel({
           className="flex flex-col gap-3 rounded-lg border border-amber-500 bg-amber-50 p-4 dark:bg-amber-950"
         >
           <p className="font-medium">
-            You&apos;ve matched with {joinNames(pool.matches)} for this event. Let them know
-            you&apos;re not going.
+            You&apos;ve matched with {joinNames(pool.matches.map((m) => m.firstName))} for this
+            event. Let them know you&apos;re not going.
           </p>
           <p className="text-sm text-neutral-600 dark:text-neutral-400">
             Your matches and contact details stay. You&apos;ll no longer count as going.

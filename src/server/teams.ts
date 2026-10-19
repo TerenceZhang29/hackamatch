@@ -4,6 +4,7 @@ import { getConfig } from "@/lib/config";
 import { coffeeChatTemplate } from "@/lib/llm/coffee-chat";
 import { createServiceClient } from "@/lib/supabase/service";
 import { localDateString } from "@/lib/time";
+import { markGoingWithTeam } from "./events";
 import { firstName, getMatch, getPairMatch, otherUserId, sideOf } from "./matches";
 
 /**
@@ -232,6 +233,8 @@ export async function teamUp(
   if (error) throw new Error(`teamUp: ${error.message}`);
   const row = data[0];
   if (!row) return null;
+  // Teaming up for an event means everyone on the team is going to it.
+  if (eventId) await markGoingWithTeam(await teamMemberIds(row.team_id), eventId);
   if (row.created) {
     await track("team_formed", { match_id: matchId, has_event: eventId !== null }, viewerId);
   }
@@ -276,5 +279,20 @@ export async function addTeamMember(
       { onConflict: "team_id,user_id", ignoreDuplicates: true },
     );
   if (error) throw new Error(`addTeamMember: ${error.message}`);
+  const { data: team } = await supabase
+    .from("teams")
+    .select("event_id")
+    .eq("id", teamId)
+    .maybeSingle();
+  if (team?.event_id) await markGoingWithTeam([invitee.id], team.event_id);
   return { ok: true };
+}
+
+async function teamMemberIds(teamId: string): Promise<string[]> {
+  const { data, error } = await createServiceClient()
+    .from("team_members")
+    .select("user_id")
+    .eq("team_id", teamId);
+  if (error) throw new Error(`teamMemberIds: ${error.message}`);
+  return data.map((row) => row.user_id).filter((id): id is string => id !== null);
 }

@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { MatchAnswerButtons } from "@/components/AnswerButtons";
 import { Chips } from "@/components/Card";
+import { MyHackathons } from "@/components/MyHackathons";
 import { Outcome } from "@/components/Outcome";
 import { requireOnboarded } from "@/lib/auth";
+import { listMyEvents } from "@/server/events";
 import { listMatchesForUser, type MatchListItem } from "@/server/matches";
 
 export const metadata: Metadata = { title: "Matches · HackaMatch" };
@@ -69,7 +71,10 @@ export default async function MatchesPage({
   const user = await requireOnboarded("/matches");
   const params = await searchParams;
   const welcome = params.welcome !== undefined;
-  const matches = await listMatchesForUser(user.id);
+  const [matches, hackathons] = await Promise.all([
+    listMatchesForUser(user.id),
+    listMyEvents(user.id),
+  ]);
 
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-8 px-4 py-12">
@@ -96,6 +101,7 @@ export default async function MatchesPage({
         </p>
       ) : null}
       <Outcome params={params} />
+      <MyHackathons data={hackathons} />
 
       {SECTIONS.map((section) => {
         const items = matches.filter((m) => m.section === section.key);
