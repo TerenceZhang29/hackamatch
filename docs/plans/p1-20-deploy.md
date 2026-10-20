@@ -25,7 +25,7 @@ Prices from each service's pricing page on 2026-10-14, except the domain, which 
 
 ### Questions to answer before Phase C
 
-1. ~~**Domain:** does the owner already have one to use, or does one need buying?~~ **For now, Vercel's free `vercel.app` address**, decided by the owner on 2026-10-14. Students cannot receive email until a domain is added; options and the switch-over steps are in [`domain-options.md`](./domain-options.md).
+1. ~~**Domain:** does the owner already have one to use, or does one need buying?~~ **For now, Vercel's free `vercel.app` address**, decided by the owner on 2026-10-14. Students cannot receive email until a domain is added; options and the switch-over steps are in [`domain-options.md`](./domain-options.md). **Bought 2026-10-19: `hackamatch.com`** (Cloudflare Registrar, about $10.46 a year).
 2. ~~**Supabase:** Free or Pro for the pilot?~~ **Free now, Pro if pausing between events becomes a risk**, decided by the owner on 2026-10-14.
 3. ~~**Resend:** start on Free and upgrade before launch day, or Pro from the start?~~ **Free now, Pro before launch day**, decided by the owner on 2026-10-14.
 4. ~~**Preview deployments:** a second Supabase project for them now, or no previews at first?~~ **No previews for now**, decided by the owner on 2026-10-14. Automatic preview deployments are turned off in Vercel (runbook step 3.3).

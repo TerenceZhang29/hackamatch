@@ -1,6 +1,6 @@
 # Domain options (to revisit)
 
-**Status: decided 2026-10-14, for now:** no domain is bought. The app runs on Vercel's free address, `<project>.vercel.app`. This page keeps the options so the question can be reopened before the pilot.
+**Status: bought 2026-10-19.** The owner bought `hackamatch.com` on Cloudflare Registrar (about $10.46 a year, same price on renewal, auto-renew on). The app and its email now use it; setup steps are in [`../runbooks/deploy.md`](../runbooks/deploy.md) §1 and §3.4. Until then (decided 2026-10-14) the app ran on `hackamatch.vercel.app`, which still works. The notes below are kept for reference.
 
 Prices below are typical figures from memory, **not checked** on 2026-10-14. Check the registrar's page, including the renewal price, before buying. Buying a domain is a charge and needs the owner's approval.
 

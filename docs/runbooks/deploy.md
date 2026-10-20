@@ -4,8 +4,8 @@ The checklist for P1-20. The plan, costs and the owner's decisions are in [`../p
 
 Placeholders used below:
 
-- `<domain>`: the app's address. For now Vercel's `<project>.vercel.app` (owner's decision 2026-10-14; see [`../plans/domain-options.md`](../plans/domain-options.md)), later a bought domain such as `match.example.com`. `APP_URL` is `https://<domain>`, with no trailing slash.
-- `<mail-domain>`: the domain email is sent from; usually the same as `<domain>`. It cannot be `vercel.app`: until a domain is bought, section 1 stops at the test sender, which reaches only the Resend account's own address.
+- `<domain>`: the app's address: `hackamatch.com` since 2026-10-19 (bought on Cloudflare; see [`../plans/domain-options.md`](../plans/domain-options.md)). `hackamatch.vercel.app` still serves the app. `APP_URL` is `https://<domain>`, with no trailing slash.
+- `<mail-domain>`: the domain email is sent from: `hackamatch.com`, sender `HackaMatch <hello@hackamatch.com>`. It cannot be `vercel.app`: before the domain, the test sender reached only the Resend account's own address.
 - `<project-ref>`: the Supabase project id, from its dashboard URL.
 
 ## 0. Before you start
@@ -16,12 +16,12 @@ Placeholders used below:
 
 ## 1. Email domain (Resend)
 
-1. [ ] Create the Resend account. **(cost: only if on Pro)**
-2. [ ] Add `<mail-domain>` in Resend → Domains. Add every DNS record it shows (SPF and DKIM) at your DNS provider.
-3. [ ] Add a DMARC record at your DNS provider: name `_dmarc.<mail-domain>`, type `TXT`, value `v=DMARC1; p=none; rua=mailto:<your address>`. Start with `p=none` so nothing is rejected while you check the reports.
-4. [ ] Wait until Resend shows the domain as verified.
-5. [ ] Create an API key with sending access, restricted to `<mail-domain>`. It is used twice: as `RESEND_API_KEY` in Vercel, and as the SMTP password in Supabase (step 2.5).
-6. [ ] Choose the sender, for example `HackaMatch <hello@<mail-domain>>`. This is `EMAIL_FROM`.
+1. [x] Create the Resend account. **(cost: only if on Pro)**
+2. [x] Add `<mail-domain>` in Resend → Domains. Add every DNS record it shows (SPF and DKIM) at your DNS provider, all **DNS only** on Cloudflare. Resend's Cloudflare auto-setup makes `send` a CNAME to Resend's mail host, which answers for the MX and SPF; that verifies too.
+3. [x] Add a DMARC record at your DNS provider: name `_dmarc.<mail-domain>`, type `TXT`, value `v=DMARC1; p=none; rua=mailto:<your address>`. Start with `p=none` so nothing is rejected while you check the reports. Production has `v=DMARC1; p=none;` with no `rua`; Cloudflare's free DMARC Management can add one and show the reports.
+4. [x] Wait until Resend shows the domain as verified.
+5. [x] Create an API key with sending access, restricted to `<mail-domain>`. It is used twice: as `RESEND_API_KEY` in Vercel, and as the SMTP password in Supabase (step 2.5).
+6. [x] Choose the sender, for example `HackaMatch <hello@<mail-domain>>`. This is `EMAIL_FROM`. Section 1 done 2026-10-19 for `hackamatch.com`; delete the old test-sender key once sign-ins work. The first emails from a new domain can arrive minutes late.
 
 ## 2. Database and sign-in (Supabase)
 
@@ -95,7 +95,7 @@ Placeholders used below:
 3. [ ] Preview deployments, per the owner's decision:
    - **No previews at first** (the owner's decision, 2026-10-14): `vercel.json` sets `git.deploymentEnabled` to `false` for every branch except `main`, so a branch push or pull request never builds. Nothing to change in the dashboard. Also scope every variable to **Production** only, so a manual preview deploy would fail at boot instead of running against production.
    - **With previews:** a second Supabase project with steps 2.2 to 2.9 repeated, and its own values under the **Preview** scope only. Preview builds also run with `NODE_ENV=production`, so they use real providers unless `LLM_PROVIDER`, `EMBEDDINGS_PROVIDER` and `EMAIL_PROVIDER` are set otherwise for Preview.
-4. [ ] Settings → Domains: skip while on `vercel.app`. With a bought domain, add `<domain>` and the DNS record Vercel shows.
+4. [x] Settings → Domains: add `<domain>` and `www.<domain>` (redirecting to `<domain>`), and the DNS records Vercel shows. On Cloudflare DNS set them to **DNS only** (grey cloud): the proxy breaks Vercel's certificate. Cloudflare flattens the CNAME on `@`. Done 2026-10-19; the certificate was issued in about 3 minutes.
 5. [ ] Deploy `main` (Deployments → Redeploy, or push to `main`). Watch the build log; a missing variable fails at boot with a list of what is missing.
 
 ## 4. Verify (the P1-20 acceptance criteria)
