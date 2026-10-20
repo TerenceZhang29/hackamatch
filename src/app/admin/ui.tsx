@@ -28,6 +28,9 @@ export function AdminShell({ title, children }: { title: string; children: React
         <Link href="/admin/matches" className="underline">
           Matches
         </Link>
+        <Link href="/admin/pilot" className="underline">
+          Pilot access
+        </Link>
         <Link href="/" className="ml-auto underline">
           Back to the app
         </Link>

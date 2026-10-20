@@ -4,7 +4,9 @@ import { z } from "zod";
 import { track } from "@/lib/analytics";
 import { isAllowedEmailDomain, normalizeEmail, sanitizeNext } from "@/lib/auth-helpers";
 import { getConfig } from "@/lib/config";
+import { PILOT_DENIED } from "@/lib/pilot";
 import { clientIp, LIMITS } from "@/lib/rate-limit";
+import { pilotCanSignIn } from "@/server/pilot";
 import { allow } from "@/server/rate-limit";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
@@ -67,6 +69,12 @@ export async function requestMagicLink(
       message: "Too many sign-in emails. Wait a while and try again.",
       email: typedEmail,
     };
+  }
+
+  // During the pilot, only listed netIDs may create an account. Checked after
+  // the rate limit, so the list can't be probed quickly.
+  if (!(await pilotCanSignIn(email))) {
+    return { status: "error", message: PILOT_DENIED, email: typedEmail };
   }
 
   // `next` is always present, even when empty: the email templates append

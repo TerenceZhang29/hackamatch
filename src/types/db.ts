@@ -67,6 +67,7 @@ export type Database = {
         Row: {
           allowed_email_domains: string[];
           id: boolean;
+          pilot_only: boolean;
           show_demo: boolean;
           updated_at: string;
         };
@@ -74,12 +75,14 @@ export type Database = {
         Insert: {
           allowed_email_domains?: string[];
           id?: boolean;
+          pilot_only?: boolean;
           show_demo?: boolean;
           updated_at?: string;
         };
         Update: {
           allowed_email_domains?: string[];
           id?: boolean;
+          pilot_only?: boolean;
           show_demo?: boolean;
           updated_at?: string;
         };
@@ -524,6 +527,22 @@ export type Database = {
           },
         ];
       };
+      pilot_access: {
+        Row: {
+          added_at: string;
+          netid: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          added_at?: string;
+          netid: string;
+        };
+        Update: {
+          added_at?: string;
+          netid?: string;
+        };
+        Relationships: [];
+      };
       profiles: {
         Row: {
           domains: string[];
@@ -868,6 +887,7 @@ export type Database = {
       is_admin: { Args: Record<PropertyKey, never>; Returns: boolean };
       is_organizer: { Args: Record<PropertyKey, never>; Returns: boolean };
       is_team_member: { Args: { p_team_id: string }; Returns: boolean };
+      pilot_can_sign_in: { Args: { p_email: string }; Returns: boolean };
       public_board_ideas: {
         Args: {
           p_domain?: string;

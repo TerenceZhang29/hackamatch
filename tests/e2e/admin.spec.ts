@@ -37,6 +37,7 @@ test("every admin page is a 404 for a member who is not an admin", async ({ page
     "/admin/ideas",
     "/admin/events",
     "/admin/matches",
+    "/admin/pilot",
   ]) {
     const response = await page.goto(path);
     expect(response!.status(), path).toBe(404);

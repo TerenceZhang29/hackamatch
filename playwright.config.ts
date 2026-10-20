@@ -14,8 +14,16 @@ export default defineConfig({
     trace: "retain-on-failure",
   },
   projects: [
-    { name: "chromium", use: { ...devices["Desktop Chrome"] } },
-    { name: "mobile", use: { ...devices["Pixel 7"] } },
+    { name: "chromium", use: { ...devices["Desktop Chrome"] }, testIgnore: /pilot\.spec\.ts/ },
+    { name: "mobile", use: { ...devices["Pixel 7"] }, testIgnore: /pilot\.spec\.ts/ },
+    // The pilot gate is one switch for the whole app, so its tests run alone,
+    // after every other test, and turn it off again.
+    {
+      name: "pilot",
+      use: { ...devices["Desktop Chrome"] },
+      testMatch: /pilot\.spec\.ts/,
+      dependencies: ["chromium", "mobile"],
+    },
   ],
   webServer: {
     command: process.env.CI ? `pnpm start --port ${PORT}` : `pnpm dev --port ${PORT}`,

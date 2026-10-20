@@ -14,6 +14,8 @@ import {
   setIdeaStatusAsAdmin,
   setOrganizer,
 } from "@/server/admin";
+import { parseNetIds } from "@/lib/pilot";
+import { addPilotNetIds, removePilotNetId, setPilotOnly } from "@/server/pilot";
 import { setPausedUntil } from "@/server/profiles";
 
 const form = (data: FormData) => Object.fromEntries(data);
@@ -157,4 +159,31 @@ export async function createMatchAction(data: FormData) {
   revalidatePath("/admin/matches");
   if (!result.ok) redirect("/admin/matches?error=" + encodeURIComponent(result.error));
   redirect("/admin/matches?created=1");
+}
+
+export async function togglePilotOnly(data: FormData) {
+  await requireAdmin();
+  const { value } = z.object({ value: z.enum(["true", "false"]) }).parse(form(data));
+  await setPilotOnly(value === "true");
+  revalidatePath("/admin/pilot");
+}
+
+export async function addPilotAccess(data: FormData) {
+  await requireAdmin();
+  const { netids } = z.object({ netids: z.string().max(20_000) }).parse(form(data));
+  const { netIds, invalid } = parseNetIds(netids);
+  await addPilotNetIds(netIds);
+  revalidatePath("/admin/pilot");
+  const added = `${netIds.length} added`;
+  const params: Record<string, string> = invalid.length
+    ? { error: `${added}. Couldn't read: ${invalid.slice(0, 10).join(", ")}` }
+    : { saved: added };
+  redirect(`/admin/pilot?${new URLSearchParams(params)}`);
+}
+
+export async function removePilotAccess(data: FormData) {
+  await requireAdmin();
+  const { netid } = z.object({ netid: z.string().regex(/^[a-z0-9-]{2,40}$/) }).parse(form(data));
+  await removePilotNetId(netid);
+  revalidatePath("/admin/pilot");
 }
