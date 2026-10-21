@@ -43,7 +43,7 @@ test("A says Interested on B's idea, B gets an email, B says Interested, both ar
     sentence: "A mobile app that helps nurses swap shifts with a backend for hospitals",
   });
   const builder = await member(browser, {
-    role: "I can build",
+    role: "I want to find an idea to build",
     sentence: "I build React apps for health",
   });
   try {
@@ -107,7 +107,10 @@ test("A says Interested on B's idea, B gets an email, B says Interested, both ar
 });
 
 test("Pass hides the person and sends nothing", async ({ browser }) => {
-  const viewer = await member(browser, { role: "I can build", sentence: "I build Go backends" });
+  const viewer = await member(browser, {
+    role: "I want to find an idea to build",
+    sentence: "I build Go backends",
+  });
   try {
     const target = newEmail();
     // A unique first name: the same test on the other device makes its own target at once.
@@ -126,7 +129,10 @@ test("Pass hides the person and sends nothing", async ({ browser }) => {
 });
 
 test("the 16th Interested in a day is refused", async ({ browser }) => {
-  const viewer = await member(browser, { role: "I can build", sentence: "I build Go backends" });
+  const viewer = await member(browser, {
+    role: "I want to find an idea to build",
+    sentence: "I build Go backends",
+  });
   try {
     const [{ id }] = (await query<{ id: string }>(
       `select id from public.users where cornell_email = $1`,
@@ -153,7 +159,10 @@ test("the 16th Interested in a day is refused", async ({ browser }) => {
 test("after 3 interest emails in a day, more interest waits on /matches without email", async ({
   browser,
 }) => {
-  const viewer = await member(browser, { role: "I can build", sentence: "I build Go backends" });
+  const viewer = await member(browser, {
+    role: "I want to find an idea to build",
+    sentence: "I build Go backends",
+  });
   try {
     const target = newEmail();
     const targetId = await createUser(target, { name: "Popular Person" });
@@ -181,7 +190,10 @@ test("after 3 interest emails in a day, more interest waits on /matches without 
 });
 
 test("the board's Interested works without JavaScript", async ({ browser }) => {
-  const viewer = await member(browser, { role: "I can build", sentence: "I build Go backends" });
+  const viewer = await member(browser, {
+    role: "I want to find an idea to build",
+    sentence: "I build Go backends",
+  });
   const target = newEmail();
   const targetId = await createUser(target, { name: "No Script" });
   const cookies = await viewer.page.context().cookies();

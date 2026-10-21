@@ -86,7 +86,7 @@ test("a new user arriving from the event link finishes onboarding with the event
 
   await signIn(page, email, page.url().replace(/^https?:\/\/[^/]+/, ""));
   await expect(page).toHaveURL(`/onboarding?next=${encodeURIComponent(`/e/${SLUG}?join=1`)}`);
-  await page.getByRole("button", { name: "I can build" }).click();
+  await page.getByRole("button", { name: "I want to find an idea to build" }).click();
   await page.getByRole("button", { name: "Continue" }).click();
   await page.getByRole("textbox").first().fill("I build React apps for health");
   await page.getByRole("button", { name: "Continue" }).click();
@@ -104,7 +104,7 @@ test("a new user arriving from the event link finishes onboarding with the event
 test("a member can say they're in, and change their mind", async ({ page }) => {
   const email = newEmail();
   await signIn(page, email);
-  await onboard(page, { role: "I can build", sentence: "I build Go backends" });
+  await onboard(page, { role: "I want to find an idea to build", sentence: "I build Go backends" });
   await expect(page).toHaveURL("/matches?welcome=1");
 
   await page.goto(`/e/${SLUG}`);
@@ -161,7 +161,7 @@ test("/events lists upcoming hackathons only, and links to each event page", asy
 test("/events marks the events a member is going to", async ({ page }) => {
   const email = newEmail();
   await signIn(page, email);
-  await onboard(page, { role: "I can build", sentence: "I build Go backends" });
+  await onboard(page, { role: "I want to find an idea to build", sentence: "I build Go backends" });
   await expect(page).toHaveURL("/matches?welcome=1");
 
   // Not the Fall Hack: a new builder there could push seeded cards off its page in parallel tests.

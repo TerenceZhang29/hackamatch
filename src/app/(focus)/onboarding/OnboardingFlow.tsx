@@ -6,18 +6,24 @@ import { TagEditor, type TagGroup, type TagValues } from "@/components/TagEditor
 import { buttonClass } from "@/components/ui/Button";
 import { FieldError, inputClass, labelClass } from "@/components/ui/Field";
 import { LINKEDIN_TEXT_MAX } from "@/lib/imports/linkedin";
-import { IDEA_OR_SKILL_REQUIRED, onboardingOutcome, QUICK_SKILLS } from "@/lib/onboarding";
+import { BLOCK_MESSAGES, onboardingOutcome, QUICK_SKILLS } from "@/lib/onboarding";
 import { tagLabel } from "@/lib/taxonomy/labels";
-import { joinPool, submitSentence } from "./actions";
+import {
+  joinPool,
+  onboardingStatus,
+  submitSentence,
+  switchToBuilder,
+  type SentenceResult,
+} from "./actions";
 import { ANSWER_MAX, SENTENCE_MAX, type INTENTS, type ROLES } from "./schema";
 
 type Role = (typeof ROLES)[number];
 type Intent = (typeof INTENTS)[number];
 
-const ROLE_OPTIONS: { value: Role; label: string }[] = [
+/** The two sign-up routes (P1-22). "both" is set later, in settings or by posting an idea. */
+const ROUTE_OPTIONS: { value: "idea" | "builder"; label: string }[] = [
   { value: "idea", label: "I have an idea" },
-  { value: "builder", label: "I can build" },
-  { value: "both", label: "Both" },
+  { value: "builder", label: "I want to find an idea to build" },
 ];
 
 const INTENT_OPTIONS: { value: Intent; label: string }[] = [
@@ -50,6 +56,9 @@ const smallChip = (on: boolean) =>
     on ? "bg-accent text-accent-ink" : "bg-surface text-ink hover:bg-surface-2"
   }`;
 
+const quickToggle = (list: readonly string[], slug: string) =>
+  list.includes(slug) ? list.filter((s) => s !== slug) : [...list, slug];
+
 export interface OnboardingInitial {
   name: string;
   role: Role | null;
@@ -62,6 +71,8 @@ type Extracted =
       status: "ok";
       summary: string | null;
       idea: { id: string; pitch: string | null; question: string | null } | null;
+      /** A builder's sentence also described an idea, saved as a draft. */
+      draft: boolean;
     }
   | { status: "pending" };
 
@@ -80,7 +91,8 @@ export function OnboardingFlow({
   suggestions: Record<TagGroup, string[]>;
 }) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
-  const [role, setRole] = useState<Role | null>(initial.role);
+  // Only the two routes are offered; an older "both" starts unchosen.
+  const [role, setRole] = useState<Role | null>(initial.role === "both" ? null : initial.role);
   const [intents, setIntents] = useState<Intent[]>(
     initial.intents.length ? initial.intents : ["hackathon"],
   );
@@ -96,6 +108,8 @@ export function OnboardingFlow({
   const [picks, setPicks] = useState<string[]>([]);
   const [eventIds, setEventIds] = useState<string[]>(initialEventIds);
   const [answer, setAnswer] = useState("");
+  /** "Check again" came back still waiting: offer the builder route (idea route only). */
+  const [retryFailed, setRetryFailed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -123,30 +137,64 @@ export function OnboardingFlow({
         setError(result.message);
         return;
       }
-      if (result.status === "ok") {
-        const { summary, tags: inferred, idea } = result.result;
-        setTags({ ...inferred, skills: [...new Set([...inferred.skills, ...picks])] });
-        setExtracted({
-          status: "ok",
-          summary,
-          idea: idea
-            ? { id: idea.id, pitch: idea.pitch, question: idea.clarifying_question }
-            : null,
-        });
-      } else {
-        setTags({ skills: picks, stack: [], domains: [] });
-        setExtracted({ status: "pending" });
-      }
+      setRetryFailed(false);
+      applyReading(result, picks);
       setStep(3);
     });
   }
 
-  // The idea-or-skill rule (P1-21), judged once tags are in; while they're
-  // still coming in the background, joining stays open.
-  const ideaFound = extracted?.status === "ok" && extracted.idea !== null;
+  /** Shows a finished reading (merging in any picked skills), or "still reading". */
+  function applyReading(result: Exclude<SentenceResult, { status: "error" }>, picked: string[]) {
+    if (result.status === "ok") {
+      const { summary, tags: inferred, idea, draft } = result.result;
+      setTags({ ...inferred, skills: [...new Set([...inferred.skills, ...picked])] });
+      setExtracted({
+        status: "ok",
+        summary,
+        idea: idea ? { id: idea.id, pitch: idea.pitch, question: idea.clarifying_question } : null,
+        draft,
+      });
+    } else {
+      setTags((current) => ({ ...current, skills: [...new Set([...current.skills, ...picked])] }));
+      setExtracted({ status: "pending" });
+    }
+  }
+
+  function checkAgain() {
+    setError(null);
+    startTransition(async () => {
+      const result = await onboardingStatus();
+      if (result.status === "error") return setError(result.message);
+      applyReading(result, tags.skills);
+      if (result.status === "pending") setRetryFailed(true);
+    });
+  }
+
+  function joinAsBuilder() {
+    setError(null);
+    startTransition(async () => {
+      const result = await switchToBuilder();
+      if (result.ok) setRole("builder");
+    });
+  }
+
+  function toggleSkill(slug: string) {
+    setError(null);
+    setTags((current) => ({ ...current, skills: quickToggle(current.skills, slug) }));
+  }
+
+  // The route's rule (P1-22): the idea route needs an idea, the builder
+  // route a skill. The server checks the same in joinPool.
   const outcome =
-    role && extracted?.status === "ok" ? onboardingOutcome(role, ideaFound, tags) : null;
+    role && extracted
+      ? onboardingOutcome(role, {
+          extracted: extracted.status === "ok",
+          hasIdea: extracted.status === "ok" && extracted.idea !== null,
+          tags,
+        })
+      : null;
   const blocked = outcome !== null && !outcome.ok;
+  const reason = outcome && !outcome.ok ? outcome.reason : null;
 
   function submitStep3(event: React.FormEvent) {
     event.preventDefault();
@@ -187,9 +235,11 @@ export function OnboardingFlow({
         >
           <h1 className="text-2xl font-bold tracking-tight">Who are you?</h1>
           <fieldset className="flex flex-col gap-2">
-            <legend className="mb-2 text-sm font-medium">I&apos;m here because…</legend>
+            <legend className="mb-2 text-sm font-medium">
+              Do you have an idea, or do you want to find one to build?
+            </legend>
             <div className="flex flex-wrap gap-2">
-              {ROLE_OPTIONS.map((option) => (
+              {ROUTE_OPTIONS.map((option) => (
                 <button
                   key={option.value}
                   type="button"
@@ -201,6 +251,9 @@ export function OnboardingFlow({
                 </button>
               ))}
             </div>
+            <p className="text-sm text-muted">
+              You can change this later in settings. Once you&apos;ve joined, you can do both.
+            </p>
           </fieldset>
           <fieldset className="flex flex-col gap-2">
             <legend className="mb-2 text-sm font-medium">Looking for a…</legend>
@@ -256,14 +309,12 @@ export function OnboardingFlow({
             aria-describedby={error ? "onboarding-error" : undefined}
             className={inputClass}
           />
-          <QuickSkills
-            selected={picks}
-            onToggle={(slug) =>
-              setPicks((current) =>
-                current.includes(slug) ? current.filter((s) => s !== slug) : [...current, slug],
-              )
-            }
-          />
+          {role === "builder" ? (
+            <QuickSkills
+              selected={picks}
+              onToggle={(slug) => setPicks((current) => quickToggle(current, slug))}
+            />
+          ) : null}
           <details className="rounded-2xl bg-surface px-4 py-3">
             <summary className="cursor-pointer text-sm font-medium">
               Or import from GitHub or LinkedIn
@@ -358,31 +409,66 @@ export function OnboardingFlow({
                 </div>
               ) : null}
             </>
-          ) : (
-            <p role="status" className="text-muted">
-              We&apos;ll fill in your tags in a moment. You can join now and edit them later.
-            </p>
-          )}
-          {outcome?.ok && role !== "builder" && !ideaFound ? (
-            <p className="text-sm text-muted">No idea found, so you&apos;ll join as a builder.</p>
           ) : null}
-          {blocked ? (
+          {extracted.status === "ok" && extracted.draft && role === "builder" ? (
+            <p className="rounded-2xl bg-accent-soft p-4 text-sm">
+              We found an idea in your sentence too. It&apos;s saved as a draft that only you can
+              see: check it and post it after you join.
+            </p>
+          ) : null}
+          {reason === "pending-idea" ? (
+            <div className="flex flex-col gap-3 rounded-2xl bg-surface p-4">
+              <p role="status" className="text-sm font-medium">
+                {retryFailed
+                  ? "We still can't read your idea. The AI is slow right now."
+                  : BLOCK_MESSAGES["pending-idea"]}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={checkAgain}
+                  disabled={pending}
+                  className={buttonClass("outline", "md")}
+                >
+                  Check again
+                </button>
+                {retryFailed ? (
+                  <button
+                    type="button"
+                    onClick={joinAsBuilder}
+                    disabled={pending}
+                    className={buttonClass("primary", "md")}
+                  >
+                    Join as a builder instead
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+          {reason === "no-idea" ? (
+            <p
+              role="alert"
+              className="rounded-2xl bg-danger-soft p-4 text-sm font-medium text-danger-ink"
+            >
+              {BLOCK_MESSAGES["no-idea"]}
+            </p>
+          ) : null}
+          {reason === "no-skill" || reason === "pending-builder" ? (
             <div className="flex flex-col gap-3 rounded-2xl bg-danger-soft p-4">
               <p role="alert" className="text-sm font-medium text-danger-ink">
-                {IDEA_OR_SKILL_REQUIRED}
+                {BLOCK_MESSAGES[reason]}
               </p>
-              <QuickSkills
-                selected={tags.skills}
-                onToggle={(slug) => {
-                  setError(null);
-                  setTags((current) => ({
-                    ...current,
-                    skills: current.skills.includes(slug)
-                      ? current.skills.filter((s) => s !== slug)
-                      : [...current.skills, slug],
-                  }));
-                }}
-              />
+              <QuickSkills selected={tags.skills} onToggle={toggleSkill} />
+              {reason === "pending-builder" ? (
+                <button
+                  type="button"
+                  onClick={checkAgain}
+                  disabled={pending}
+                  className={buttonClass("outline", "md", "self-start")}
+                >
+                  Check again
+                </button>
+              ) : null}
             </div>
           ) : null}
           <TagEditor value={tags} onChange={setTags} suggestions={suggestions} />

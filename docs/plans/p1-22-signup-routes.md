@@ -1,6 +1,6 @@
 # P1-22: two sign-up routes, idea or builder
 
-Requested by the owner on 2026-10-21. Status: **plan; not built.** It replaces P1-21's "no idea means builder" rule and its unbuilt follow-up ([`p1-21-idea-or-skill.md`](./p1-21-idea-or-skill.md)).
+Requested by the owner on 2026-10-21. Status: **built and tested locally (2026-10-22)**, including the live prompt test (`2026-10-22.2`, all 10 cases pass; `docs/PROMPT_TUNING.md`). The production migration and the push need the owner's approval. It replaces P1-21's "no idea means builder" rule and its unbuilt follow-up ([`p1-21-idea-or-skill.md`](./p1-21-idea-or-skill.md)).
 
 ## The owner's rules (2026-10-21)
 - At sign-up, each person is first asked whether they have an idea or want to find one to build, and picks **one route**: **I have an idea** or **I want to find an idea to build** (builder).
@@ -71,6 +71,11 @@ Requested by the owner on 2026-10-21. Status: **plan; not built.** It replaces P
 - **Deploy window:** someone halfway through sign-up when the new version ships may still send `role: both` from the old page. `joinPool` accepts `both` for that window and judges it by P1-21's rule (an idea or a skill).
 - **Existing users and data:** they're unchanged. `both`, demo profiles and the Phase 0 import keep working, and `createIdea`'s "builder becomes both" stays.
 - **Tests:** about six e2e tests onboard as "Both" or depend on the current step 1, and change with it. The pilot gate, demo safety, email and the event-pool features aren't touched.
+
+## Built (2026-10-22): notes
+- **Picked skills while the AI is still reading** are saved without marking the tags hand-edited, and the later reading adds its tags to them. Otherwise a builder who joined early would never get their tags. A new sentence clears the old tags along with the old reading.
+- **A reading for a sentence that's since been replaced** is thrown away (`runProfileExtraction` checks `raw_bio` again before saving an idea).
+- **The idea's fate follows the role at save time,** so a reading that finishes after "Join as a builder instead" saves the idea as a draft.
 
 ## Order of work
 1. The migration (`draft` and `public_idea`) and the server rule (`onboardingOutcome`, `checkJoin`, `joinPool`), with the P1-21 role change removed.

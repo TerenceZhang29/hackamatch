@@ -43,7 +43,7 @@ export async function signInOnboarded(page: Page, email: string) {
 /** Goes through onboarding in the UI with the given answers. */
 export async function onboard(
   page: Page,
-  answers: { role: "I have an idea" | "I can build" | "Both"; sentence: string },
+  answers: { role: "I have an idea" | "I want to find an idea to build"; sentence: string },
 ) {
   await page.getByRole("button", { name: answers.role }).click();
   await page.getByRole("button", { name: "Continue" }).click();

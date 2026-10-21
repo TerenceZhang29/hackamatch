@@ -121,11 +121,12 @@ function fakeProfile(prompt: string) {
     .filter(Boolean)
     .join(" ");
 
+  // An idea person's whole sentence is the idea; anyone else's only when it
+  // names a product (a builder's is kept as a private draft, P1-22).
   const describesProduct =
     role === "idea"
       ? wordCount(sentence) >= 3
-      : role === "both" &&
-        /\b(app|platform|tool|website|site|marketplace|bot|chatbot|service|dashboard|extension|network|map|game|plugin|idea|want to build|that helps)\b/i.test(
+      : /\b(app|platform|tool|website|site|marketplace|bot|chatbot|service|dashboard|extension|network|map|game|plugin|idea|want to build|that helps)\b/i.test(
           sentence,
         );
 

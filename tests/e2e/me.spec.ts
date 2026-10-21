@@ -15,7 +15,7 @@ test.afterEach(async () => {
 
 async function newOnboardedUser(
   page: Page,
-  role: "I have an idea" | "I can build",
+  role: "I have an idea" | "I want to find an idea to build",
   sentence: string,
 ) {
   const email = newEmail();
@@ -35,7 +35,11 @@ const profileOf = async (email: string) =>
   )[0]!;
 
 test("edited tags survive a later sentence change", async ({ page }) => {
-  const email = await newOnboardedUser(page, "I can build", "I build React apps for health");
+  const email = await newOnboardedUser(
+    page,
+    "I want to find an idea to build",
+    "I build React apps for health",
+  );
   await page.goto("/me");
   await expect(page.getByRole("heading", { name: "Your profile" })).toBeVisible();
 
@@ -64,7 +68,11 @@ test("edited tags survive a later sentence change", async ({ page }) => {
 });
 
 test("the full name is shown and can be changed or cleared", async ({ page }) => {
-  const email = await newOnboardedUser(page, "I can build", "I build Rust command-line tools");
+  const email = await newOnboardedUser(
+    page,
+    "I want to find an idea to build",
+    "I build Rust command-line tools",
+  );
   const nameOf = async () =>
     (
       await query<{ name: string | null; shown: string }>(
@@ -97,7 +105,11 @@ test("the full name is shown and can be changed or cleared", async ({ page }) =>
 test("pausing takes the user off the board and out of the pool, and resuming brings them back", async ({
   page,
 }) => {
-  const email = await newOnboardedUser(page, "I can build", "I build Go backends");
+  const email = await newOnboardedUser(
+    page,
+    "I want to find an idea to build",
+    "I build Go backends",
+  );
   const inPool = async () =>
     (
       await query<{ pool: boolean; board: boolean }>(
@@ -202,7 +214,7 @@ test("deleting the account removes every row and signs out", async ({ page }) =>
 });
 
 test("/me has no horizontal scroll", async ({ page }) => {
-  await newOnboardedUser(page, "I can build", "I build iOS apps in Swift");
+  await newOnboardedUser(page, "I want to find an idea to build", "I build iOS apps in Swift");
   await page.goto("/me");
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,

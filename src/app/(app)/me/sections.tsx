@@ -1,6 +1,7 @@
 "use client";
 
 import { buttonClass } from "@/components/ui/Button";
+import { Chip } from "@/components/ui/Chip";
 import { inputClass } from "@/components/ui/Field";
 import Link from "next/link";
 import { useState, useTransition } from "react";
@@ -281,7 +282,7 @@ export interface IdeaRow {
   id: string;
   pitch: string | null;
   raw_text: string;
-  status: "open" | "filled" | "archived";
+  status: "open" | "filled" | "archived" | "draft";
 }
 
 const STATUS_LABELS = { open: "Open", filled: "Filled", archived: "Archived" } as const;
@@ -297,6 +298,31 @@ export function IdeasSection({ ideas }: { ideas: IdeaRow[] }) {
 }
 
 function IdeaItem({ idea }: { idea: IdeaRow }) {
+  // A draft is posted or discarded on its own page (P1-22), not here.
+  if (idea.status === "draft") {
+    return (
+      <li className="flex flex-col gap-2 rounded-xl bg-bg p-3">
+        <Link href={`/ideas/${idea.id}`} className="font-medium hover:underline">
+          {idea.pitch ?? idea.raw_text}
+        </Link>
+        <p className="flex flex-wrap items-center gap-2 text-sm text-muted">
+          <Chip tone="idea">Draft</Chip>
+          Only you can see it.{" "}
+          <Link href={`/ideas/${idea.id}`} className="underline">
+            Check it and post it
+          </Link>
+        </p>
+      </li>
+    );
+  }
+  return <IdeaStatusItem idea={{ ...idea, status: idea.status }} />;
+}
+
+function IdeaStatusItem({
+  idea,
+}: {
+  idea: IdeaRow & { status: Exclude<IdeaRow["status"], "draft"> };
+}) {
   const [status, setStatus] = useState(idea.status);
   const action = useAction();
   return (

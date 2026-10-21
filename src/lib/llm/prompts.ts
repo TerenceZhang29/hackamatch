@@ -10,7 +10,7 @@ import { slugsOf } from "@/lib/taxonomy/skills";
  * summary openings) are listed in the backlog in docs/PROMPT_TUNING.md. Notes
  * about the input in public text (B2) are also caught in code (vague.ts).
  */
-export const PROMPT_VERSION = "2026-10-21.1";
+export const PROMPT_VERSION = "2026-10-22.2";
 
 export const PROFILE_TOOL = "record_profile";
 export const IDEA_TOOL = "record_idea";
@@ -55,7 +55,7 @@ For the person:
 - skills, stack, domains: only what the text states. A named framework implies its skill (React implies frontend), but never add a stack tag the text does not name (React does not add javascript). Do not pad.
 - skills and stack are what the person says they can do. Wanting to build something is not a skill: what an idea needs goes only in the idea's skills_needed, so an idea person who names no skills has empty skills and stack. A job title or role does state a skill: a web developer can do frontend, an ML engineer ml.
 - experience_level: "beginner", "intermediate" or "advanced", inferred from evidence such as years, shipped projects or repositories. Use "intermediate" when unclear.
-- idea: null unless the role is "idea" or "both" and the text names a specific thing the person wants to build ("an app that...", "a tool for..."). Skills, a job title, an interest in an area ("likes climate projects") or a cause or goal with no product named ("wants to improve public transit") are not an idea: return null. Placeholder or empty wording ("tbd", "something", "an app") is not an idea either: return null. Never invent an idea the person did not describe.
+- idea: null unless the text names a specific thing the person wants to build ("an app that...", "a tool for..."). Skills, a job title, an interest in an area ("likes climate projects") or a cause or goal with no product named ("wants to improve public transit") are not an idea: return null. Placeholder or empty wording ("tbd", "something", "an app") is not an idea either: return null. Never invent an idea the person did not describe.
 
 ${IDEA_RULES}
 

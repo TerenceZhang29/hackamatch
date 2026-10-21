@@ -40,7 +40,10 @@ test("two students go from sign-up to a team", async ({ browser }) => {
 
     const sofiaPage = await sofia.newPage();
     await signIn(sofiaPage, sofiaEmail);
-    await onboard(sofiaPage, { role: "I can build", sentence: "I build React apps for health" });
+    await onboard(sofiaPage, {
+      role: "I want to find an idea to build",
+      sentence: "I build React apps for health",
+    });
     await expect(sofiaPage).toHaveURL("/matches?welcome=1");
 
     // Sofia finds Maya's idea on the board, filtered to her skill.

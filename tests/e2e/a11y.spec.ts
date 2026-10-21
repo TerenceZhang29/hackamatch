@@ -145,7 +145,10 @@ test("member pages", async ({ page }) => {
 test("admin pages", async ({ page }) => {
   const email = newEmail();
   await signIn(page, email);
-  await onboard(page, { role: "I can build", sentence: "I run HackaMatch and build backends" });
+  await onboard(page, {
+    role: "I want to find an idea to build",
+    sentence: "I run HackaMatch and build backends",
+  });
   await expect(page).toHaveURL("/matches?welcome=1");
   await query(`update public.users set is_admin = true where cornell_email = $1`, [email]);
   for (const path of [

@@ -46,9 +46,64 @@ export async function setIdeaStatus(
     .update({ status })
     .eq("id", ideaId)
     .eq("owner_id", userId)
+    // A draft is posted or discarded, never changed here (P1-22).
+    .neq("status", "draft")
     .select("id");
   if (error) throw new Error(`setIdeaStatus: ${error.message}`);
   return data.length === 1;
+}
+
+/**
+ * Posts a draft idea (P1-22): it becomes open, and a builder who posts one
+ * becomes "both", as with createIdea. The caller embeds it. False when it
+ * isn't the user's draft.
+ */
+export async function publishDraft(userId: string, ideaId: string): Promise<boolean> {
+  const supabase = createServiceClient();
+  const { data, error } = await supabase
+    .from("ideas")
+    .update({ status: "open" })
+    .eq("id", ideaId)
+    .eq("owner_id", userId)
+    .eq("status", "draft")
+    .select("id");
+  if (error) throw new Error(`publishDraft: ${error.message}`);
+  if (data.length !== 1) return false;
+
+  const { error: roleError } = await supabase
+    .from("users")
+    .update({ role: "both" })
+    .eq("id", userId)
+    .eq("role", "builder");
+  if (roleError) throw new Error(`publishDraft: ${roleError.message}`);
+  return true;
+}
+
+/** Deletes a draft idea. False when it isn't the user's draft. */
+export async function discardDraft(userId: string, ideaId: string): Promise<boolean> {
+  const { data, error } = await createServiceClient()
+    .from("ideas")
+    .delete()
+    .eq("id", ideaId)
+    .eq("owner_id", userId)
+    .eq("status", "draft")
+    .select("id");
+  if (error) throw new Error(`discardDraft: ${error.message}`);
+  return data.length === 1;
+}
+
+/** The user's newest draft idea, for the welcome notice. */
+export async function latestDraftId(userId: string): Promise<string | null> {
+  const { data, error } = await createServiceClient()
+    .from("ideas")
+    .select("id")
+    .eq("owner_id", userId)
+    .eq("status", "draft")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new Error(`latestDraftId: ${error.message}`);
+  return data?.id ?? null;
 }
 
 export type IdeaScope = Enums<"idea_scope">;

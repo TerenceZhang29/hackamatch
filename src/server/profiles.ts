@@ -32,7 +32,10 @@ export interface OnboardingIdea {
 export interface ExtractionResult {
   summary: string | null;
   tags: ProfileTags;
+  /** An open idea: the idea route's first idea. */
   idea: OnboardingIdea | null;
+  /** A builder's sentence also described an idea, saved as a draft (P1-22). */
+  draft: boolean;
 }
 
 /** Maps tags onto the taxonomy, so hand-edited tags obey the same vocabulary as LLM tags. */
@@ -84,8 +87,25 @@ export async function saveOnboardingBasics(
   // An empty name field never erases a name we already have.
   if (input.name) update.name = input.name;
 
-  const { error } = await supabase.from("users").update(update).eq("id", userId);
+  const { data: saved, error } = await supabase
+    .from("users")
+    .update(update)
+    .eq("id", userId)
+    .select("onboarded_at")
+    .single();
   if (error) throw new Error(`saveOnboardingBasics: ${error.message}`);
+
+  // A new sentence or route makes the earlier reading stale: until the new
+  // one finishes, joining is judged as "still reading" (P1-22).
+  if (!saved.onboarded_at) {
+    const { error: clearError } = await supabase
+      .from("profiles")
+      .update({ extracted_at: null, skills: [], stack: [], domains: [], user_edited: false })
+      .eq("user_id", userId);
+    if (clearError) throw new Error(`saveOnboardingBasics: ${clearError.message}`);
+    const { error: ideaError } = await supabase.from("ideas").delete().eq("owner_id", userId);
+    if (ideaError) throw new Error(`saveOnboardingBasics: ${ideaError.message}`);
+  }
 
   const { error: profileError } = await supabase
     .from("profiles")
@@ -97,15 +117,18 @@ export async function saveOnboardingBasics(
 /**
  * Runs LLM extraction on the user's stored sentence and writes the result:
  * summary, experience level and (unless the user has edited them) tags. For
- * idea people it also creates their first idea. Throws `LlmError` on LLM
- * failure, so callers can fall back to running it in the background.
+ * idea people it also creates their first idea. During sign-up
+ * (`onboarding`), a builder whose sentence describes an idea gets it as a
+ * private draft (P1-22); elsewhere (the Me page, imports) a builder's idea is
+ * not saved. Throws `LlmError` on LLM failure, so callers can fall back to
+ * running it in the background.
  *
  * Safe to run more than once while the user is still onboarding: an earlier
  * onboarding idea is replaced, not duplicated.
  */
 export async function runProfileExtraction(
   userId: string,
-  options: { timeoutMs?: number } = {},
+  options: { timeoutMs?: number; onboarding?: boolean } = {},
 ): Promise<ExtractionResult> {
   const supabase = createServiceClient();
   const { data: user, error: userError } = await supabase
@@ -134,9 +157,18 @@ export async function runProfileExtraction(
   );
 
   // Tags the user has edited are theirs; extraction never overwrites them.
+  // During sign-up, skills picked while this ran (joining before it finished)
+  // are kept alongside what it found.
+  const union = (a: string[], b: string[]) => [...new Set([...a, ...b])];
   const tags: ProfileTags = current.user_edited
     ? { skills: current.skills, stack: current.stack, domains: current.domains }
-    : { skills: extracted.skills, stack: extracted.stack, domains: extracted.domains };
+    : options.onboarding
+      ? {
+          skills: union(current.skills, extracted.skills),
+          stack: union(current.stack, extracted.stack),
+          domains: union(current.domains, extracted.domains),
+        }
+      : { skills: extracted.skills, stack: extracted.stack, domains: extracted.domains };
 
   const { error: updateError } = await supabase
     .from("profiles")
@@ -150,8 +182,58 @@ export async function runProfileExtraction(
     .eq("user_id", userId);
   if (updateError) throw new Error(`runProfileExtraction: ${updateError.message}`);
 
-  const idea = await saveOnboardingIdea(userId, user.onboarded_at, user.raw_bio, extracted.idea);
-  return { summary: extracted.summary, tags, idea };
+  // The route may have changed while the AI was reading ("Join as a builder
+  // instead"), so the idea's fate follows the role as it is now.
+  const { data: now, error: roleError } = await supabase
+    .from("users")
+    .select("role, raw_bio")
+    .eq("id", userId)
+    .single();
+  if (roleError) throw new Error(`runProfileExtraction: ${roleError.message}`);
+  // A newer sentence has replaced this one; its own run decides.
+  if (now.raw_bio !== user.raw_bio) {
+    return { summary: extracted.summary, tags, idea: null, draft: false };
+  }
+  const status = now.role === "builder" ? (options.onboarding ? "draft" : null) : "open";
+  const saved = status
+    ? await saveOnboardingIdea(userId, user.onboarded_at, user.raw_bio, extracted.idea, status)
+    : null;
+  return {
+    summary: extracted.summary,
+    tags,
+    idea: status === "open" ? saved : null,
+    draft: status === "draft" && saved !== null,
+  };
+}
+
+/**
+ * The stored result of the sign-up reading, for "Check again" (P1-22), or
+ * null while it hasn't finished.
+ */
+export async function getOnboardingExtraction(userId: string): Promise<ExtractionResult | null> {
+  const supabase = createServiceClient();
+  const { data: profile, error } = await supabase
+    .from("profiles")
+    .select("summary, skills, stack, domains, extracted_at")
+    .eq("user_id", userId)
+    .single();
+  if (error) throw new Error(`getOnboardingExtraction: ${error.message}`);
+  if (!profile.extracted_at) return null;
+  const { data: ideas, error: ideaError } = await supabase
+    .from("ideas")
+    .select("id, pitch, clarifying_question, status")
+    .eq("owner_id", userId)
+    .in("status", ["open", "draft"]);
+  if (ideaError) throw new Error(`getOnboardingExtraction: ${ideaError.message}`);
+  const open = ideas.find((idea) => idea.status === "open");
+  return {
+    summary: profile.summary,
+    tags: { skills: profile.skills, stack: profile.stack, domains: profile.domains },
+    idea: open
+      ? { id: open.id, pitch: open.pitch, clarifying_question: open.clarifying_question }
+      : null,
+    draft: ideas.some((idea) => idea.status === "draft"),
+  };
 }
 
 /**
@@ -164,6 +246,7 @@ async function saveOnboardingIdea(
   onboardedAt: string | null,
   sentence: string,
   idea: Awaited<ReturnType<typeof extractProfile>>["idea"],
+  status: "open" | "draft",
 ): Promise<OnboardingIdea | null> {
   const supabase = createServiceClient();
 
@@ -190,6 +273,7 @@ async function saveOnboardingIdea(
       skills_needed: idea.skills_needed,
       scope: idea.scope,
       clarifying_question: idea.clarifying_question,
+      status,
     })
     .select("id, pitch, clarifying_question")
     .single();
@@ -202,7 +286,12 @@ async function saveOnboardingIdea(
  * when they differ from what is stored, so untouched LLM tags can still be
  * refreshed later. Returns whether anything changed.
  */
-export async function saveEditedTags(userId: string, tags: ProfileTags): Promise<boolean> {
+export async function saveEditedTags(
+  userId: string,
+  tags: ProfileTags,
+  /** False while the AI is still reading: its tags are then merged in, not blocked (P1-22). */
+  markEdited = true,
+): Promise<boolean> {
   const supabase = createServiceClient();
   const normalized = normalizeProfileTags(tags);
   const { data: current, error } = await supabase
@@ -215,7 +304,7 @@ export async function saveEditedTags(userId: string, tags: ProfileTags): Promise
 
   const { error: updateError } = await supabase
     .from("profiles")
-    .update({ ...normalized, user_edited: true })
+    .update({ ...normalized, user_edited: markEdited })
     .eq("user_id", userId);
   if (updateError) throw new Error(`saveEditedTags: ${updateError.message}`);
   return true;
@@ -280,45 +369,41 @@ export async function markJoinedPool(
   };
 }
 
-async function hasAnyIdea(userId: string): Promise<boolean> {
+async function hasOpenIdea(userId: string): Promise<boolean> {
   const { count, error } = await createServiceClient()
     .from("ideas")
     .select("id", { count: "exact", head: true })
-    .eq("owner_id", userId);
-  if (error) throw new Error(`hasAnyIdea: ${error.message}`);
+    .eq("owner_id", userId)
+    .eq("status", "open");
+  if (error) throw new Error(`hasOpenIdea: ${error.message}`);
   return (count ?? 0) > 0;
 }
 
-/**
- * The idea-or-skill rule (P1-21) for a user about to join, with the tags they
- * are submitting. "pending" while their extraction hasn't finished: a slow LLM
- * never blocks joining.
- */
-export async function checkJoin(
-  userId: string,
-  role: Role,
-  tags: ProfileTags,
-): Promise<OnboardingOutcome | "pending"> {
+/** Whether the sign-up reading of the user's current sentence has finished. */
+export async function isExtracted(userId: string): Promise<boolean> {
   const { data, error } = await createServiceClient()
     .from("profiles")
     .select("extracted_at")
     .eq("user_id", userId)
     .single();
-  if (error) throw new Error(`checkJoin: ${error.message}`);
-  if (!data.extracted_at) return "pending";
-  return onboardingOutcome(role, await hasAnyIdea(userId), normalizeProfileTags(tags));
+  if (error) throw new Error(`isExtracted: ${error.message}`);
+  return data.extracted_at !== null;
 }
 
 /**
- * After a late background extraction: someone who joined as an idea person
- * but whose text gave no idea becomes a builder (P1-21).
+ * The sign-up rule (P1-22) for a user about to join with the tags they are
+ * submitting: the idea route needs an idea, the builder route a skill.
  */
-export async function applyNoIdeaRole(userId: string) {
-  const supabase = createServiceClient();
-  const { data, error } = await supabase.from("users").select("role").eq("id", userId).single();
-  if (error) throw new Error(`applyNoIdeaRole: ${error.message}`);
-  if (data.role === "builder" || !data.role || (await hasAnyIdea(userId))) return;
-  await setRole(userId, "builder");
+export async function checkJoin(
+  userId: string,
+  role: Role,
+  tags: ProfileTags,
+): Promise<OnboardingOutcome> {
+  return onboardingOutcome(role, {
+    extracted: await isExtracted(userId),
+    hasIdea: await hasOpenIdea(userId),
+    tags: normalizeProfileTags(tags),
+  });
 }
 
 export async function setRole(userId: string, role: Role) {
@@ -331,7 +416,11 @@ export async function embedUserAndIdeas(userId: string) {
   const supabase = createServiceClient();
   try {
     await embedProfile(userId);
-    const { data: ideas, error } = await supabase.from("ideas").select("id").eq("owner_id", userId);
+    const { data: ideas, error } = await supabase
+      .from("ideas")
+      .select("id")
+      .eq("owner_id", userId)
+      .neq("status", "draft");
     if (error) throw new Error(error.message);
     for (const idea of ideas) await embedIdea(idea.id);
   } catch (error) {

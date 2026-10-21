@@ -987,7 +987,7 @@ export type Database = {
     Enums: {
       experience_level: "beginner" | "intermediate" | "advanced";
       idea_scope: "weekend" | "few_weeks" | "ongoing";
-      idea_status: "open" | "filled" | "archived";
+      idea_status: "open" | "filled" | "archived" | "draft";
       match_response: "pending" | "interested" | "pass";
       match_source: "admin" | "board" | "nightly" | "curated";
       notify_channel: "email" | "sms" | "slack" | "none";
@@ -1109,7 +1109,7 @@ export const Constants = {
     Enums: {
       experience_level: ["beginner", "intermediate", "advanced"],
       idea_scope: ["weekend", "few_weeks", "ongoing"],
-      idea_status: ["open", "filled", "archived"],
+      idea_status: ["open", "filled", "archived", "draft"],
       match_response: ["pending", "interested", "pass"],
       match_source: ["admin", "board", "nightly", "curated"],
       notify_channel: ["email", "sms", "slack", "none"],

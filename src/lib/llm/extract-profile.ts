@@ -32,7 +32,10 @@ export interface ExtractedProfile {
   stack: string[];
   domains: string[];
   experience_level: (typeof EXPERIENCE_LEVELS)[number];
-  /** Set only when the role is `idea` or `both` and the text describes a product. */
+  /**
+   * Set when the text describes a product. For a builder it's kept only as a
+   * private draft during sign-up (P1-22); runProfileExtraction decides.
+   */
   idea: ExtractedIdea | null;
 }
 
@@ -56,20 +59,21 @@ export async function extractProfile(
     stack: normalizeTags("stack", raw.stack),
     domains: normalizeTags("domains", raw.domains),
   };
-  // A builder never gets an idea, whatever the model returned. Nor does a
-  // placeholder sentence ("I want to build a xxx"), or a pitch that is only a
-  // note about the input (P1-21).
+  // No idea from a placeholder sentence ("I want to build a xxx"), or from a
+  // pitch that is only a note about the input (P1-21).
   const idea =
-    raw.idea &&
-    input.role !== "builder" &&
-    !isPlaceholderText(input.sentence) &&
-    !isMetaText(raw.idea.pitch)
+    raw.idea && !isPlaceholderText(input.sentence) && !isMetaText(raw.idea.pitch)
       ? normalizeIdea(raw.idea)
       : null;
+  // A builder's idea stays a private draft until they post it (P1-22), and
+  // the model's summary tends to mention it, so a builder with an idea gets
+  // a summary built from their tags only.
+  const hideIdea = input.role === "builder" && idea !== null;
   return {
-    summary: isMetaText(raw.summary)
-      ? neutralSummary(input.role, idea !== null, tags, tagLabel)
-      : raw.summary,
+    summary:
+      hideIdea || isMetaText(raw.summary)
+        ? neutralSummary(input.role, idea !== null && !hideIdea, tags, tagLabel)
+        : raw.summary,
     ...tags,
     experience_level: raw.experience_level,
     idea,

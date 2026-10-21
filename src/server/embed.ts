@@ -93,10 +93,12 @@ export async function embedIdea(ideaId: string): Promise<void> {
   const supabase = createServiceClient();
   const idea = await supabase
     .from("ideas")
-    .select("raw_text, domain, skills_needed")
+    .select("raw_text, domain, skills_needed, status")
     .eq("id", ideaId)
     .single();
   if (idea.error) throw new Error(`embedIdea: ${idea.error.message}`);
+  // Drafts are private until posted (P1-22); posting embeds them.
+  if (idea.data.status === "draft") return;
 
   const embedding = await embedDocument(ideaEmbeddingText(idea.data));
 

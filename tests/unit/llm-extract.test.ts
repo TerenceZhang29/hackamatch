@@ -108,6 +108,33 @@ describe("extractProfile guards (P1-21)", () => {
   });
 });
 
+describe("extractProfile for a builder with an idea (P1-22)", () => {
+  it("keeps the idea for a draft but leaves it out of the public summary", async () => {
+    // What claude-haiku-5-5 returned on 2026-10-22 for live case 9.
+    const spy = vi.spyOn(fakeLlm, "structured").mockResolvedValueOnce({
+      summary: "Builds React apps; wants to make a shift-swap tool for nurses.",
+      skills: ["frontend"],
+      stack: ["react"],
+      domains: ["health"],
+      experience_level: "intermediate",
+      idea: {
+        pitch: "A tool that helps nurses swap shifts with each other.",
+        domain: "health",
+        skills_needed: ["frontend", "backend"],
+        scope: "few_weeks",
+        clarifying_question: null,
+      },
+    });
+    const profile = await extractProfile({
+      role: "builder",
+      sentence: "I build React apps and want to make a tool that helps nurses swap shifts",
+    });
+    expect(profile.idea?.pitch).toContain("nurses");
+    expect(profile.summary).toBe("Builds with react, frontend in health");
+    spy.mockRestore();
+  });
+});
+
 describe("extractIdea with the fake LLM", () => {
   it("returns pitch, tags and scope", async () => {
     const idea = await extractIdea({

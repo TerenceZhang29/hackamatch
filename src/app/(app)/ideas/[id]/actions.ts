@@ -6,7 +6,14 @@ import { z } from "zod";
 import { requireOnboarded } from "@/lib/auth";
 import { normalizeTag, normalizeTags } from "@/lib/taxonomy/normalize";
 import { embedIdea } from "@/server/embed";
-import { getOwnIdea, setIdeaStatus, updateIdeaTags } from "@/server/ideas";
+import { redirect } from "next/navigation";
+import {
+  discardDraft,
+  getOwnIdea,
+  publishDraft,
+  setIdeaStatus,
+  updateIdeaTags,
+} from "@/server/ideas";
 import { answerClarifyingQuestion } from "@/server/profiles";
 import { ideaTagsSchema } from "../schema";
 
@@ -67,4 +74,29 @@ export async function answerIdeaQuestion(input: unknown): Promise<IdeaActionResu
   reembed(ideaId);
   revalidatePath(`/ideas/${ideaId}`);
   return { ok: true };
+}
+
+const draftSchema = z.object({ ideaId: z.guid() });
+
+/** Posts a builder's draft idea (P1-22): it goes public and is embedded. A plain form post. */
+export async function postDraftIdea(formData: FormData): Promise<void> {
+  const user = await requireOnboarded();
+  const parsed = draftSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) redirect("/me");
+  const { ideaId } = parsed.data;
+  if (!(await publishDraft(user.id, ideaId))) redirect(`/ideas/${ideaId}`);
+  reembed(ideaId);
+  revalidatePath("/");
+  revalidatePath("/me");
+  redirect(`/ideas/${ideaId}?posted=1`);
+}
+
+/** Deletes a builder's draft idea. A plain form post. */
+export async function discardDraftIdea(formData: FormData): Promise<void> {
+  const user = await requireOnboarded();
+  const parsed = draftSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) redirect("/me");
+  await discardDraft(user.id, parsed.data.ideaId);
+  revalidatePath("/me");
+  redirect("/me");
 }

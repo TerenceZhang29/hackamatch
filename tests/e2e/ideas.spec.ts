@@ -21,7 +21,10 @@ const FILLER =
 async function newBuilder(page: Page) {
   const email = newEmail();
   await signIn(page, email);
-  await onboard(page, { role: "I can build", sentence: "I build React apps for health" });
+  await onboard(page, {
+    role: "I want to find an idea to build",
+    sentence: "I build React apps for health",
+  });
   await expect(page).toHaveURL("/matches?welcome=1");
   return email;
 }
@@ -87,7 +90,10 @@ test("other people see the pitch, never the full text", async ({ page, browser }
     // Signed in as someone else: still no full text.
     const other = newEmail();
     await signIn(visitorPage, other);
-    await onboard(visitorPage, { role: "I can build", sentence: "I build Go backends" });
+    await onboard(visitorPage, {
+      role: "I want to find an idea to build",
+      sentence: "I build Go backends",
+    });
     await expect(visitorPage).toHaveURL("/matches?welcome=1");
     const signedIn = await visitorPage.goto(`/ideas/${ideaId}`);
     expect(await signedIn!.text()).not.toContain(SECRET);

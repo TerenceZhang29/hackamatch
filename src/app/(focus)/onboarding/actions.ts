@@ -12,12 +12,13 @@ import { LlmError } from "@/lib/llm/types";
 import { LIMITS } from "@/lib/rate-limit";
 import { allow } from "@/server/rate-limit";
 import { addEventInterests, filterUpcomingEventIds } from "@/server/events";
-import { IDEA_OR_SKILL_REQUIRED } from "@/lib/onboarding";
+import { BLOCK_MESSAGES } from "@/lib/onboarding";
 import {
   answerClarifyingQuestion,
-  applyNoIdeaRole,
   checkJoin,
   embedUserAndIdeas,
+  getOnboardingExtraction,
+  isExtracted,
   isOnboarded,
   markJoinedPool,
   runProfileExtraction,
@@ -90,7 +91,10 @@ export async function submitSentence(input: SentenceInput): Promise<SentenceResu
   );
 
   try {
-    const result = await runProfileExtraction(user.id, { timeoutMs: EXTRACTION_TIMEOUT_MS });
+    const result = await runProfileExtraction(user.id, {
+      timeoutMs: EXTRACTION_TIMEOUT_MS,
+      onboarding: true,
+    });
     return { status: "ok", result };
   } catch (error) {
     if (!(error instanceof LlmError)) throw error;
@@ -100,16 +104,48 @@ export async function submitSentence(input: SentenceInput): Promise<SentenceResu
   }
 }
 
+/**
+ * "Check again" on the review step (P1-22): the stored reading if the
+ * background run has finished; otherwise one more try, waiting as long as
+ * the first. Still "pending" means the AI is slow or down.
+ */
+export async function onboardingStatus(): Promise<SentenceResult> {
+  const user = await requireUser("/onboarding");
+  const stored = await getOnboardingExtraction(user.id);
+  if (stored) return { status: "ok", result: stored };
+  if (!(await allow(LIMITS.llm, user.id))) return { status: "pending" };
+  try {
+    const result = await runProfileExtraction(user.id, {
+      timeoutMs: EXTRACTION_TIMEOUT_MS,
+      onboarding: true,
+    });
+    return { status: "ok", result };
+  } catch (error) {
+    if (!(error instanceof LlmError)) throw error;
+    console.warn("Onboarding retry is still waiting on the LLM", error.message);
+    after(() => extractInBackground(user.id));
+    return { status: "pending" };
+  }
+}
+
+/**
+ * "Join as a builder instead", offered when the idea route can't be read
+ * (P1-22). Keeps the sentence; a reading that finishes later saves any idea
+ * in it as a draft.
+ */
+export async function switchToBuilder(): Promise<{ ok: boolean }> {
+  const user = await requireUser("/onboarding");
+  if (user.onboarded_at) return { ok: false };
+  await setRole(user.id, "builder");
+  return { ok: true };
+}
+
 async function extractInBackground(userId: string) {
   try {
-    await runProfileExtraction(userId, { timeoutMs: BACKGROUND_TIMEOUT_MS });
+    await runProfileExtraction(userId, { timeoutMs: BACKGROUND_TIMEOUT_MS, onboarding: true });
     // If the user joined the pool while this ran, their profile was embedded
-    // without these tags; embed again now that they exist. With no idea found,
-    // they're a builder (P1-21); joinPool decides for anyone not joined yet.
-    if (await isOnboarded(userId)) {
-      await applyNoIdeaRole(userId);
-      await embedUserAndIdeas(userId);
-    }
+    // without these tags; embed again now that they exist.
+    if (await isOnboarded(userId)) await embedUserAndIdeas(userId);
   } catch (error) {
     console.error(`Background extraction failed for user ${userId}`, error);
   }
@@ -128,12 +164,13 @@ export async function joinPool(input: JoinPoolInput): Promise<{ error: string }>
 
   if (!user.role || !user.raw_bio) return { error: "Go back and write your sentence first." };
 
-  // Everyone joins with an idea or a skill; no idea means joining as a builder (P1-21).
+  // The idea route needs an idea, the builder route a skill (P1-22).
   const outcome = await checkJoin(user.id, user.role, tags);
-  if (outcome !== "pending" && !outcome.ok) return { error: IDEA_OR_SKILL_REQUIRED };
+  if (!outcome.ok) return { error: BLOCK_MESSAGES[outcome.reason] };
 
-  await saveEditedTags(user.id, tags);
-  const role = outcome !== "pending" && outcome.ok ? outcome.role : user.role;
+  // While the AI is still reading, picked skills join what it finds later.
+  await saveEditedTags(user.id, tags, await isExtracted(user.id));
+  const role = outcome.role;
   if (role !== user.role) await setRole(user.id, role);
   await addEventInterests(user.id, await filterUpcomingEventIds(eventIds));
 

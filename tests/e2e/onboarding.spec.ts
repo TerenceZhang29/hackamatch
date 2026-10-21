@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { signIn } from "./auth";
 import {
   countAnalyticsEvents,
@@ -64,7 +64,7 @@ test("a builder joins the pool in under a minute with 2 taps, 1 sentence and 1 c
   await expect(page).toHaveURL("/onboarding");
   const started = Date.now();
 
-  await page.getByRole("button", { name: "I can build" }).click();
+  await page.getByRole("button", { name: "I want to find an idea to build" }).click();
   await page.getByRole("button", { name: "Continue" }).click();
   await page
     .getByLabel("What you can build, in one sentence")
@@ -174,21 +174,26 @@ test("tag edits, event picks and a clarifying answer are saved", async ({ page }
   expect(ideas[0]!.raw_text).toContain("Nurses at NYC hospitals");
 });
 
-test("a slow LLM does not block joining; tags fill in afterwards", async ({ page }) => {
+test("a slow LLM: a builder joins with a picked skill; tags fill in afterwards", async ({
+  page,
+}) => {
   test.setTimeout(60_000);
   const email = newEmail();
   await signIn(page, email);
 
-  await page.getByRole("button", { name: "I can build" }).click();
+  await page.getByRole("button", { name: "I want to find an idea to build" }).click();
   await page.getByRole("button", { name: "Continue" }).click();
   await page
     .getByLabel("What you can build, in one sentence")
     .fill("I build Swift iOS apps [[fake-llm-delay-ms=9000]]");
   await page.getByRole("button", { name: "Continue" }).click();
 
-  await expect(page.getByText("We'll fill in your tags in a moment")).toBeVisible({
-    timeout: 15_000,
-  });
+  // Still reading: a builder joins now by picking a skill (P1-22).
+  await expect(
+    page.getByText("Still reading your sentence. Pick a skill to join now, or check again."),
+  ).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole("button", { name: "Join the pool" })).toBeDisabled();
+  await page.getByRole("button", { name: "mobile", exact: true }).click();
   await page.getByRole("button", { name: "Join the pool" }).click();
   await expect(page).toHaveURL("/matches?welcome=1");
   expect((await getUserRow(email))?.onboarded_at).not.toBeNull();
@@ -204,7 +209,7 @@ test("a slow LLM does not block joining; tags fill in afterwards", async ({ page
 test("an onboarded user is sent past onboarding", async ({ page }) => {
   const email = newEmail();
   await signIn(page, email);
-  await page.getByRole("button", { name: "I can build" }).click();
+  await page.getByRole("button", { name: "I want to find an idea to build" }).click();
   await page.getByRole("button", { name: "Continue" }).click();
   await page.getByLabel("What you can build, in one sentence").fill("I write Go backends");
   await page.getByRole("button", { name: "Continue" }).click();
@@ -226,10 +231,12 @@ test("onboarding has no horizontal scroll on any step", async ({ page }) => {
   };
 
   await noOverflow();
-  await page.getByRole("button", { name: "Both" }).click();
+  await page.getByRole("button", { name: "I have an idea" }).click();
   await page.getByRole("button", { name: "Continue" }).click();
   await noOverflow();
-  await page.getByRole("textbox").fill("I want to build a study tool and I can do the backend");
+  await page
+    .getByRole("textbox")
+    .fill("A study tool that matches students for late-night problem sets");
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(page.getByRole("heading", { name: "Here's what we got" })).toBeVisible();
   await noOverflow();
@@ -239,7 +246,7 @@ test("pasted LinkedIn text adds tags, and the profile link is stored", async ({ 
   const email = newEmail();
   await signIn(page, email);
 
-  await page.getByRole("button", { name: "I can build" }).click();
+  await page.getByRole("button", { name: "I want to find an idea to build" }).click();
   await page.getByRole("button", { name: "Continue" }).click();
   await page.getByLabel("What you can build, in one sentence").fill("I design products");
   await page.getByText("Or import from GitHub or LinkedIn").click();
@@ -269,7 +276,7 @@ test("a link that is not a GitHub profile is rejected with a clear message", asy
   const email = newEmail();
   await signIn(page, email);
 
-  await page.getByRole("button", { name: "I can build" }).click();
+  await page.getByRole("button", { name: "I want to find an idea to build" }).click();
   await page.getByRole("button", { name: "Continue" }).click();
   await page.getByText("Or import from GitHub or LinkedIn").click();
   await page.getByLabel("GitHub profile").fill("https://github.com/someone/some-repo");
@@ -281,44 +288,181 @@ test("a link that is not a GitHub profile is rejected with a clear message", asy
   expect((await getUserRow(email))?.onboarded_at).toBeNull();
 });
 
-test("no idea and no skill blocks joining; a quick pick unblocks it and they join as a builder", async ({
+const IDEA_ROUTE = "I have an idea";
+const BUILDER_ROUTE = "I want to find an idea to build";
+
+async function startRoute(page: Page, route: string, sentence: string) {
+  await page.getByRole("button", { name: route }).click();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.getByRole("textbox").first().fill(sentence);
+  await page.getByRole("button", { name: "Continue" }).click();
+}
+
+const roleOf = async (email: string) =>
+  (
+    await query<{ role: string }>(`select role::text from public.users where cornell_email = $1`, [
+      email,
+    ])
+  )[0]?.role;
+
+test("step 1 asks for one route, before the sentence, and says it can change later", async ({
+  page,
+}) => {
+  await signIn(page, newEmail());
+  await expect(
+    page.getByRole("group", { name: "Do you have an idea, or do you want to find one to build?" }),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: IDEA_ROUTE })).toBeVisible();
+  await expect(page.getByRole("button", { name: BUILDER_ROUTE })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Both" })).toHaveCount(0);
+  await expect(
+    page.getByText("You can change this later in settings. Once you've joined, you can do both."),
+  ).toBeVisible();
+  await expect(page.getByRole("textbox", { name: /sentence/ })).toHaveCount(0);
+});
+
+test("the idea route is blocked without an idea, on the page and on the server", async ({
   page,
 }) => {
   const email = newEmail();
   await signIn(page, email);
-  await page.getByRole("button", { name: "Both" }).click();
-  await page.getByRole("button", { name: "Continue" }).click();
-  await page.getByLabel("Your idea and what you can build").fill("I want to build a xxx");
-  await page.getByRole("button", { name: "Continue" }).click();
+  await startRoute(page, IDEA_ROUTE, "I want to build a xxx");
 
   const join = page.getByRole("button", { name: "Join the pool" });
-  const warning = page.getByText("Add a skill, or go back and describe your idea, to join.");
-  await expect(warning).toBeVisible();
+  const message = "We couldn't find an idea in your sentence. Describe what you want to build.";
+  await expect(page.getByRole("alert").filter({ hasText: message })).toBeVisible();
   await expect(join).toBeDisabled();
-  await expect(page.getByText("Your idea, as others will see it")).toHaveCount(0);
+  // No quick picks: skills don't open the idea route.
+  await expect(page.getByRole("button", { name: "backend", exact: true })).toHaveCount(0);
 
-  // The server refuses too, whatever the page allows.
   await join.evaluate((button) => button.removeAttribute("disabled"));
   await join.click();
-  await expect(
-    page.getByText("Add a skill, or go back and describe your idea, to join."),
-  ).toHaveCount(2);
+  await expect(page.getByText(message)).toHaveCount(2);
   expect((await getUserRow(email))?.onboarded_at).toBeNull();
 
-  await page.getByRole("button", { name: "backend", exact: true }).click();
-  await expect(warning).toHaveCount(0);
-  await expect(page.getByText("No idea found, so you'll join as a builder.")).toBeVisible();
-  await expect(page.getByRole("list", { name: "Skills" })).toContainText("backend");
+  await page.getByRole("button", { name: "Back" }).click();
+  await page
+    .getByLabel("Your idea in one sentence")
+    .fill("A mobile app that helps nurses swap shifts");
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(page.getByText("Your idea, as others will see it")).toBeVisible();
   await join.click();
   await expect(page).toHaveURL("/matches?welcome=1");
+  expect(await roleOf(email)).toBe("idea");
+});
 
-  const [user] = await query<{ id: string; role: string }>(
-    `select id, role::text from public.users where cornell_email = $1`,
+test("the builder route is blocked without a skill; a quick pick lets them join", async ({
+  page,
+}) => {
+  const email = newEmail();
+  await signIn(page, email);
+  await startRoute(page, BUILDER_ROUTE, "I like hackathons");
+
+  const join = page.getByRole("button", { name: "Join the pool" });
+  await expect(
+    page.getByRole("alert").filter({ hasText: "Add at least one skill to join." }),
+  ).toBeVisible();
+  await expect(join).toBeDisabled();
+  await page.getByRole("button", { name: "backend", exact: true }).click();
+  await expect(page.getByText("Add at least one skill to join.")).toHaveCount(0);
+  await join.click();
+  await expect(page).toHaveURL("/matches?welcome=1");
+  expect(await roleOf(email)).toBe("builder");
+  expect((await getProfile(email))!.skills).toEqual(["backend"]);
+});
+
+test("a slow AI on the idea route: check again, then join as a builder instead", async ({
+  page,
+}) => {
+  test.setTimeout(90_000);
+  const email = newEmail();
+  await signIn(page, email);
+  // Longer than both the 8 s wait and the 30 s background run, so every read fails.
+  await startRoute(page, IDEA_ROUTE, "A campus food swap app [[fake-llm-delay-ms=40000]]");
+
+  const join = page.getByRole("button", { name: "Join the pool" });
+  await expect(page.getByText("Still reading your idea…")).toBeVisible({ timeout: 15_000 });
+  await expect(join).toBeDisabled();
+  await page.getByRole("button", { name: "Check again" }).click();
+  await expect(page.getByText("We still can't read your idea.")).toBeVisible({ timeout: 15_000 });
+
+  await page.getByRole("button", { name: "Join as a builder instead" }).click();
+  await expect(
+    page.getByText("Still reading your sentence. Pick a skill to join now, or check again."),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "mobile", exact: true }).click();
+  await join.click();
+  await expect(page).toHaveURL("/matches?welcome=1");
+  expect(await roleOf(email)).toBe("builder");
+  const [bio] = await query<{ raw_bio: string }>(
+    `select raw_bio from public.users where cornell_email = $1`,
     [email],
   );
-  expect(user!.role).toBe("builder");
+  expect(bio!.raw_bio).toContain("A campus food swap app");
+});
+
+test("a builder's idea is saved as a draft to check and post after joining", async ({
+  page,
+  browser,
+}) => {
+  const email = newEmail();
+  await signIn(page, email);
+  await startRoute(
+    page,
+    BUILDER_ROUTE,
+    "I build React apps and want to build a tool that helps nurses swap shifts",
+  );
+  await expect(page.getByText("We found an idea in your sentence too.")).toBeVisible();
+  await expect(page.getByText("Your idea, as others will see it")).toHaveCount(0);
+  await page.getByRole("button", { name: "Join the pool" }).click();
+  await expect(page).toHaveURL("/matches?welcome=1");
+  expect(await roleOf(email)).toBe("builder");
+
+  const [draft] = await query<{ id: string; status: string; has_embedding: boolean }>(
+    `select i.id, i.status::text, i.embedding is not null as has_embedding
+     from public.ideas i join public.users u on u.id = i.owner_id where u.cornell_email = $1`,
+    [email],
+  );
+  expect(draft).toMatchObject({ status: "draft", has_embedding: false });
+
+  // Nobody else can open it.
+  const visitor = await browser.newPage();
+  const response = await visitor.goto(`/ideas/${draft!.id}`);
+  expect(response?.status()).toBe(404);
+  await visitor.close();
+
+  await page.getByRole("link", { name: "Check it and post it" }).click();
+  await expect(page).toHaveURL(`/ideas/${draft!.id}`);
+  await expect(page.getByRole("heading", { name: "Draft: only you can see it" })).toBeVisible();
+  await page.getByRole("button", { name: "Post it" }).click();
+  await expect(page.getByText("Posted. Others can see it now.")).toBeVisible();
+  expect(await roleOf(email)).toBe("both");
+  const posted = await eventually(
+    () =>
+      query<{ status: string; has_embedding: boolean }>(
+        `select status::text, embedding is not null as has_embedding from public.ideas where id = $1`,
+        [draft!.id],
+      ),
+    (rows) => rows[0]?.has_embedding === true,
+  );
+  expect(posted[0]!.status).toBe("open");
+});
+
+test("going back and resubmitting never reuses the first reading", async ({ page }) => {
+  test.setTimeout(60_000);
+  const email = newEmail();
+  await signIn(page, email);
+  await startRoute(page, IDEA_ROUTE, "A mobile app that helps nurses swap shifts");
+  await expect(page.getByText("Your idea, as others will see it")).toBeVisible();
+
+  await page.getByRole("button", { name: "Back" }).click();
+  await page
+    .getByLabel("Your idea in one sentence")
+    .fill("A campus food swap app [[fake-llm-delay-ms=40000]]");
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(page.getByText("Still reading your idea…")).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole("button", { name: "Join the pool" })).toBeDisabled();
   expect(await getIdeas(email)).toEqual([]);
-  expect((await getProfile(email))!.skills).toEqual(["backend"]);
 });
 
 test("a quick pick on the sentence step becomes a tag and counts as the skill", async ({
@@ -326,7 +470,7 @@ test("a quick pick on the sentence step becomes a tag and counts as the skill", 
 }) => {
   const email = newEmail();
   await signIn(page, email);
-  await page.getByRole("button", { name: "I can build" }).click();
+  await page.getByRole("button", { name: "I want to find an idea to build" }).click();
   await page.getByRole("button", { name: "Continue" }).click();
   await page.getByLabel("What you can build, in one sentence").fill("I like hackathons");
   const pick = page.getByRole("button", { name: "mobile", exact: true });
@@ -335,7 +479,7 @@ test("a quick pick on the sentence step becomes a tag and counts as the skill", 
   await page.getByRole("button", { name: "Continue" }).click();
 
   await expect(page.getByRole("list", { name: "Skills" })).toContainText("mobile");
-  await expect(page.getByText("Add a skill, or go back")).toHaveCount(0);
+  await expect(page.getByText("Add at least one skill to join.")).toHaveCount(0);
   await page.getByRole("button", { name: "Join the pool" }).click();
   await expect(page).toHaveURL("/matches?welcome=1");
   expect((await getProfile(email))!.skills).toContain("mobile");

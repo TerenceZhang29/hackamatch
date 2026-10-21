@@ -7,17 +7,20 @@ import { notFound } from "next/navigation";
 import { z } from "zod";
 import { IdeaTags } from "@/components/IdeaTags";
 import { Outcome } from "@/components/Outcome";
+import { Notice } from "@/components/ui/Notice";
 import { PairStatus } from "@/components/PairStatus";
 import { getUser } from "@/lib/auth";
 import { loginPath } from "@/lib/auth-helpers";
 import { slugsOf } from "@/lib/taxonomy/skills";
 import { demoIds } from "@/server/board";
 import { getOwnIdea, getPublicIdea, getRevealedIdeaText } from "@/server/ideas";
+import { discardDraftIdea, postDraftIdea } from "./actions";
 import { OwnerControls } from "./OwnerControls";
 
 export const metadata: Metadata = { title: "Idea · HackaMatch" };
 
 const STATUS_NOTES = {
+  draft: null,
   open: null,
   filled: "This idea has a team.",
   archived: "Archived: only you can see this idea.",
@@ -55,22 +58,52 @@ export default async function IdeaPage({
             <p className="text-sm text-muted">{STATUS_NOTES[own.status]}</p>
           ) : null}
         </header>
+        {outcome.posted ? <Notice tone="success">Posted. Others can see it now.</Notice> : null}
         <section className="flex flex-col gap-2 rounded-2xl bg-surface p-5">
           <p className="text-sm font-medium text-muted">
             Full text (shown only after a mutual match)
           </p>
           <p className="whitespace-pre-line">{own.raw_text}</p>
         </section>
-        <OwnerControls
-          ideaId={own.id}
-          skillsNeeded={own.skills_needed}
-          domain={own.domain}
-          scope={own.scope}
-          status={own.status}
-          question={own.clarifying_question}
-          skillSuggestions={slugsOf("skills")}
-          domainOptions={slugsOf("domains")}
-        />
+        {own.status === "draft" ? (
+          <section
+            aria-labelledby="draft"
+            className="flex flex-col gap-3 rounded-2xl bg-accent-soft p-5"
+          >
+            <h2 id="draft" className="font-semibold">
+              Draft: only you can see it
+            </h2>
+            <p className="text-sm">
+              We saved this from your sign-up sentence. Check the pitch above, then post it so
+              others can find it.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <form action={postDraftIdea}>
+                <input type="hidden" name="ideaId" value={own.id} />
+                <button type="submit" className={buttonClass("primary", "md")}>
+                  Post it
+                </button>
+              </form>
+              <form action={discardDraftIdea}>
+                <input type="hidden" name="ideaId" value={own.id} />
+                <button type="submit" className={buttonClass("outline", "md")}>
+                  Discard
+                </button>
+              </form>
+            </div>
+          </section>
+        ) : (
+          <OwnerControls
+            ideaId={own.id}
+            skillsNeeded={own.skills_needed}
+            domain={own.domain}
+            scope={own.scope}
+            status={own.status}
+            question={own.clarifying_question}
+            skillSuggestions={slugsOf("skills")}
+            domainOptions={slugsOf("domains")}
+          />
+        )}
       </main>
     );
   }

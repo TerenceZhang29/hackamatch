@@ -32,7 +32,7 @@ For every case also check: the output validates on the first attempt, every tag 
 | Model | Provider | Latest prompt version tested | Result |
 | --- | --- | --- | --- |
 | `gemini-3.5-flash-lite` | `gemini` | `2026-10-13.2`, cases 1 to 5 | Pass on the idea rule; two tagging misses (see log). Not run on `2026-10-14.1` |
-| `claude-haiku-5-5` | `anthropic` | `2026-10-21.1`, all eight cases, twice | Pass on 7 of 8; case 8's summary still notes the missing detail, caught in code (`vague.ts`). Results in the log |
+| `claude-haiku-5-5` | `anthropic` | `2026-10-22.2`, the 8 standard cases and 2 builder cases, twice | Pass on all 10 with the code guards (`vague.ts`, the builder summary in `extractProfile`); results in the log |
 
 ## Backlog: known issues to tune later
 
@@ -263,6 +263,46 @@ Live results, 2026-10-21, `claude-haiku-5-5`, all 8 cases twice (approved by the
 | 6 | Pass (held out): `data-science`, `agriculture`; no idea |
 | 7 | Pass (held out): idea set; the person's `skills` and `stack` are empty |
 | 8 | **Half:** `idea` is null in both runs (the fix works), but the summary still notes what's missing ("Wants to build a project; no details given yet.", "…details not yet specified."). `isMetaText` catches both, so `extractProfile` stores no summary. Left to the code guard; a further prompt round is optional (B2 stays in the backlog, narrowed) |
+
+
+### `2026-10-22.1` — builders' ideas become drafts (P1-22)
+
+Why: on the builder route, an idea in the sentence is now kept as a private draft, so the model is asked for it for every role. The summary must not reveal it.
+
+Changes:
+- idea: no longer limited to the idea and both roles; any role gets one when the text names a specific thing to build;
+- summary: for a builder, say only what they can do, never the idea.
+
+Live results, 2026-10-22, `claude-haiku-5-5`, the 8 standard cases plus 2 builder cases, twice each (approved by the owner): 20 calls, all valid on the first attempt, mostly 1.0 to 1.7 s (one case 3 call took 8.0 s); 51,484 input and 4,076 output tokens, about $0.007.
+
+| Case | Result |
+| --- | --- |
+| 1, 3–6 | Pass, as before (case 4 run 1 again put `marketplace` in `skills_needed`, B4) |
+| 2, 7 | **Regression:** ideas still right, but the summary became "Wants to build a project; no skills or stack stated." / "Wants to build a project." instead of describing the idea. The builder sentence seems to have pushed every role's summary away from the idea |
+| 8 | **Pass** now: idea null; summary "Wants to build a project." in both runs |
+| 9 "I build React apps and want to make a tool that helps nurses swap shifts" (builder) | Idea set in both runs; **summary reveals it** in both ("Builds React apps; wants to make a shift-swap tool for nurses.") |
+| 10 "Backend engineer, I'd love to build a campus ride-share app" (builder) | Idea set in both runs; summary reveals it in run 1; run 2's pitch adds "for Cornell students", which the text doesn't say |
+
+Result: the idea rule works for builders, but the summary rule doesn't hold and costs the other roles. Fixed in `2026-10-22.2` by moving the privacy rule into code.
+
+### `2026-10-22.2` — builder privacy in code, summary rule reverted
+
+- The summary sentence added in `.1` is removed, so the summary rule is `2026-10-21.1`'s again.
+- `extractProfile` replaces a builder's summary with one built from their tags whenever an idea was found (`neutralSummary`), so the draft can never show. Unit test: live case 9's exact output.
+- The idea rule from `.1` (any role) stays.
+
+Live results, 2026-10-22, `claude-haiku-5-5`, the same 10 cases twice (approved by the owner): 20 calls, all valid on the first attempt in 1.0 to 2.5 s; 50,980 input and 4,187 output tokens, about $0.007. "Stored" is the summary after `extractProfile`'s guards.
+
+| Case | Result |
+| --- | --- |
+| 1, 3–6 | Pass. Case 4 put no domain tag in `skills_needed` this time |
+| 2 | Pass: the summary describes the idea again ("Wants to build a mobile app for nurses to swap shifts."). Both runs tagged the idea `hr-recruiting` rather than `health`, a judgment call (close to B1) |
+| 7 | Pass: "Wants to build a marketplace for students to resell textbooks." |
+| 8 | Pass: idea null; the model's summary still notes what's missing, and the guard stores none |
+| 9 | Pass: idea "A tool that helps nurses swap shifts with each other."; stored summary "Builds with react, frontend in health" (the model's mentioned the tool) |
+| 10 | Pass: idea "A ride-share app for students getting around campus."; stored summary "Builds with backend in transportation, campus life" |
+
+The stored builder summaries come from tags, so they read plainly ("Builds with react, frontend…"). Tuning their wording is optional.
 
 
 ## Known differences between models

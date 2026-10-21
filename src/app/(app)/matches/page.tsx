@@ -13,6 +13,7 @@ import { Notice } from "@/components/ui/Notice";
 import { requireOnboarded } from "@/lib/auth";
 import { demoIds } from "@/server/board";
 import { listMyEvents } from "@/server/events";
+import { latestDraftId } from "@/server/ideas";
 import { listMatchesForUser, type MatchListItem } from "@/server/matches";
 
 export const metadata: Metadata = { title: "Matches · HackaMatch" };
@@ -75,9 +76,11 @@ export default async function MatchesPage({
   const user = await requireOnboarded("/matches");
   const params = await searchParams;
   const welcome = params.welcome !== undefined;
-  const [matches, hackathons] = await Promise.all([
+  const [matches, hackathons, draftId] = await Promise.all([
     listMatchesForUser(user.id),
     listMyEvents(user.id),
+    // A builder's sign-up sentence can leave a draft idea to post (P1-22).
+    welcome ? latestDraftId(user.id) : null,
   ]);
   const bySection = (key: SectionKey) => matches.filter((m) => m.section === key);
   // Open on the tab asked for, else the first one with something in it.
@@ -92,6 +95,14 @@ export default async function MatchesPage({
     <main className="mx-auto flex max-w-2xl flex-col gap-6 px-4 py-6">
       <h1 className="text-2xl font-bold tracking-tight">Matches</h1>
       {welcome ? <Notice tone="success">You&apos;re in the pool.</Notice> : null}
+      {draftId ? (
+        <Notice>
+          We saved your idea as a draft.{" "}
+          <Link href={`/ideas/${draftId}`} className="font-medium underline">
+            Check it and post it
+          </Link>
+        </Notice>
+      ) : null}
       <Outcome params={params} />
       <MyHackathons data={hackathons} />
 

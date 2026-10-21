@@ -320,7 +320,9 @@ export async function adminCounts() {
     const { count: n, error } = await supabase
       .from("ideas")
       .select("id, users!inner(is_demo)", { count: "exact", head: true })
-      .eq("users.is_demo", false);
+      .eq("users.is_demo", false)
+      // Drafts are private until posted (P1-22).
+      .neq("status", "draft");
     if (error) throw new Error(`adminCounts: ${error.message}`);
     return n ?? 0;
   };
