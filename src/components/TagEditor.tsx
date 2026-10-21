@@ -63,13 +63,27 @@ function TagGroupEditor({
   onChange: (tags: string[]) => void;
 }) {
   const [draft, setDraft] = useState("");
+  const [open, setOpen] = useState(false);
+  /** The highlighted suggestion (arrow keys), or -1 for none: Enter then adds what was typed. */
+  const [active, setActive] = useState(-1);
   const inputId = useId();
   const listId = `${inputId}-list`;
 
-  function add() {
-    const slug = draft.trim().toLowerCase().replaceAll(/\s+/g, "-");
+  // Every suggestion not picked yet, narrowed by what's typed: names starting
+  // with it first, then containing it. The list scrolls.
+  const query = draft.trim().toLowerCase().replaceAll(/\s+/g, "-");
+  const matches = suggestions
+    .filter((slug) => !tags.includes(slug) && slug.includes(query))
+    .sort((a, b) => Number(!a.startsWith(query)) - Number(!b.startsWith(query)));
+  const showList = open && matches.length > 0;
+
+  function add(value = draft) {
+    const slug = value.trim().toLowerCase().replaceAll(/\s+/g, "-");
     if (slug && !tags.includes(slug)) onChange([...tags, slug]);
     setDraft("");
+    setActive(-1);
+    // Closed until the next click, keystroke or arrow, so it doesn't cover what's below.
+    setOpen(false);
   }
 
   return (
@@ -98,30 +112,75 @@ function TagGroupEditor({
         <label htmlFor={inputId} className="sr-only">
           Add to {label.toLowerCase()}
         </label>
-        <input
-          id={inputId}
-          list={listId}
-          value={draft}
-          onChange={(event) => setDraft(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              event.preventDefault();
-              add();
-            }
-          }}
-          placeholder={`Add to ${label.toLowerCase()}`}
-          className="h-10 min-w-0 flex-1 rounded-xl border border-line bg-bg px-3 text-sm outline-none focus:border-accent"
-        />
-        <datalist id={listId}>
-          {suggestions
-            .filter((slug) => !tags.includes(slug))
-            .map((slug) => (
-              <option key={slug} value={slug} />
+        <div className="relative min-w-0 flex-1">
+          <input
+            id={inputId}
+            role="combobox"
+            aria-autocomplete="list"
+            aria-expanded={showList}
+            aria-controls={listId}
+            aria-activedescendant={showList && active >= 0 ? `${listId}-${active}` : undefined}
+            autoComplete="off"
+            value={draft}
+            onChange={(event) => {
+              setDraft(event.target.value);
+              setOpen(true);
+              setActive(-1);
+            }}
+            onFocus={() => setOpen(true)}
+            // A click opens the list too, also after Esc closed it.
+            onClick={() => setOpen(true)}
+            onBlur={() => setOpen(false)}
+            onKeyDown={(event) => {
+              if (event.key === "ArrowDown" && matches.length) {
+                event.preventDefault();
+                setOpen(true);
+                setActive((i) => (i + 1) % matches.length);
+              } else if (event.key === "ArrowUp" && matches.length) {
+                event.preventDefault();
+                setActive((i) => (i <= 0 ? matches.length - 1 : i - 1));
+              } else if (event.key === "Escape") {
+                setOpen(false);
+                setActive(-1);
+              } else if (event.key === "Enter") {
+                event.preventDefault();
+                add(showList && active >= 0 ? matches[active] : draft);
+              }
+            }}
+            placeholder={`Add to ${label.toLowerCase()}`}
+            className="h-10 w-full rounded-xl border border-line bg-bg px-3 text-sm outline-none focus:border-accent"
+          />
+          {/* Always in the page, so aria-controls points at it; hidden when there's nothing to show. */}
+          <ul
+            id={listId}
+            hidden={!showList}
+            role="listbox"
+            aria-label={`Suggestions for ${label.toLowerCase()}`}
+            className="absolute inset-x-0 top-full z-20 mt-1 max-h-64 overflow-auto rounded-xl border border-line bg-bg p-1 shadow-lg"
+          >
+            {matches.map((slug, i) => (
+              <li
+                key={slug}
+                id={`${listId}-${i}`}
+                role="option"
+                aria-selected={i === active}
+                // Before blur, so the click lands while the list is still open.
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                  add(slug);
+                }}
+                className={`cursor-pointer rounded-lg px-3 py-2 text-sm ${
+                  i === active ? "bg-accent-soft text-accent-soft-ink" : "text-ink hover:bg-surface"
+                }`}
+              >
+                {tagLabel(slug)}
+              </li>
             ))}
-        </datalist>
+          </ul>
+        </div>
         <button
           type="button"
-          onClick={add}
+          onClick={() => add()}
           disabled={!draft.trim()}
           className={buttonClass("outline", "sm", "h-10")}
         >

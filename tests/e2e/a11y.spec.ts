@@ -75,6 +75,7 @@ test("onboarding, every step", async ({ page }) => {
   await signIn(page, newEmail());
   await expectAccessible(page, "onboarding step 1");
   await page.getByRole("button", { name: "I have an idea" }).click();
+  await page.getByLabel("First name").fill("Test");
   await page.getByRole("button", { name: "Continue" }).click();
   await expectAccessible(page, "onboarding step 2");
   await page.getByRole("textbox").first().fill("A shift swap app");

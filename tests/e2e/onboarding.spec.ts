@@ -65,6 +65,8 @@ test("a builder joins the pool in under a minute with 2 taps, 1 sentence and 1 c
   const started = Date.now();
 
   await page.getByRole("button", { name: "I want to find an idea to build" }).click();
+
+  await page.getByLabel("First name").fill("Test");
   await page.getByRole("button", { name: "Continue" }).click();
   await page
     .getByLabel("What you can build, in one sentence")
@@ -111,8 +113,11 @@ test("an idea person's sentence becomes their first idea", async ({ page }) => {
   await signIn(page, email);
 
   await page.getByRole("button", { name: "I have an idea" }).click();
+
+  await page.getByLabel("First name").fill("Test");
   await page.getByRole("button", { name: "Co-founder" }).click();
-  await page.getByLabel("First name").fill("Maya Patel");
+  await page.getByLabel("First name").fill("Maya");
+  await page.getByLabel("Last name").fill("Patel");
   await page.getByRole("button", { name: "Continue" }).click();
   await page
     .getByLabel("Your idea in one sentence")
@@ -142,6 +147,8 @@ test("tag edits, event picks and a clarifying answer are saved", async ({ page }
   await signIn(page, email);
 
   await page.getByRole("button", { name: "I have an idea" }).click();
+
+  await page.getByLabel("First name").fill("Test");
   await page.getByRole("button", { name: "Continue" }).click();
   // Under 8 words, so the fake LLM asks a clarifying question.
   await page.getByLabel("Your idea in one sentence").fill("A shift swap app");
@@ -182,6 +189,8 @@ test("a slow LLM: a builder joins with a picked skill; tags fill in afterwards",
   await signIn(page, email);
 
   await page.getByRole("button", { name: "I want to find an idea to build" }).click();
+
+  await page.getByLabel("First name").fill("Test");
   await page.getByRole("button", { name: "Continue" }).click();
   await page
     .getByLabel("What you can build, in one sentence")
@@ -210,6 +219,7 @@ test("an onboarded user is sent past onboarding", async ({ page }) => {
   const email = newEmail();
   await signIn(page, email);
   await page.getByRole("button", { name: "I want to find an idea to build" }).click();
+  await page.getByLabel("First name").fill("Test");
   await page.getByRole("button", { name: "Continue" }).click();
   await page.getByLabel("What you can build, in one sentence").fill("I write Go backends");
   await page.getByRole("button", { name: "Continue" }).click();
@@ -232,6 +242,7 @@ test("onboarding has no horizontal scroll on any step", async ({ page }) => {
 
   await noOverflow();
   await page.getByRole("button", { name: "I have an idea" }).click();
+  await page.getByLabel("First name").fill("Test");
   await page.getByRole("button", { name: "Continue" }).click();
   await noOverflow();
   await page
@@ -247,6 +258,8 @@ test("pasted LinkedIn text adds tags, and the profile link is stored", async ({ 
   await signIn(page, email);
 
   await page.getByRole("button", { name: "I want to find an idea to build" }).click();
+
+  await page.getByLabel("First name").fill("Test");
   await page.getByRole("button", { name: "Continue" }).click();
   await page.getByLabel("What you can build, in one sentence").fill("I design products");
   await page.getByText("Or import from GitHub or LinkedIn").click();
@@ -277,6 +290,8 @@ test("a link that is not a GitHub profile is rejected with a clear message", asy
   await signIn(page, email);
 
   await page.getByRole("button", { name: "I want to find an idea to build" }).click();
+
+  await page.getByLabel("First name").fill("Test");
   await page.getByRole("button", { name: "Continue" }).click();
   await page.getByText("Or import from GitHub or LinkedIn").click();
   await page.getByLabel("GitHub profile").fill("https://github.com/someone/some-repo");
@@ -293,6 +308,7 @@ const BUILDER_ROUTE = "I want to find an idea to build";
 
 async function startRoute(page: Page, route: string, sentence: string) {
   await page.getByRole("button", { name: route }).click();
+  await page.getByLabel("First name").fill("Test");
   await page.getByRole("button", { name: "Continue" }).click();
   await page.getByRole("textbox").first().fill(sentence);
   await page.getByRole("button", { name: "Continue" }).click();
@@ -471,6 +487,7 @@ test("a quick pick on the sentence step becomes a tag and counts as the skill", 
   const email = newEmail();
   await signIn(page, email);
   await page.getByRole("button", { name: "I want to find an idea to build" }).click();
+  await page.getByLabel("First name").fill("Test");
   await page.getByRole("button", { name: "Continue" }).click();
   await page.getByLabel("What you can build, in one sentence").fill("I like hackathons");
   const pick = page.getByRole("button", { name: "mobile", exact: true });
@@ -483,4 +500,69 @@ test("a quick pick on the sentence step becomes a tag and counts as the skill", 
   await page.getByRole("button", { name: "Join the pool" }).click();
   await expect(page).toHaveURL("/matches?welcome=1");
   expect((await getProfile(email))!.skills).toContain("mobile");
+});
+
+test("the first name is required to continue; the last name is optional", async ({ page }) => {
+  const email = newEmail();
+  await signIn(page, email);
+  await page.getByRole("button", { name: "I want to find an idea to build" }).click();
+  const next = page.getByRole("button", { name: "Continue" });
+  await expect(page.getByLabel("Last name")).toBeVisible();
+  await expect(next).toBeDisabled();
+  await page.getByLabel("First name").fill("   ");
+  await expect(next).toBeDisabled();
+  await page.getByLabel("First name").fill("Ana");
+  await expect(next).toBeEnabled();
+  await next.click();
+  await page.getByLabel("What you can build, in one sentence").fill("I build Swift iOS apps");
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.getByRole("button", { name: "Join the pool" }).click();
+  await expect(page).toHaveURL("/matches?welcome=1");
+  const [row] = await query<{ name: string; shown: string }>(
+    `select name, public.display_name(name) as shown from public.users where cornell_email = $1`,
+    [email],
+  );
+  expect(row).toEqual({ name: "Ana", shown: "Ana" });
+});
+
+test("tag suggestions are a themed list: type, then pick with the keyboard or a click", async ({
+  page,
+}) => {
+  await signIn(page, newEmail());
+  await page.getByRole("button", { name: "I want to find an idea to build" }).click();
+  await page.getByLabel("First name").fill("Test");
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.getByLabel("What you can build, in one sentence").fill("I like hackathons");
+  await page.getByRole("button", { name: "Continue" }).click();
+
+  const input = page.getByRole("combobox", { name: "Add to skills" });
+  const list = page.getByRole("listbox", { name: "Suggestions for skills" });
+  // A click shows every suggestion, before typing anything.
+  await expect(list).toBeHidden();
+  await input.click();
+  await expect(list).toBeVisible();
+  await expect(list.getByRole("option", { name: "backend" })).toBeVisible();
+  await input.press("Escape");
+  await expect(list).toBeHidden();
+  await input.click();
+  await expect(list).toBeVisible();
+  await input.fill("front");
+  await expect(list.getByRole("option")).toHaveText(["frontend"]);
+  await expect(input).toHaveAttribute("aria-expanded", "true");
+  await input.press("ArrowDown");
+  await expect(list.getByRole("option", { name: "frontend" })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  await input.press("Enter");
+  await expect(page.getByRole("list", { name: "Skills" })).toContainText("frontend");
+  await expect(input).toHaveValue("");
+
+  // Names starting with what's typed come first; a click adds one.
+  await input.fill("data");
+  await expect(list.getByRole("option").first()).toHaveText(/^data/);
+  await list.getByRole("option", { name: "data science" }).click();
+  await expect(page.getByRole("list", { name: "Skills" })).toContainText("data science");
+  await input.press("Escape");
+  await expect(list).toBeHidden();
 });

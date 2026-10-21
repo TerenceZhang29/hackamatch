@@ -6,12 +6,14 @@ describe("sentenceInputSchema", () => {
     const parsed = sentenceInputSchema.parse({
       role: "builder",
       intents: ["hackathon", "hackathon"],
+      firstName: "  Ana ",
       sentence: "  I build iOS apps  ",
     });
     expect(parsed).toEqual({
       role: "builder",
       intents: ["hackathon"],
-      name: null,
+      firstName: "Ana",
+      lastName: "",
       sentence: "I build iOS apps",
       githubUrl: null,
       linkedinUrl: null,
@@ -19,14 +21,16 @@ describe("sentenceInputSchema", () => {
     });
   });
 
-  it("treats a blank name as no name", () => {
-    const parsed = sentenceInputSchema.parse({
-      role: "idea",
-      intents: ["cofounder"],
-      name: "   ",
-      sentence: "An app for nurses",
-    });
-    expect(parsed.name).toBeNull();
+  it("requires a first name; the last name is optional", () => {
+    const base = { role: "idea", intents: ["cofounder"], sentence: "An app for nurses" };
+    for (const firstName of [undefined, "", "   "]) {
+      const result = sentenceInputSchema.safeParse({ ...base, firstName });
+      expect(result.success).toBe(false);
+      expect(result.error?.issues[0]?.message).toBe("Add your first name");
+    }
+    expect(
+      sentenceInputSchema.parse({ ...base, firstName: "Ana", lastName: " Lee " }).lastName,
+    ).toBe("Lee");
   });
 
   it("rejects an unknown role, no intents, or an empty sentence", () => {
@@ -51,6 +55,7 @@ describe("sentenceInputSchema", () => {
     const parsed = sentenceInputSchema.parse({
       role: "builder",
       intents: ["hackathon"],
+      firstName: "Octo",
       githubUrl: " github.com/octocat ",
     });
     expect(parsed).toMatchObject({ sentence: "", githubUrl: "github.com/octocat" });

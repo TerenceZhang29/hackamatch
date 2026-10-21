@@ -9,3 +9,14 @@ export function displayName(name: string | null | undefined): string {
   if (words.length === 1) return words[0]!;
   return `${words[0]} ${words.at(-1)!.charAt(0).toUpperCase()}.`;
 }
+
+/** The stored name from the two form fields: "First Last", or just "First". */
+export function joinName(firstName: string, lastName: string): string {
+  return [firstName.trim(), lastName.trim()].filter(Boolean).join(" ");
+}
+
+/** The two form fields from a stored name: the first word, then the rest. */
+export function splitName(name: string | null): { firstName: string; lastName: string } {
+  const [first = "", ...rest] = (name ?? "").trim().split(/\s+/).filter(Boolean);
+  return { firstName: first, lastName: rest.join(" ") };
+}

@@ -45,7 +45,7 @@ export default async function MePage() {
           {user.name ? (
             <p className="text-2xl font-bold tracking-tight">{user.name}</p>
           ) : (
-            <a href="#me-name" className="text-lg font-semibold text-accent underline">
+            <a href="#me-first-name" className="text-lg font-semibold text-accent underline">
               Add your name
             </a>
           )}

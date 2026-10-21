@@ -1,7 +1,7 @@
 "use client";
 
 import { buttonClass } from "@/components/ui/Button";
-import { inputClass } from "@/components/ui/Field";
+import { inputClass, Select } from "@/components/ui/Field";
 import { useState, useTransition } from "react";
 import { TagEditor, tagLabel } from "@/components/TagEditor";
 import { answerIdeaQuestion, saveIdeaStatus, saveIdeaTags, type IdeaActionResult } from "./actions";
@@ -9,7 +9,6 @@ import { answerIdeaQuestion, saveIdeaStatus, saveIdeaTags, type IdeaActionResult
 type Scope = "weekend" | "few_weeks" | "ongoing";
 type Status = "open" | "filled" | "archived";
 
-const selectClass = inputClass;
 const primaryButton = buttonClass("primary", "md");
 
 function Outcome({ result }: { result: IdeaActionResult | null }) {
@@ -81,7 +80,7 @@ export function OwnerControls({
               value={answer}
               onChange={(event) => setAnswer(event.target.value)}
               maxLength={300}
-              className={`min-w-0 flex-1 ${selectClass}`}
+              className={`min-w-0 flex-1 ${inputClass}`}
             />
             <button
               type="submit"
@@ -106,31 +105,23 @@ export function OwnerControls({
         <div className="flex flex-wrap gap-3">
           <label className="flex flex-col gap-1 text-sm">
             Area
-            <select
-              value={currentDomain}
-              onChange={(e) => setDomain(e.target.value)}
-              className={selectClass}
-            >
+            <Select value={currentDomain} onChange={(e) => setDomain(e.target.value)}>
               <option value="">None</option>
               {domainOptions.map((slug) => (
                 <option key={slug} value={slug}>
                   {tagLabel(slug)}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
           <label className="flex flex-col gap-1 text-sm">
             Scope
-            <select
-              value={currentScope}
-              onChange={(e) => setScope(e.target.value as Scope | "")}
-              className={selectClass}
-            >
+            <Select value={currentScope} onChange={(e) => setScope(e.target.value as Scope | "")}>
               <option value="">Not sure</option>
               <option value="weekend">Weekend build</option>
               <option value="few_weeks">A few weeks</option>
               <option value="ongoing">Ongoing</option>
-            </select>
+            </Select>
           </label>
         </div>
         <div className="flex items-center gap-3">

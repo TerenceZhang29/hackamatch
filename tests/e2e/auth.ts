@@ -46,6 +46,7 @@ export async function onboard(
   answers: { role: "I have an idea" | "I want to find an idea to build"; sentence: string },
 ) {
   await page.getByRole("button", { name: answers.role }).click();
+  await page.getByLabel("First name").fill("Test");
   await page.getByRole("button", { name: "Continue" }).click();
   await page.getByRole("textbox").first().fill(answers.sentence);
   await page.getByRole("button", { name: "Continue" }).click();

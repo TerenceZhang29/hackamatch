@@ -6,6 +6,8 @@
  * system setting, like Tailwind's `dark:` variant.
  */
 :root {
+  /* Native pickers and select menus follow the theme (docs/design.md). */
+  color-scheme: light;
   --bg: #ffffff;
   --surface: #f5f5f7;
   --surface-2: #ebebef;
@@ -24,6 +26,7 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
+    color-scheme: dark;
     --bg: #0b0b0f;
     --surface: #17171d;
     --surface-2: #22222a;
@@ -79,4 +82,10 @@ body {
     transition: none !important;
     animation: none !important;
   }
+}
+
+/* Where the browser draws select menus itself (Windows, Linux), match the theme. */
+option {
+  background-color: var(--bg);
+  color: var(--ink);
 }

@@ -87,6 +87,7 @@ test("a new user arriving from the event link finishes onboarding with the event
   await signIn(page, email, page.url().replace(/^https?:\/\/[^/]+/, ""));
   await expect(page).toHaveURL(`/onboarding?next=${encodeURIComponent(`/e/${SLUG}?join=1`)}`);
   await page.getByRole("button", { name: "I want to find an idea to build" }).click();
+  await page.getByLabel("First name").fill("Test");
   await page.getByRole("button", { name: "Continue" }).click();
   await page.getByRole("textbox").first().fill("I build React apps for health");
   await page.getByRole("button", { name: "Continue" }).click();

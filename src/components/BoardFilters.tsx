@@ -1,3 +1,4 @@
+import { Select } from "@/components/ui/Field";
 import { SlidersHorizontal } from "lucide-react";
 import { buttonClass } from "@/components/ui/Button";
 import { BOARD_INTENTS, hasFilters, type BoardState } from "@/lib/board";
@@ -8,8 +9,6 @@ const INTENT_LABELS = {
   side_project: "Side project",
   cofounder: "Co-founder",
 } as const;
-
-const selectClass = "h-9 min-w-0 rounded-lg border border-line bg-bg px-2 text-sm";
 
 /**
  * Filters as a plain GET form, so they work without JavaScript and the
@@ -52,73 +51,53 @@ export function BoardFilters({
           <label htmlFor="filter-event" className="text-xs text-muted">
             Hackathon
           </label>
-          <select
-            id="filter-event"
-            name="event"
-            defaultValue={filters.event ?? ""}
-            className={selectClass}
-          >
+          <Select id="filter-event" name="event" defaultValue={filters.event ?? ""} size="sm">
             <option value="">Any</option>
             {events.map((event) => (
               <option key={event.slug} value={event.slug}>
                 {event.name}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
         <div className="flex flex-col gap-1">
           <label htmlFor="filter-domain" className="text-xs text-muted">
             Area
           </label>
-          <select
-            id="filter-domain"
-            name="domain"
-            defaultValue={filters.domain ?? ""}
-            className={selectClass}
-          >
+          <Select id="filter-domain" name="domain" defaultValue={filters.domain ?? ""} size="sm">
             <option value="">Any</option>
             {domains.map((slug) => (
               <option key={slug} value={slug}>
                 {tagLabel(slug)}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
         <div className="flex flex-col gap-1">
           <label htmlFor="filter-skill" className="text-xs text-muted">
             Skill
           </label>
-          <select
-            id="filter-skill"
-            name="skill"
-            defaultValue={filters.skill ?? ""}
-            className={selectClass}
-          >
+          <Select id="filter-skill" name="skill" defaultValue={filters.skill ?? ""} size="sm">
             <option value="">Any</option>
             {skills.map((slug) => (
               <option key={slug} value={slug}>
                 {tagLabel(slug)}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
         <div className="flex flex-col gap-1">
           <label htmlFor="filter-intent" className="text-xs text-muted">
             Looking for
           </label>
-          <select
-            id="filter-intent"
-            name="intent"
-            defaultValue={filters.intent ?? ""}
-            className={selectClass}
-          >
+          <Select id="filter-intent" name="intent" defaultValue={filters.intent ?? ""} size="sm">
             <option value="">Anything</option>
             {BOARD_INTENTS.map((intent) => (
               <option key={intent} value={intent}>
                 {INTENT_LABELS[intent]}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
         <button type="submit" className={buttonClass("primary", "sm")}>
           Apply

@@ -67,7 +67,9 @@ test("edited tags survive a later sentence change", async ({ page }) => {
   await expect(page.getByRole("list", { name: "Tools and languages" })).toContainText("swift");
 });
 
-test("the full name is shown and can be changed or cleared", async ({ page }) => {
+test("the name is shown and can be changed; the first name is required, the last optional", async ({
+  page,
+}) => {
   const email = await newOnboardedUser(
     page,
     "I want to find an idea to build",
@@ -82,9 +84,12 @@ test("the full name is shown and can be changed or cleared", async ({ page }) =>
     )[0]!;
 
   await page.goto("/me");
-  await expect(page.getByRole("link", { name: "Add your name" })).toBeVisible();
+  // Sign-up asked for the first name.
+  await expect(page.getByLabel("First name")).toHaveValue("Test");
+  await expect(page.getByLabel("Last name")).toHaveValue("");
 
-  await page.getByLabel("Full name").fill("  Maya Patel  ");
+  await page.getByLabel("First name").fill("  Maya ");
+  await page.getByLabel("Last name").fill(" Patel ");
   await expect(page.getByText(`Public pages show "Maya P."; matches see "Maya".`)).toBeVisible();
   await page.getByRole("button", { name: "Save name" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Saved" })).toBeVisible();
@@ -92,14 +97,17 @@ test("the full name is shown and can be changed or cleared", async ({ page }) =>
 
   await page.reload();
   await expect(page.getByText("Maya Patel", { exact: true })).toBeVisible();
-  await expect(page.getByLabel("Full name")).toHaveValue("Maya Patel");
+  await expect(page.getByLabel("First name")).toHaveValue("Maya");
+  await expect(page.getByLabel("Last name")).toHaveValue("Patel");
 
-  await page.getByLabel("Full name").fill("");
+  // The last name can go; the first name can't.
+  await page.getByLabel("Last name").fill("");
   await page.getByRole("button", { name: "Save name" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Saved" })).toBeVisible();
-  expect(await nameOf()).toEqual({ name: null, shown: "Cornell student" });
-  await page.reload();
-  await expect(page.getByRole("link", { name: "Add your name" })).toBeVisible();
+  expect(await nameOf()).toEqual({ name: "Maya", shown: "Maya" });
+  await page.getByLabel("First name").fill("");
+  await expect(page.getByText("Add your first name.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Save name" })).toBeDisabled();
 });
 
 test("pausing takes the user off the board and out of the pool, and resuming brings them back", async ({

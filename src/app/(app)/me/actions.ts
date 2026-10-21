@@ -1,5 +1,7 @@
 "use server";
 
+import { joinName } from "@/lib/display-name";
+
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { redirect } from "next/navigation";
@@ -57,7 +59,7 @@ export async function saveName(input: unknown): Promise<ActionResult> {
   const parsed = nameSchema.safeParse(input);
   if (!parsed.success) return invalid(parsed.error);
 
-  await updateName(user.id, parsed.data.name);
+  await updateName(user.id, joinName(parsed.data.firstName, parsed.data.lastName));
   revalidatePath("/me");
   return { ok: true };
 }

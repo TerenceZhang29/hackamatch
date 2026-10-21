@@ -8,6 +8,7 @@ import { getConfig } from "@/lib/config";
 import { fetchGithubSummary, parseGithubUsername } from "@/lib/imports/github";
 import { cleanLinkedinText, normalizeLinkedinUrl } from "@/lib/imports/linkedin";
 import { sanitizeNext } from "@/lib/auth-helpers";
+import { joinName } from "@/lib/display-name";
 import { LlmError } from "@/lib/llm/types";
 import { LIMITS } from "@/lib/rate-limit";
 import { allow } from "@/server/rate-limit";
@@ -76,7 +77,7 @@ export async function submitSentence(input: SentenceInput): Promise<SentenceResu
   await saveOnboardingBasics(user.id, {
     role: data.role,
     intents: data.intents,
-    name: data.name ?? github?.name ?? null,
+    name: joinName(data.firstName, data.lastName),
     sentence: data.sentence.length >= 3 ? data.sentence : (github?.bio ?? "(imported from GitHub)"),
     githubUrl: githubUsername ? `https://github.com/${githubUsername}` : null,
     githubSummary: github?.summaryText || null,

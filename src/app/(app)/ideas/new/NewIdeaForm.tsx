@@ -2,7 +2,7 @@
 
 import { Lock } from "lucide-react";
 import { buttonClass } from "@/components/ui/Button";
-import { inputClass } from "@/components/ui/Field";
+import { inputClass, Select } from "@/components/ui/Field";
 import { useState, useTransition } from "react";
 import { IdeaTags } from "@/components/IdeaTags";
 import type { ExtractedIdea } from "@/lib/llm/extract-idea";
@@ -128,11 +128,10 @@ export function NewIdeaForm({ events }: { events: { id: string; name: string }[]
           <label htmlFor="idea-event" className="text-sm font-medium">
             For a hackathon <span className="font-normal text-muted">(optional)</span>
           </label>
-          <select
+          <Select
             id="idea-event"
             value={eventId}
             onChange={(event) => setEventId(event.target.value)}
-            className={inputClass}
           >
             <option value="">No particular event</option>
             {events.map((event) => (
@@ -140,7 +139,7 @@ export function NewIdeaForm({ events }: { events: { id: string; name: string }[]
                 {event.name}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
       ) : null}
       {errorText}

@@ -115,6 +115,7 @@ test("a signed-in member does not see their own card", async ({ page }) => {
   const email = newEmail();
   await signIn(page, email);
   await page.getByRole("button", { name: "I have an idea" }).click();
+  await page.getByLabel("First name").fill("Test");
   await page.getByRole("button", { name: "Continue" }).click();
   await page
     .getByLabel("Your idea in one sentence")

@@ -8,8 +8,8 @@ import { useState, useTransition } from "react";
 import { EventPicker, type PickableEvent } from "@/components/EventPicker";
 import { TagEditor, type TagGroup, type TagValues } from "@/components/TagEditor";
 import type { INTENTS, ROLES } from "@/app/(focus)/onboarding/schema";
-import { NAME_MAX, SENTENCE_MAX } from "@/app/(focus)/onboarding/schema";
-import { displayName } from "@/lib/display-name";
+import { FIRST_NAME_MAX, LAST_NAME_MAX, SENTENCE_MAX } from "@/app/(focus)/onboarding/schema";
+import { displayName, joinName, splitName } from "@/lib/display-name";
 import {
   changeIdeaStatus,
   deleteMyAccount,
@@ -75,37 +75,56 @@ export function Section({
 }
 
 export function NameSection({ name }: { name: string }) {
-  const [value, setValue] = useState(name);
+  const [first, setFirst] = useState(() => splitName(name).firstName);
+  const [last, setLast] = useState(() => splitName(name).lastName);
   const action = useAction();
-  const firstName = displayName(value).split(" ")[0];
+  const full = joinName(first, last);
   return (
     <form
       className="flex flex-col gap-2"
       onSubmit={(event) => {
         event.preventDefault();
-        action.run(() => saveName({ name: value }));
+        action.run(() => saveName({ firstName: first, lastName: last }));
       }}
     >
-      <label htmlFor="me-name" className="text-sm font-medium">
-        Full name
-      </label>
-      <input
-        id="me-name"
-        value={value}
-        onChange={(event) => setValue(event.target.value)}
-        maxLength={NAME_MAX}
-        autoComplete="name"
-        className={inputClass}
-      />
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="flex flex-col gap-1">
+          <label htmlFor="me-first-name" className="text-sm font-medium">
+            First name
+          </label>
+          <input
+            id="me-first-name"
+            value={first}
+            onChange={(event) => setFirst(event.target.value)}
+            maxLength={FIRST_NAME_MAX}
+            autoComplete="given-name"
+            required
+            className={inputClass}
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label htmlFor="me-last-name" className="text-sm font-medium">
+            Last name <span className="font-normal text-muted">(optional)</span>
+          </label>
+          <input
+            id="me-last-name"
+            value={last}
+            onChange={(event) => setLast(event.target.value)}
+            maxLength={LAST_NAME_MAX}
+            autoComplete="family-name"
+            className={inputClass}
+          />
+        </div>
+      </div>
       <p className="text-sm text-muted">
-        {value.trim()
-          ? `Public pages show "${displayName(value)}"; matches see "${firstName}".`
-          : 'With no name, public pages show "Cornell student".'}
+        {first.trim()
+          ? `Public pages show "${displayName(full)}"; matches see "${first.trim()}".`
+          : "Add your first name."}
       </p>
       <div className="flex items-center gap-3">
         <button
           type="submit"
-          disabled={action.pending || value.trim() === name}
+          disabled={action.pending || !first.trim() || full === name.trim()}
           className={primaryButton}
         >
           {action.pending ? "Saving…" : "Save name"}

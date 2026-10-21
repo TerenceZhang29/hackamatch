@@ -22,6 +22,9 @@ These are defined in `src/app/globals.css` as CSS variables, with dark values un
 
 ## Components (`src/components/ui/`)
 - `Button` / `buttonClass(variant, size)`: `primary` (accent), `secondary` (on the page), `outline` (on a grey card), `ghost`, `danger`; sizes `sm` / `md` / `lg`. `IconButton` is a round button; its `label` is the accessible name.
+- `Select` (in `Field.tsx`): the field style with a lucide chevron in place of the browser arrow. The open menu is the system's, which follows the theme through `color-scheme` and the `option` colors in `globals.css`.
+- `TagEditor` suggestions: our own list (a `combobox` with a `listbox`), not a `<datalist>`. A click opens every suggestion, typing narrows it, ↑/↓ choose what Enter adds (the mouse only hovers), and Esc closes it. It closes after each add.
+- Names: **first name required, last name optional**, at signup and on `/me`. They're stored joined as `users.name`, which public pages show as "Maya P.".
 - `Chip` / `TagList`: `neutral`, `accent` or `success`; `checked` adds ✓ with ", you have this" for screen readers.
 - `Avatar`: an initials circle with a stable color per name. It's decorative; the name always appears next to it.
 - `Surface`, `Section` (title plus count, and labels its region), `EmptyState` (icon, one heading, at most two actions), `Notice` (one status line), and `inputClass` / `labelClass` / `FieldError` (`Field.tsx`).

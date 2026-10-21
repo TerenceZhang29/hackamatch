@@ -15,7 +15,15 @@ import {
   switchToBuilder,
   type SentenceResult,
 } from "./actions";
-import { ANSWER_MAX, SENTENCE_MAX, type INTENTS, type ROLES } from "./schema";
+import {
+  ANSWER_MAX,
+  FIRST_NAME_MAX,
+  LAST_NAME_MAX,
+  SENTENCE_MAX,
+  type INTENTS,
+  type ROLES,
+} from "./schema";
+import { splitName } from "@/lib/display-name";
 
 type Role = (typeof ROLES)[number];
 type Intent = (typeof INTENTS)[number];
@@ -96,7 +104,8 @@ export function OnboardingFlow({
   const [intents, setIntents] = useState<Intent[]>(
     initial.intents.length ? initial.intents : ["hackathon"],
   );
-  const [name, setName] = useState(initial.name);
+  const [firstName, setFirstName] = useState(() => splitName(initial.name).firstName);
+  const [lastName, setLastName] = useState(() => splitName(initial.name).lastName);
   const [sentence, setSentence] = useState(initial.sentence);
   const [githubUrl, setGithubUrl] = useState("");
   const [linkedinUrl, setLinkedinUrl] = useState("");
@@ -127,7 +136,8 @@ export function OnboardingFlow({
       const result = await submitSentence({
         role,
         intents,
-        name,
+        firstName,
+        lastName,
         sentence,
         githubUrl,
         linkedinUrl,
@@ -230,7 +240,7 @@ export function OnboardingFlow({
           className="flex flex-col gap-6"
           onSubmit={(event) => {
             event.preventDefault();
-            if (role && intents.length) setStep(2);
+            if (role && intents.length && firstName.trim()) setStep(2);
           }}
         >
           <h1 className="text-2xl font-bold tracking-tight">Who are you?</h1>
@@ -271,20 +281,40 @@ export function OnboardingFlow({
               ))}
             </div>
           </fieldset>
-          <div className="flex flex-col gap-2">
-            <label htmlFor="name" className={labelClass}>
-              First name <span className="font-normal text-muted">(optional)</span>
-            </label>
-            <input
-              id="name"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              autoComplete="given-name"
-              maxLength={80}
-              className={inputClass}
-            />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="flex flex-col gap-2">
+              <label htmlFor="first-name" className={labelClass}>
+                First name
+              </label>
+              <input
+                id="first-name"
+                value={firstName}
+                onChange={(event) => setFirstName(event.target.value)}
+                autoComplete="given-name"
+                maxLength={FIRST_NAME_MAX}
+                required
+                className={inputClass}
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <label htmlFor="last-name" className={labelClass}>
+                Last name <span className="font-normal text-muted">(optional)</span>
+              </label>
+              <input
+                id="last-name"
+                value={lastName}
+                onChange={(event) => setLastName(event.target.value)}
+                autoComplete="family-name"
+                maxLength={LAST_NAME_MAX}
+                className={inputClass}
+              />
+            </div>
           </div>
-          <button type="submit" disabled={!role || intents.length === 0} className={primaryButton}>
+          <button
+            type="submit"
+            disabled={!role || intents.length === 0 || !firstName.trim()}
+            className={primaryButton}
+          >
             Continue
           </button>
         </form>

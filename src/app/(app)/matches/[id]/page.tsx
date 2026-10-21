@@ -1,3 +1,4 @@
+import { Select } from "@/components/ui/Field";
 import { ArrowLeft, Briefcase, Code, Mail } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -210,12 +211,7 @@ export default async function PairPage({
             <label htmlFor="team-event" className="text-xs font-medium text-muted">
               For which event?
             </label>
-            <select
-              id="team-event"
-              name="eventId"
-              defaultValue={overlapping[0]?.id ?? "none"}
-              className={input}
-            >
+            <Select id="team-event" name="eventId" defaultValue={overlapping[0]?.id ?? "none"}>
               {teamOptions.map((event) => (
                 <option key={event.id} value={event.id}>
                   {event.name}
@@ -223,7 +219,7 @@ export default async function PairPage({
                 </option>
               ))}
               <option value="none">No event / side project</option>
-            </select>
+            </Select>
           </div>
           <button type="submit" className={buttonClass("primary", "md")}>
             We teamed up

@@ -9,7 +9,8 @@ export const INTENTS = ["hackathon", "side_project", "cofounder"] as const;
 
 export const SENTENCE_MAX = 600;
 export const ANSWER_MAX = 300;
-export const NAME_MAX = 80;
+export const FIRST_NAME_MAX = 40;
+export const LAST_NAME_MAX = 40;
 const TAG_MAX = 30;
 
 /** An optional free-text field: trimmed, and empty means absent. */
@@ -22,14 +23,23 @@ const optionalText = (max: number) =>
     .nullable()
     .default(null);
 
-/** A person's name, shared by onboarding and /me: trimmed, and empty means no name. */
-export const nameField = z
-  .string()
-  .trim()
-  .max(NAME_MAX, `Keep it under ${NAME_MAX} characters`)
-  .transform((name) => name || null)
-  .nullable()
-  .default(null);
+/**
+ * A person's name, shared by onboarding and /me (owner, 2026-10-23): the
+ * first name is required, the last name optional. Stored joined, as
+ * users.name ("Maya Patel"), which public pages show as "Maya P.".
+ */
+export const nameFields = {
+  firstName: z
+    .string({ error: "Add your first name" })
+    .trim()
+    .min(1, "Add your first name")
+    .max(FIRST_NAME_MAX, `Keep it under ${FIRST_NAME_MAX} characters`),
+  lastName: z
+    .string()
+    .trim()
+    .max(LAST_NAME_MAX, `Keep it under ${LAST_NAME_MAX} characters`)
+    .default(""),
+};
 
 export const sentenceInputSchema = z
   .object({
@@ -38,7 +48,7 @@ export const sentenceInputSchema = z
       .array(z.enum(INTENTS))
       .min(1, "Pick at least one")
       .transform((intents) => [...new Set(intents)]),
-    name: nameField,
+    ...nameFields,
     sentence: z
       .string()
       .trim()
