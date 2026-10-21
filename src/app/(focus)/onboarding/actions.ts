@@ -12,14 +12,18 @@ import { LlmError } from "@/lib/llm/types";
 import { LIMITS } from "@/lib/rate-limit";
 import { allow } from "@/server/rate-limit";
 import { addEventInterests, filterUpcomingEventIds } from "@/server/events";
+import { IDEA_OR_SKILL_REQUIRED } from "@/lib/onboarding";
 import {
   answerClarifyingQuestion,
+  applyNoIdeaRole,
+  checkJoin,
   embedUserAndIdeas,
   isOnboarded,
   markJoinedPool,
   runProfileExtraction,
   saveEditedTags,
   saveOnboardingBasics,
+  setRole,
   type ExtractionResult,
 } from "@/server/profiles";
 import {
@@ -100,8 +104,12 @@ async function extractInBackground(userId: string) {
   try {
     await runProfileExtraction(userId, { timeoutMs: BACKGROUND_TIMEOUT_MS });
     // If the user joined the pool while this ran, their profile was embedded
-    // without these tags; embed again now that they exist.
-    if (await isOnboarded(userId)) await embedUserAndIdeas(userId);
+    // without these tags; embed again now that they exist. With no idea found,
+    // they're a builder (P1-21); joinPool decides for anyone not joined yet.
+    if (await isOnboarded(userId)) {
+      await applyNoIdeaRole(userId);
+      await embedUserAndIdeas(userId);
+    }
   } catch (error) {
     console.error(`Background extraction failed for user ${userId}`, error);
   }
@@ -120,7 +128,13 @@ export async function joinPool(input: JoinPoolInput): Promise<{ error: string }>
 
   if (!user.role || !user.raw_bio) return { error: "Go back and write your sentence first." };
 
+  // Everyone joins with an idea or a skill; no idea means joining as a builder (P1-21).
+  const outcome = await checkJoin(user.id, user.role, tags);
+  if (outcome !== "pending" && !outcome.ok) return { error: IDEA_OR_SKILL_REQUIRED };
+
   await saveEditedTags(user.id, tags);
+  const role = outcome !== "pending" && outcome.ok ? outcome.role : user.role;
+  if (role !== user.role) await setRole(user.id, role);
   await addEventInterests(user.id, await filterUpcomingEventIds(eventIds));
 
   const joined = await markJoinedPool(user.id);
@@ -128,7 +142,7 @@ export async function joinPool(input: JoinPoolInput): Promise<{ error: string }>
     await track("onboarding_step_completed", { step: 3 }, user.id);
     await track(
       "pool_joined",
-      { seconds_since_link_click: joined.secondsSinceLinkClick, role: user.role },
+      { seconds_since_link_click: joined.secondsSinceLinkClick, role },
       user.id,
     );
   }

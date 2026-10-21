@@ -2,6 +2,7 @@ import "server-only";
 import { extractIdea } from "@/lib/llm/extract-idea";
 import { extractProfile } from "@/lib/llm/extract-profile";
 import { PROMPT_VERSION } from "@/lib/llm/prompts";
+import { onboardingOutcome, type OnboardingOutcome } from "@/lib/onboarding";
 import { normalizeTags } from "@/lib/taxonomy/normalize";
 import { createServiceClient } from "@/lib/supabase/service";
 import type { Enums } from "@/types/db";
@@ -277,6 +278,52 @@ export async function markJoinedPool(
   return {
     secondsSinceLinkClick: started ? Math.round((now.getTime() - started.getTime()) / 1000) : null,
   };
+}
+
+async function hasAnyIdea(userId: string): Promise<boolean> {
+  const { count, error } = await createServiceClient()
+    .from("ideas")
+    .select("id", { count: "exact", head: true })
+    .eq("owner_id", userId);
+  if (error) throw new Error(`hasAnyIdea: ${error.message}`);
+  return (count ?? 0) > 0;
+}
+
+/**
+ * The idea-or-skill rule (P1-21) for a user about to join, with the tags they
+ * are submitting. "pending" while their extraction hasn't finished: a slow LLM
+ * never blocks joining.
+ */
+export async function checkJoin(
+  userId: string,
+  role: Role,
+  tags: ProfileTags,
+): Promise<OnboardingOutcome | "pending"> {
+  const { data, error } = await createServiceClient()
+    .from("profiles")
+    .select("extracted_at")
+    .eq("user_id", userId)
+    .single();
+  if (error) throw new Error(`checkJoin: ${error.message}`);
+  if (!data.extracted_at) return "pending";
+  return onboardingOutcome(role, await hasAnyIdea(userId), normalizeProfileTags(tags));
+}
+
+/**
+ * After a late background extraction: someone who joined as an idea person
+ * but whose text gave no idea becomes a builder (P1-21).
+ */
+export async function applyNoIdeaRole(userId: string) {
+  const supabase = createServiceClient();
+  const { data, error } = await supabase.from("users").select("role").eq("id", userId).single();
+  if (error) throw new Error(`applyNoIdeaRole: ${error.message}`);
+  if (data.role === "builder" || !data.role || (await hasAnyIdea(userId))) return;
+  await setRole(userId, "builder");
+}
+
+export async function setRole(userId: string, role: Role) {
+  const { error } = await createServiceClient().from("users").update({ role }).eq("id", userId);
+  if (error) throw new Error(`setRole: ${error.message}`);
 }
 
 /** Embeds the profile and every idea of a user who is in the pool. Logs and swallows failures. */

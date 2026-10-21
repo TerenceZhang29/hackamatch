@@ -21,7 +21,7 @@ test.afterEach(async () => {
 async function signInAsNewAdmin(page: Page) {
   const email = newEmail();
   await signIn(page, email);
-  await onboard(page, { role: "I can build", sentence: "I run HackaMatch" });
+  await onboard(page, { role: "I can build", sentence: "I run HackaMatch and build backends" });
   await expect(page).toHaveURL("/matches?welcome=1");
   await query(`update public.users set is_admin = true where cornell_email = $1`, [email]);
   return email;

@@ -280,3 +280,63 @@ test("a link that is not a GitHub profile is rejected with a clear message", asy
   ).toBeVisible();
   expect((await getUserRow(email))?.onboarded_at).toBeNull();
 });
+
+test("no idea and no skill blocks joining; a quick pick unblocks it and they join as a builder", async ({
+  page,
+}) => {
+  const email = newEmail();
+  await signIn(page, email);
+  await page.getByRole("button", { name: "Both" }).click();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.getByLabel("Your idea and what you can build").fill("I want to build a xxx");
+  await page.getByRole("button", { name: "Continue" }).click();
+
+  const join = page.getByRole("button", { name: "Join the pool" });
+  const warning = page.getByText("Add a skill, or go back and describe your idea, to join.");
+  await expect(warning).toBeVisible();
+  await expect(join).toBeDisabled();
+  await expect(page.getByText("Your idea, as others will see it")).toHaveCount(0);
+
+  // The server refuses too, whatever the page allows.
+  await join.evaluate((button) => button.removeAttribute("disabled"));
+  await join.click();
+  await expect(
+    page.getByText("Add a skill, or go back and describe your idea, to join."),
+  ).toHaveCount(2);
+  expect((await getUserRow(email))?.onboarded_at).toBeNull();
+
+  await page.getByRole("button", { name: "backend", exact: true }).click();
+  await expect(warning).toHaveCount(0);
+  await expect(page.getByText("No idea found, so you'll join as a builder.")).toBeVisible();
+  await expect(page.getByRole("list", { name: "Skills" })).toContainText("backend");
+  await join.click();
+  await expect(page).toHaveURL("/matches?welcome=1");
+
+  const [user] = await query<{ id: string; role: string }>(
+    `select id, role::text from public.users where cornell_email = $1`,
+    [email],
+  );
+  expect(user!.role).toBe("builder");
+  expect(await getIdeas(email)).toEqual([]);
+  expect((await getProfile(email))!.skills).toEqual(["backend"]);
+});
+
+test("a quick pick on the sentence step becomes a tag and counts as the skill", async ({
+  page,
+}) => {
+  const email = newEmail();
+  await signIn(page, email);
+  await page.getByRole("button", { name: "I can build" }).click();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.getByLabel("What you can build, in one sentence").fill("I like hackathons");
+  const pick = page.getByRole("button", { name: "mobile", exact: true });
+  await pick.click();
+  await expect(pick).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: "Continue" }).click();
+
+  await expect(page.getByRole("list", { name: "Skills" })).toContainText("mobile");
+  await expect(page.getByText("Add a skill, or go back")).toHaveCount(0);
+  await page.getByRole("button", { name: "Join the pool" }).click();
+  await expect(page).toHaveURL("/matches?welcome=1");
+  expect((await getProfile(email))!.skills).toContain("mobile");
+});

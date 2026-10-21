@@ -1,5 +1,6 @@
 import "server-only";
 import { z } from "zod";
+import { tagLabel } from "@/lib/taxonomy/labels";
 import { normalizeTags } from "@/lib/taxonomy/normalize";
 import { llm } from "./client";
 import { llmEnum, normalizeIdea, rawIdeaSchema, type ExtractedIdea } from "./extract-idea";
@@ -9,6 +10,7 @@ import {
   profileUserPrompt,
   type ProfilePromptInput,
 } from "./prompts";
+import { isMetaText, isPlaceholderText, neutralSummary } from "./vague";
 
 export const EXPERIENCE_LEVELS = ["beginner", "intermediate", "advanced"] as const;
 
@@ -23,7 +25,8 @@ export const rawProfileSchema = z.object({
 });
 
 export interface ExtractedProfile {
-  summary: string;
+  /** Null when the model only described the input and there are no tags to say anything with. */
+  summary: string | null;
   /** Canonical taxonomy slugs, as are `stack` and `domains`. */
   skills: string[];
   stack: string[];
@@ -48,13 +51,27 @@ export async function extractProfile(
     toolName: PROFILE_TOOL,
     timeoutMs: options.timeoutMs,
   });
-  return {
-    summary: raw.summary,
+  const tags = {
     skills: normalizeTags("skills", raw.skills),
     stack: normalizeTags("stack", raw.stack),
     domains: normalizeTags("domains", raw.domains),
+  };
+  // A builder never gets an idea, whatever the model returned. Nor does a
+  // placeholder sentence ("I want to build a xxx"), or a pitch that is only a
+  // note about the input (P1-21).
+  const idea =
+    raw.idea &&
+    input.role !== "builder" &&
+    !isPlaceholderText(input.sentence) &&
+    !isMetaText(raw.idea.pitch)
+      ? normalizeIdea(raw.idea)
+      : null;
+  return {
+    summary: isMetaText(raw.summary)
+      ? neutralSummary(input.role, idea !== null, tags, tagLabel)
+      : raw.summary,
+    ...tags,
     experience_level: raw.experience_level,
-    // A builder never gets an idea, whatever the model returned.
-    idea: raw.idea && input.role !== "builder" ? normalizeIdea(raw.idea) : null,
+    idea,
   };
 }

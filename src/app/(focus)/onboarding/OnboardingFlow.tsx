@@ -6,6 +6,8 @@ import { TagEditor, type TagGroup, type TagValues } from "@/components/TagEditor
 import { buttonClass } from "@/components/ui/Button";
 import { FieldError, inputClass, labelClass } from "@/components/ui/Field";
 import { LINKEDIN_TEXT_MAX } from "@/lib/imports/linkedin";
+import { IDEA_OR_SKILL_REQUIRED, onboardingOutcome, QUICK_SKILLS } from "@/lib/onboarding";
+import { tagLabel } from "@/lib/taxonomy/labels";
 import { joinPool, submitSentence } from "./actions";
 import { ANSWER_MAX, SENTENCE_MAX, type INTENTS, type ROLES } from "./schema";
 
@@ -40,6 +42,11 @@ const primaryButton = buttonClass("primary", "lg");
 const backButton = buttonClass("secondary", "lg");
 const chip = (on: boolean) =>
   `rounded-full px-4 py-2.5 text-sm font-medium transition ${
+    on ? "bg-accent text-accent-ink" : "bg-surface text-ink hover:bg-surface-2"
+  }`;
+
+const smallChip = (on: boolean) =>
+  `rounded-full px-3 py-1.5 text-sm font-medium transition ${
     on ? "bg-accent text-accent-ink" : "bg-surface text-ink hover:bg-surface-2"
   }`;
 
@@ -85,6 +92,8 @@ export function OnboardingFlow({
   const canSubmitSentence = sentence.trim().length >= 3 || githubUrl.trim().length > 0;
   const [extracted, setExtracted] = useState<Extracted | null>(null);
   const [tags, setTags] = useState<TagValues>({ skills: [], stack: [], domains: [] });
+  /** Skills tapped from the quick picks on step 2, added to the tags on step 3. */
+  const [picks, setPicks] = useState<string[]>([]);
   const [eventIds, setEventIds] = useState<string[]>(initialEventIds);
   const [answer, setAnswer] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -116,7 +125,7 @@ export function OnboardingFlow({
       }
       if (result.status === "ok") {
         const { summary, tags: inferred, idea } = result.result;
-        setTags(inferred);
+        setTags({ ...inferred, skills: [...new Set([...inferred.skills, ...picks])] });
         setExtracted({
           status: "ok",
           summary,
@@ -125,11 +134,19 @@ export function OnboardingFlow({
             : null,
         });
       } else {
+        setTags({ skills: picks, stack: [], domains: [] });
         setExtracted({ status: "pending" });
       }
       setStep(3);
     });
   }
+
+  // The idea-or-skill rule (P1-21), judged once tags are in; while they're
+  // still coming in the background, joining stays open.
+  const ideaFound = extracted?.status === "ok" && extracted.idea !== null;
+  const outcome =
+    role && extracted?.status === "ok" ? onboardingOutcome(role, ideaFound, tags) : null;
+  const blocked = outcome !== null && !outcome.ok;
 
   function submitStep3(event: React.FormEvent) {
     event.preventDefault();
@@ -239,6 +256,14 @@ export function OnboardingFlow({
             aria-describedby={error ? "onboarding-error" : undefined}
             className={inputClass}
           />
+          <QuickSkills
+            selected={picks}
+            onToggle={(slug) =>
+              setPicks((current) =>
+                current.includes(slug) ? current.filter((s) => s !== slug) : [...current, slug],
+              )
+            }
+          />
           <details className="rounded-2xl bg-surface px-4 py-3">
             <summary className="cursor-pointer text-sm font-medium">
               Or import from GitHub or LinkedIn
@@ -338,6 +363,28 @@ export function OnboardingFlow({
               We&apos;ll fill in your tags in a moment. You can join now and edit them later.
             </p>
           )}
+          {outcome?.ok && role !== "builder" && !ideaFound ? (
+            <p className="text-sm text-muted">No idea found, so you&apos;ll join as a builder.</p>
+          ) : null}
+          {blocked ? (
+            <div className="flex flex-col gap-3 rounded-2xl bg-danger-soft p-4">
+              <p role="alert" className="text-sm font-medium text-danger-ink">
+                {IDEA_OR_SKILL_REQUIRED}
+              </p>
+              <QuickSkills
+                selected={tags.skills}
+                onToggle={(slug) => {
+                  setError(null);
+                  setTags((current) => ({
+                    ...current,
+                    skills: current.skills.includes(slug)
+                      ? current.skills.filter((s) => s !== slug)
+                      : [...current.skills, slug],
+                  }));
+                }}
+              />
+            </div>
+          ) : null}
           <TagEditor value={tags} onChange={setTags} suggestions={suggestions} />
           <EventPicker events={events} selected={eventIds} onChange={setEventIds} />
           {error ? <ErrorText message={error} /> : null}
@@ -345,7 +392,11 @@ export function OnboardingFlow({
             <button type="button" onClick={() => setStep(2)} className={backButton}>
               Back
             </button>
-            <button type="submit" disabled={pending} className={`flex-1 ${primaryButton}`}>
+            <button
+              type="submit"
+              disabled={pending || blocked}
+              className={`flex-1 ${primaryButton}`}
+            >
               {pending ? "Joining…" : "Join the pool"}
             </button>
           </div>
@@ -357,4 +408,34 @@ export function OnboardingFlow({
 
 function ErrorText({ message }: { message: string }) {
   return <FieldError id="onboarding-error">{message}</FieldError>;
+}
+
+/** One-tap common skills (QUICK_SKILLS), as toggle chips. */
+function QuickSkills({
+  selected,
+  onToggle,
+}: {
+  selected: readonly string[];
+  onToggle: (slug: string) => void;
+}) {
+  return (
+    <fieldset className="flex flex-col gap-2">
+      <legend className="mb-2 text-sm font-medium">
+        Quick picks <span className="font-normal text-muted">(skills, optional)</span>
+      </legend>
+      <div className="flex flex-wrap gap-2">
+        {QUICK_SKILLS.map((slug) => (
+          <button
+            key={slug}
+            type="button"
+            aria-pressed={selected.includes(slug)}
+            onClick={() => onToggle(slug)}
+            className={smallChip(selected.includes(slug))}
+          >
+            {tagLabel(slug)}
+          </button>
+        ))}
+      </div>
+    </fieldset>
+  );
 }

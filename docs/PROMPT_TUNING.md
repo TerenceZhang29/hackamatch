@@ -21,6 +21,7 @@ How the extraction prompts in [`src/lib/llm/prompts.ts`](../src/lib/llm/prompts.
 | 5 | `extractProfile`, both | "Designer into fintech and education" | `idea` is null; `skills` has `ux-design` |
 | 6 | `extractProfile`, both | "Data scientist who wants to help farmers" | `idea` is null; `skills` has `data-science`; `domains` has `agriculture` |
 | 7 | `extractProfile`, idea | "A marketplace for students to resell textbooks" | `idea` set; the person's `skills` and `stack` are empty, because the text states none (what the idea needs goes only in `idea.skills_needed`) |
+| 8 | `extractProfile`, both | "I want to build a xxx" | `idea` is null; `summary` says nothing about the text or what it lacks (seen in production 2026-10-20 with `2026-10-14.3`: "has not described it yet", "the text names no product"). Code also guards this (`src/lib/llm/vague.ts`) |
 
 Cases 6 and 7 are held out: no prompt rule quotes their wording, so a pass is not the prompt being taught the test. Keep it that way when writing new rules.
 
@@ -31,7 +32,7 @@ For every case also check: the output validates on the first attempt, every tag 
 | Model | Provider | Latest prompt version tested | Result |
 | --- | --- | --- | --- |
 | `gemini-3.5-flash-lite` | `gemini` | `2026-10-13.2`, cases 1 to 5 | Pass on the idea rule; two tagging misses (see log). Not run on `2026-10-14.1` |
-| `claude-haiku-5-5` | `anthropic` | `2026-10-14.3`, all seven cases, twice | Pass, 7 of 7 (4 on `2026-10-13.2`, 5 on `.1` and `.2`); small issues listed in the test plan's results |
+| `claude-haiku-5-5` | `anthropic` | `2026-10-21.1`, all eight cases, twice | Pass on 7 of 8; case 8's summary still notes the missing detail, caught in code (`vague.ts`). Results in the log |
 
 ## Backlog: known issues to tune later
 
@@ -238,6 +239,31 @@ Limits of this result:
 
 - **Two tagging misses are open.** The model reads an idea's needs as the person's own skills (case 2), and after the tag rule was tightened to "only what the text states" it no longer turns a job title into a skill (case 5). The next prompt version should say that a role or title implies its skill, and that for an idea person `skills` is what they can do, not what the idea needs.
 - **One run per case.** Model output varies between runs; a single pass does not show how often a case passes.
+
+### `2026-10-21.1` — no notes about the input (P1-21)
+
+Why: in production, `2026-10-14.3` on `claude-haiku-5-5` turned the placeholder sentence "I want to build a xxx" (role both) into an idea with the pitch "Student wants to build something, but the text names no product, problem, or user." and the summary "Student wants to build a project but has not described it yet." Both were public. This is B2 reaching a real user.
+
+Changes:
+- summary: describe the person only, never the text, what it leaves out or how it was tagged; when the text says little, say only what it says;
+- idea: placeholder or empty wording is not an idea;
+- pitch: never describe the text or what it lacks.
+
+The prompt's examples ("tbd", "something", "an app") don't quote case 8, so it stays held out. Code guards the same failures whatever the model does (`src/lib/llm/vague.ts`, used by `extractProfile`).
+
+Live results, 2026-10-21, `claude-haiku-5-5`, all 8 cases twice (approved by the owner): 16 calls, every one valid on the first attempt in 1.0 to 1.6 s; 40,652 input and 3,148 output tokens, about $0.006.
+
+| Case | Result |
+| --- | --- |
+| 1 | Pass: `react`, `python`, `health`; no idea |
+| 2 | Pass: "A mobile app that helps nurses swap shifts with each other." |
+| 3 | Pass: no idea; `backend`, `climate` |
+| 4 | Pass: "An Uber-style service for dogs." with one question; run 1 put `marketplace` (a domain) in `skills_needed` again (B4, dropped by `normalize`) |
+| 5 | Pass; run 1's summary ends "Wants to build something.", which adds nothing |
+| 6 | Pass (held out): `data-science`, `agriculture`; no idea |
+| 7 | Pass (held out): idea set; the person's `skills` and `stack` are empty |
+| 8 | **Half:** `idea` is null in both runs (the fix works), but the summary still notes what's missing ("Wants to build a project; no details given yet.", "…details not yet specified."). `isMetaText` catches both, so `extractProfile` stores no summary. Left to the code guard; a further prompt round is optional (B2 stays in the backlog, narrowed) |
+
 
 ## Known differences between models
 

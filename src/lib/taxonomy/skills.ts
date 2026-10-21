@@ -19,7 +19,7 @@ type Entry = readonly [slug: string, ...aliases: string[]];
 /** What a person can do (or what an idea needs done). */
 const SKILLS: readonly Entry[] = [
   ["frontend", "front end", "frontend development", "web development", "web dev", "web apps"],
-  ["backend", "back end", "backend development", "server side", "apis"],
+  ["backend", "back end", "backends", "backend development", "server side", "apis"],
   ["fullstack", "full stack", "full stack development"],
   ["mobile", "mobile development", "mobile apps", "mobile app", "app development"],
   ["ios", "ios development", "ios apps", "iphone apps"],

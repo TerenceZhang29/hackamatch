@@ -79,6 +79,35 @@ describe("extractProfile with the fake LLM", () => {
   });
 });
 
+describe("extractProfile guards (P1-21)", () => {
+  it("never makes an idea from a placeholder sentence", async () => {
+    const profile = await extractProfile({ role: "both", sentence: "I want to build a xxx" });
+    expect(profile.idea).toBeNull();
+  });
+
+  it("drops notes about the input the model returns as public text", async () => {
+    // The model's exact output for "I want to build a xxx" in production, 2026-10-20.
+    const spy = vi.spyOn(fakeLlm, "structured").mockResolvedValueOnce({
+      summary: "Student wants to build a project but has not described it yet.",
+      skills: [],
+      stack: [],
+      domains: [],
+      experience_level: "intermediate",
+      idea: {
+        pitch: "Student wants to build something, but the text names no product, problem, or user.",
+        domain: null,
+        skills_needed: [],
+        scope: "few_weeks",
+        clarifying_question: null,
+      },
+    });
+    const profile = await extractProfile({ role: "both", sentence: "I want to build an app" });
+    expect(profile.idea).toBeNull();
+    expect(profile.summary).toBeNull();
+    spy.mockRestore();
+  });
+});
+
 describe("extractIdea with the fake LLM", () => {
   it("returns pitch, tags and scope", async () => {
     const idea = await extractIdea({
