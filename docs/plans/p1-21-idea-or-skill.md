@@ -89,3 +89,36 @@ Claude makes no production write. The owner archives the idea in `/admin/ideas`.
   - Update existing onboarding tests where a "both" sentence with no idea now ends as a builder.
 - **Full suites:** `pnpm lint`, `typecheck`, `format:check`, `test`, `test:db`, and the full e2e run in CI mode. Stop the dev server before `pnpm build`.
 - **After deploy:** a read-only production check of new sign-ups' role and summary.
+
+## Follow-up: closing the gaps (planned 2026-10-21; superseded by [P1-22](./p1-22-signup-routes.md), not built)
+
+A review after shipping found three places where "an idea or a skill" doesn't fully hold. All three are code-only changes with no AI calls and no migration.
+
+### 1. A slow AI no longer skips the rule
+- **Today:** when extraction takes over 8 s or fails, `checkJoin` returns "pending" and anyone can join.
+- **Change:** while pending, joining needs at least one skill or tool among the submitted tags, from a quick pick or typed. The review step says "Still reading your sentence." and shows the quick picks, plus a **Check again** button.
+- **Check again** calls a new server action, `onboardingStatus()`. Once extraction has finished, it returns the same result `submitSentence` gives, and the page switches to the normal review (with the idea box, or the warning).
+- `extractInBackground` keeps running, so a person who picked a skill and joined still gets their tags and idea afterwards, as today.
+- **Server (`joinPool`/`checkJoin`):** "pending" is allowed only when the submitted tags have a skill. Otherwise it refuses with the pending message.
+
+### 2. Clearer messages
+Shown on the page and by `joinPool`, chosen by role, in `src/lib/onboarding.ts`:
+- **idea or both, no idea and no skill:** "We couldn't find an idea in your sentence. Describe it, or add a skill to join as a builder."
+- **builder, no skill:** "Add at least one skill to join."
+- **pending, no skill:** "Still reading your sentence. Add a skill to join now, or check again in a moment."
+
+### 3. No stale result after going back
+- **Today:** resubmitting the sentence keeps the previous run's `extracted_at` and onboarding idea until the new run finishes. If the new run times out, `joinPool` judges the old sentence.
+- **Change:** `saveOnboardingBasics`, for a user not yet onboarded, clears `profiles.extracted_at` and deletes their onboarding idea whenever the sentence or role changes. A timed-out rerun is then "pending" (rule 1), never stale.
+
+### Not included
+A dictionary check for gibberish ("asdf qwerty"). It's left to the prompt, which returned no idea in every live run of case 8. Revisit only if a gibberish idea shows up in production.
+
+### Tests
+- **Unit:** the message chosen for each role and state; the pending rule.
+- **E2E (fake provider, using the `[[fake-llm-delay-ms=…]]` hook):**
+  - a slow extraction with no skill: Join is disabled with the pending message; a quick pick enables it; the person joins, and the tags arrive later;
+  - **Check again** after the delay shows the normal review;
+  - going back and resubmitting with a slow run doesn't reuse the first run's idea;
+  - the idea-person message for a sentence with no idea.
+- The existing "a slow LLM does not block joining" test changes: it now picks a skill before joining. The full suite runs in CI mode.
