@@ -26,11 +26,13 @@ import {
   type BoardState,
 } from "@/lib/board";
 import { slugsOf } from "@/lib/taxonomy/skills";
+import { defaultDeckKind, parseDeckKind } from "@/lib/deck";
+import { ideaHackathons } from "@/lib/person-card";
 import {
-  excludedUserIds,
-  firstIdeaPitches,
-  listBoardIdeas,
+  boardExclusions,
   demoIds,
+  ideaCounts,
+  listBoardIdeas,
   listBoardPeople,
   poolEventsFor,
 } from "@/server/board";
@@ -56,7 +58,7 @@ export default async function BoardPage({
 
   const [events, exclude] = await Promise.all([
     listUpcomingEvents(),
-    excludedUserIds(viewer === "onboarded" ? user!.id : null),
+    boardExclusions(viewer === "onboarded" ? user!.id : null),
   ]);
   const eventNames = new Map(events.map((event) => [event.id, event.name]));
 
@@ -64,17 +66,29 @@ export default async function BoardPage({
   const capped = viewer !== "onboarded" && state.filters.event !== null;
   const shown = capped ? VISITOR_LIMIT : state.shown;
   const ideas =
-    !deck && state.tab === "ideas" ? await listBoardIdeas(state.filters, shown, exclude) : null;
+    !deck && state.tab === "ideas"
+      ? await listBoardIdeas(state.filters, shown, exclude.users, exclude.ideas)
+      : null;
   const people =
-    !deck && state.tab === "people" ? await listBoardPeople(state.filters, shown, exclude) : null;
+    !deck && state.tab === "people"
+      ? await listBoardPeople(state.filters, shown, exclude.people)
+      : null;
   const peopleIds = people?.rows.map((p) => p.user_id) ?? [];
+  const ownerIds = ideas?.rows.map((i) => i.owner_id) ?? [];
   // Where people are going is for members; visitors see only the 3 per event.
-  const [pitches, looking, demo] = await Promise.all([
-    firstIdeaPitches(peopleIds),
-    viewer === "onboarded" ? poolEventsFor(peopleIds) : Promise.resolve(new Map()),
+  const [counts, looking, demo] = await Promise.all([
+    ideaCounts(peopleIds),
+    viewer === "onboarded"
+      ? poolEventsFor([...peopleIds, ...ownerIds])
+      : Promise.resolve(new Map()),
     demoIds(peopleIds, ideas?.rows.map((i) => i.id) ?? []),
   ]);
-  const deckData = deck ? await nextDeckCards(user!, state.filters.event) : null;
+  const eventsById = new Map(
+    events.map((e) => [e.id, { id: e.id, name: e.name, startDate: e.start_date }]),
+  );
+  // Members start on the deck that fits their role; ?deck= switches (P1-23).
+  const deckKind = parseDeckKind(params.deck) ?? defaultDeckKind(user?.role ?? null);
+  const deckData = deck ? await nextDeckCards(user!, state.filters.event, deckKind) : null;
   const topCard = deckData?.cards[0];
   const topDetails = topCard ? await deckDetails(user!.id, topCard) : null;
   const going = deck ? new Set(await listEventInterestIds(user!.id)) : new Set<string>();
@@ -105,6 +119,7 @@ export default async function BoardPage({
     <main className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-6">
       {deckData ? (
         <DeckView
+          kind={deckKind}
           cards={deckData.cards}
           more={deckData.more}
           details={topDetails}
@@ -179,6 +194,14 @@ export default async function BoardPage({
                   <IdeaCard
                     idea={idea}
                     eventName={idea.event_id ? eventNames.get(idea.event_id) : null}
+                    hackathons={
+                      viewer === "onboarded"
+                        ? ideaHackathons(
+                            (idea.event_id && eventsById.get(idea.event_id)) || null,
+                            looking.get(idea.owner_id) ?? [],
+                          )
+                        : undefined
+                    }
                     isDemo={demo.ideas.has(idea.id)}
                     actions={
                       <CardActions
@@ -200,7 +223,7 @@ export default async function BoardPage({
                 <li key={person.user_id}>
                   <PersonCard
                     person={person}
-                    ideaPitch={pitches.get(person.user_id) ?? null}
+                    ideaCount={counts.get(person.user_id) ?? 0}
                     lookingEvents={looking.get(person.user_id)}
                     isDemo={demo.users.has(person.user_id)}
                     actions={

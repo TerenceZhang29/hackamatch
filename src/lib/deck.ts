@@ -1,18 +1,45 @@
 /** Pure helpers for the one-card deck (docs/plans/card-deck.md). */
 
-/** Alternates two lists, starting with `a`, then appends whatever is left. */
-export function interleave<A, B>(a: readonly A[], b: readonly B[]): (A | B)[] {
-  const out: (A | B)[] = [];
-  for (let i = 0; i < Math.max(a.length, b.length); i++) {
-    if (i < a.length) out.push(a[i]!);
-    if (i < b.length) out.push(b[i]!);
-  }
-  return out;
+/** The two decks (P1-23): swipe through ideas, or through builders. */
+export type DeckKind = "ideas" | "builders";
+
+export function parseDeckKind(value: unknown): DeckKind | null {
+  return value === "ideas" || value === "builders" ? value : null;
 }
 
-/** The deck's URL, optionally narrowed to one event's pool. */
-export function deckHref(eventSlug: string | null): string {
-  return eventSlug ? `/?${new URLSearchParams({ event: eventSlug })}` : "/";
+/** Idea people start on Builders; builders and "both" start on Ideas. */
+export function defaultDeckKind(role: "idea" | "builder" | "both" | null): DeckKind {
+  return role === "idea" ? "builders" : "ideas";
+}
+
+/** The deck's URL: which deck (`?deck=`), optionally narrowed to one event's pool. */
+export function deckHref(eventSlug: string | null, kind: DeckKind | null = null): string {
+  const params = new URLSearchParams();
+  if (kind) params.set("deck", kind);
+  if (eventSlug) params.set("event", eventSlug);
+  const query = params.toString();
+  return query ? `/?${query}` : "/";
+}
+
+/**
+ * The `passed=` value a Pass leaves in the URL for Undo: `idea:<id>` or
+ * `person:<id>` (P1-23). A bare id is a match from before per-card passes.
+ */
+export function passToken(kind: "idea" | "person", targetId: string): string {
+  return `${kind}:${targetId}`;
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function parsePassToken(
+  token: unknown,
+): { kind: "idea" | "person"; targetId: string } | { matchId: string } | null {
+  if (typeof token !== "string") return null;
+  const [kind, id] = token.split(":");
+  if ((kind === "idea" || kind === "person") && id && UUID.test(id)) {
+    return { kind, targetId: id };
+  }
+  return UUID.test(token) ? { matchId: token } : null;
 }
 
 /** "1 left", "24 left", "100+ left". */

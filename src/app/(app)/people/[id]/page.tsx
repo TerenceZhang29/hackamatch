@@ -8,7 +8,7 @@ import { Outcome } from "@/components/Outcome";
 import { PairStatus } from "@/components/PairStatus";
 import { PersonCard } from "@/components/PersonCard";
 import { getUser } from "@/lib/auth";
-import { demoIds, firstIdeaPitches, getPublicPerson, poolEventsFor } from "@/server/board";
+import { demoIds, getPublicPerson, openIdeasOf, poolEventsFor } from "@/server/board";
 
 export const metadata: Metadata = { title: "Builder · HackaMatch" };
 
@@ -26,8 +26,8 @@ export default async function PersonPage({
   if (user?.id === id) redirect("/me");
 
   const person = await getPublicPerson(id);
-  const pitch = person ? ((await firstIdeaPitches([id])).get(id) ?? null) : null;
   if (!person) notFound();
+  const ideas = await openIdeasOf(id);
   const viewer: Viewer = !user ? "anon" : user.onboarded_at ? "onboarded" : "not-onboarded";
 
   return (
@@ -43,7 +43,7 @@ export default async function PersonPage({
       <Outcome params={outcome} />
       <PersonCard
         person={person}
-        ideaPitch={pitch}
+        ideaCount={ideas.length}
         lookingEvents={viewer === "onboarded" ? (await poolEventsFor([id])).get(id) : undefined}
         isDemo={(await demoIds([id])).users.has(id)}
         headingLevel={2}
@@ -65,6 +65,25 @@ export default async function PersonPage({
           />
         }
       />
+      {ideas.length ? (
+        <section id="ideas" aria-labelledby="ideas-heading" className="flex flex-col gap-2">
+          <h2 id="ideas-heading" className="text-lg font-semibold">
+            {person.display_name}&apos;s ideas
+          </h2>
+          <ul className="flex flex-col gap-2">
+            {ideas.map((idea) => (
+              <li key={idea.id}>
+                <Link
+                  href={`/ideas/${idea.id}`}
+                  className="block rounded-2xl bg-surface px-4 py-3 font-medium hover:underline"
+                >
+                  {idea.pitch}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
     </main>
   );
 }

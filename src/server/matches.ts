@@ -1,4 +1,5 @@
 import "server-only";
+import { addCardPass } from "./card-passes";
 import { createElement } from "react";
 import { track } from "@/lib/analytics";
 import { getConfig } from "@/lib/config";
@@ -272,7 +273,9 @@ export const DAILY_INBOUND_EMAIL_LIMIT = 3;
 export type BoardTarget = { kind: "person"; userId: string } | { kind: "idea"; ideaId: string };
 
 export type BoardAnswerResult =
-  | { ok: true; matchId: string; revealed: boolean }
+  | { ok: true; response: "interested"; matchId: string; revealed: boolean }
+  /** A Pass hides only that card (P1-23); there is no match row to point at. */
+  | { ok: true; response: "pass" }
   | { ok: false; error: "limit" | "unavailable" | "self" };
 
 /** Resolves a board card to the person behind it, if they are in the pool and the idea is open. */
@@ -333,7 +336,16 @@ export async function answerFromBoard(
   if (!resolved) return { ok: false, error: "unavailable" };
   if (resolved.userId === actorId) return { ok: false, error: "self" };
 
-  if (response === "interested") {
+  // Pass on a card hides that card only: the person's other cards stay, and
+  // nothing is recorded on the pair (P1-23). Waiting and one-click Pass,
+  // which decline someone, go through recordResponse instead.
+  if (response === "pass") {
+    await addCardPass(actorId, target.kind, target.kind === "idea" ? target.ideaId : target.userId);
+    await track("passed", { kind: target.kind, source: "board" }, actorId);
+    return { ok: true, response: "pass" };
+  }
+
+  {
     const { data: count, error } = await supabase.rpc("interests_today", {
       p_user: actorId,
       p_timezone: getConfig().APP_TIMEZONE,
@@ -347,19 +359,14 @@ export async function answerFromBoard(
     p_target: resolved.userId,
     // Generated types mark every argument non-null; SQL accepts null for "no idea".
     p_idea: resolved.ideaId as string,
-    p_response: response,
+    p_response: "interested",
     p_source: "board",
   });
   if (error) throw new Error(`answerFromBoard: ${error.message}`);
   const row = data[0];
   if (!row) throw new Error("answerFromBoard: no match returned");
 
-  await track(
-    response === "interested" ? "interest_expressed" : "passed",
-    { match_id: row.match_id, source: "board" },
-    actorId,
-  );
-  if (response === "pass") return { ok: true, matchId: row.match_id, revealed: false };
+  await track("interest_expressed", { match_id: row.match_id, source: "board" }, actorId);
 
   // Demo profiles answer Interested straight away, so testers can try the
   // whole flow; involvesDemo keeps every email of this match from going out.
@@ -375,7 +382,7 @@ export async function answerFromBoard(
   }
 
   const revealed = await revealIfMutual(row.match_id);
-  if (revealed) return { ok: true, matchId: row.match_id, revealed: true };
+  if (revealed) return { ok: true, response: "interested", matchId: row.match_id, revealed: true };
 
   // The other side hasn't answered yet: tell them, unless they've had enough email today.
   const match = await getMatch(row.match_id);
@@ -389,7 +396,7 @@ export async function answerFromBoard(
   ) {
     await sendInboundInterest(match, otherId, "interest");
   }
-  return { ok: true, matchId: row.match_id, revealed: false };
+  return { ok: true, response: "interested", matchId: row.match_id, revealed: false };
 }
 
 /** The match between two users, if any. */

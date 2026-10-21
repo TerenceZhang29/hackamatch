@@ -6,6 +6,7 @@ import { CardAnswerButtons } from "@/components/AnswerButtons";
 import { CardActions, type Viewer } from "@/components/CardActions";
 import { EventPoolPanel } from "@/components/EventPool";
 import { IdeaCard } from "@/components/IdeaCard";
+import { ideaHackathons } from "@/lib/person-card";
 import { PersonCard } from "@/components/PersonCard";
 import { SeeAllPrompt } from "@/components/SeeAllPrompt";
 import { Button, buttonClass } from "@/components/ui/Button";
@@ -14,8 +15,8 @@ import { getUser } from "@/lib/auth";
 import { EVENT_PAGE_SIZE, parseShown, VISITOR_LIMIT } from "@/lib/board";
 import { formatDateRange } from "@/lib/time";
 import {
-  excludedUserIds,
-  firstIdeaPitches,
+  boardExclusions,
+  ideaCounts,
   listBoardIdeas,
   demoIds,
   listBoardPeople,
@@ -78,7 +79,7 @@ export default async function EventPage({
     redirect(`/e/${slug}`);
   }
 
-  const exclude = await excludedUserIds(viewer === "onboarded" ? user!.id : null);
+  const exclude = await boardExclusions(viewer === "onboarded" ? user!.id : null);
   const filters = { event: slug, domain: null, skill: null, intent: null };
   const peopleShown =
     viewer === "onboarded" ? parseShown(query.people, EVENT_PAGE_SIZE) : VISITOR_LIMIT;
@@ -86,15 +87,18 @@ export default async function EventPage({
     viewer === "onboarded" ? parseShown(query.ideas, EVENT_PAGE_SIZE) : VISITOR_LIMIT;
   const [count, ideas, people, pool] = await Promise.all([
     countEventInterest(event.id),
-    listBoardIdeas(filters, ideasShown, exclude),
-    listBoardPeople(filters, peopleShown, exclude, null),
+    listBoardIdeas(filters, ideasShown, exclude.users, exclude.ideas),
+    listBoardPeople(filters, peopleShown, exclude.people, null),
     viewer === "onboarded" ? getEventPool(user!.id, event.id) : Promise.resolve(null),
   ]);
   const here = eventHref(slug, peopleShown, ideasShown);
   const peopleIds = people.rows.map((p) => p.user_id);
-  const [pitches, looking, demo] = await Promise.all([
-    firstIdeaPitches(peopleIds),
-    viewer === "onboarded" ? poolEventsFor(peopleIds) : Promise.resolve(new Map()),
+  const ownerIds = ideas.rows.map((i) => i.owner_id);
+  const [counts, looking, demo] = await Promise.all([
+    ideaCounts(peopleIds),
+    viewer === "onboarded"
+      ? poolEventsFor([...peopleIds, ...ownerIds])
+      : Promise.resolve(new Map()),
     demoIds(
       peopleIds,
       ideas.rows.map((i) => i.id),
@@ -179,6 +183,14 @@ export default async function EventPage({
               <li key={idea.id}>
                 <IdeaCard
                   idea={idea}
+                  hackathons={
+                    viewer === "onboarded"
+                      ? ideaHackathons(
+                          { id: event.id, name: event.name, startDate: event.start_date },
+                          looking.get(idea.owner_id) ?? [],
+                        )
+                      : undefined
+                  }
                   isDemo={demo.ideas.has(idea.id)}
                   actions={
                     <CardActions
@@ -219,7 +231,7 @@ export default async function EventPage({
               <li key={person.user_id}>
                 <PersonCard
                   person={person}
-                  ideaPitch={pitches.get(person.user_id) ?? null}
+                  ideaCount={counts.get(person.user_id) ?? 0}
                   lookingEvents={looking.get(person.user_id)}
                   isDemo={demo.users.has(person.user_id)}
                   actions={

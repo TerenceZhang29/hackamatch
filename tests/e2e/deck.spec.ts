@@ -63,6 +63,14 @@ async function ideaFor(eventId: string, pitch: string) {
   return { owner, email };
 }
 
+/** The viewer's card passes (P1-23), by kind. */
+async function passes(viewer: string) {
+  return query<{ kind: string; target_id: string }>(
+    `select kind::text, target_id from public.card_passes where user_id = $1 order by created_at`,
+    [viewer],
+  );
+}
+
 async function builderGoing(eventId: string, name: string) {
   const id = await createUser(newEmail(), { name, role: "builder" });
   await query(`insert into public.event_interests (user_id, event_id) values ($1, $2)`, [
@@ -92,15 +100,19 @@ test("a builder sees one idea at a time; Pass and Interested move on to the end"
   await expect(page.getByText("1 left")).toBeVisible();
 
   await page.getByRole("button", { name: "Interested" }).click();
-  await expect(page.getByRole("heading", { name: /You've seen everyone/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /No more ideas/ })).toBeVisible();
   await expect(page.getByRole("article")).toHaveCount(0);
+  // The empty deck offers the other one.
+  await expect(page.getByRole("link", { name: "Find builders" })).toBeVisible();
 
+  // Pass hid the card only (P1-23); Interested answered the pair.
   const answers = await query<{ mine: string }>(
     `select case when user_a = $1 then a_response else b_response end as mine
      from public.matches where $1 in (user_a, user_b) order by created_at`,
     [viewer],
   );
-  expect(answers.map((a) => a.mine)).toEqual(["pass", "interested"]);
+  expect(answers.map((a) => a.mine)).toEqual(["interested"]);
+  expect((await passes(viewer)).map((p) => p.kind)).toEqual(["idea"]);
   // Passing on the newer idea sent its owner nothing.
   expect(await readOutbox(newer.email)).toHaveLength(0);
 });
@@ -122,7 +134,7 @@ test("an idea person sees builders; answering someone waiting on you shows the m
   await expect(sayHi).toHaveAttribute("href", /^\/matches\/[0-9a-f-]{36}$/);
   await page.getByRole("link", { name: "Keep going" }).click();
   await expect(page).toHaveURL(`/?event=${event.slug}`);
-  await expect(page.getByRole("heading", { name: /You've seen everyone/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /You've seen every builder/ })).toBeVisible();
 
   const mutual = await eventually(
     () => readOutbox(created[0]!),
@@ -131,16 +143,64 @@ test("an idea person sees builders; answering someone waiting on you shows the m
   expect(mutual.length).toBeGreaterThan(0);
 });
 
-test("people who do both see ideas and builders alternating", async ({ page }) => {
+test("people who do both start on Ideas; the toggle switches to Builders, one kind per deck", async ({
+  page,
+}) => {
   const event = await privateEvent();
-  await signInAs(page, "both");
-  await ideaFor(event.id, "An idea in a mixed deck");
-  await builderGoing(event.id, "Bea Mixed");
+  const viewer = await signInAs(page, "both");
+  // Going too, so the event chips show.
+  await query(`insert into public.event_interests (user_id, event_id) values ($1, $2)`, [
+    viewer,
+    event.id,
+  ]);
+  await ideaFor(event.id, "An idea in the ideas deck");
+  await builderGoing(event.id, "Bea Builder");
 
   await page.goto(`/?event=${event.slug}`);
-  await expect(page.getByRole("article", { name: "An idea in a mixed deck" })).toBeVisible();
+  const toggle = page.getByRole("navigation", { name: "Swipe through" });
+  await expect(toggle.getByRole("link", { name: "Ideas" })).toHaveAttribute("aria-current", "page");
+  await expect(page.getByRole("article", { name: "An idea in the ideas deck" })).toBeVisible();
+  await expect(page.getByText("1 left")).toBeVisible();
+
+  await toggle.getByRole("link", { name: "Builders" }).click();
+  await expect(page).toHaveURL(`/?deck=builders&event=${event.slug}`);
+  await expect(toggle.getByRole("link", { name: "Builders" })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+  // Only people who build: the idea's owner (an idea person) isn't here.
+  await expect(page.getByRole("article", { name: "Bea B." })).toBeVisible();
+  await expect(page.getByText("1 left")).toBeVisible();
+  // The event chips keep the chosen deck.
+  await expect(
+    page.getByRole("navigation", { name: "Whose cards" }).getByRole("link", { name: "Everyone" }),
+  ).toHaveAttribute("href", "/?deck=builders");
+});
+
+test("Pass hides only that card: a person's idea stays after passing their person card", async ({
+  page,
+}) => {
+  const event = await privateEvent();
+  const viewer = await signInAs(page, "both");
+  const lea = await builderGoing(event.id, "Lea Both");
+  await query(`update public.users set role = 'both' where id = $1`, [lea]);
+  await query(
+    `insert into public.ideas (owner_id, event_id, raw_text, pitch) values ($1, $2, 'Text', 'Lea''s own idea')`,
+    [lea, event.id],
+  );
+
+  await page.goto(`/?deck=builders&event=${event.slug}`);
   await page.getByRole("button", { name: "Pass" }).click();
-  await expect(page.getByRole("article", { name: "Bea M." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /You've seen every builder/ })).toBeVisible();
+
+  await page.goto(`/?deck=ideas&event=${event.slug}`);
+  await expect(page.getByRole("article", { name: "Lea's own idea" })).toBeVisible();
+  // Interested on the idea makes the match with Lea, and all her cards leave both decks.
+  await page.getByRole("button", { name: "Interested" }).click();
+  await expect(page.getByRole("heading", { name: /No more ideas/ })).toBeVisible();
+  await query(`delete from public.card_passes where user_id = $1`, [viewer]);
+  await page.goto(`/?deck=builders&event=${event.slug}`);
+  await expect(page.getByRole("heading", { name: /You've seen every builder/ })).toBeVisible();
 });
 
 test("Browse all opens the list, which keeps members on it; visitors get the list at /", async ({
@@ -186,7 +246,7 @@ test("the deck works without JavaScript", async ({ browser }) => {
     await page.goto(`/?event=${event.slug}`);
     await expect(page.getByRole("article", { name: "A no-script idea" })).toBeVisible();
     await page.getByRole("button", { name: "Pass" }).click();
-    await expect(page.getByRole("heading", { name: /You've seen everyone/ })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /No more ideas/ })).toBeVisible();
   } finally {
     await context.close();
   }
@@ -206,16 +266,17 @@ test("Undo takes back the last Pass, and only a Pass", async ({ page }) => {
       )
     )[0]!.n;
 
-  // A Pass that made the match row: Undo deletes it and the card comes back.
+  // A Pass hides the card and records nothing on the pair; Undo brings it back.
   await page.goto(`/?event=${event.slug}`);
   await page.getByRole("button", { name: "Pass" }).click();
   await expect(page.getByText("Passed", { exact: true })).toBeVisible();
-  expect(await matchCount()).toBe(1);
+  expect(await matchCount()).toBe(0);
+  expect(await passes(viewer)).toHaveLength(1);
   await undo.click();
   await expect(page.getByRole("article", { name: "First idea to undo" })).toBeVisible();
   await expect(page.getByText("2 left")).toBeVisible();
   await expect(undo).toHaveCount(0);
-  expect(await matchCount()).toBe(0);
+  expect(await passes(viewer)).toHaveLength(0);
 
   // Interested offers no Undo.
   await page.getByRole("button", { name: "Interested" }).click();
@@ -269,7 +330,7 @@ test("cards show what you have in common, and the full profile opens in place", 
 
   await page.goto(`/?event=${event.slug}`);
   const card = page.getByRole("article", { name: "Lee C." });
-  // The card's lines, in order: role tags, Looking for, Ideas, Builds, You both, Area.
+  // The card's lines: role tags, Looking for, Builds, Ideas (a count), You both, Area.
   await expect(card.getByRole("list", { name: "Role" })).toHaveText(["Builds"]);
   await expect(card.getByText("Builds:")).toBeVisible();
   await expect(card).toContainText("Builds: react, go");
@@ -283,6 +344,9 @@ test("cards show what you have in common, and the full profile opens in place", 
     "health",
   ]);
   await expect(card.getByRole("list", { name: "Area" })).toContainText("climate");
+  // Pitches live on idea cards (P1-23): the person card says how many.
+  await expect(card).toContainText("Ideas: 1 idea");
+  await expect(card.getByText("Lee's side idea")).toHaveCount(0);
   await expect(card.getByText("All ideas")).toHaveCount(0);
 
   // A tap anywhere on the card opens the full profile, like the link does.
@@ -346,7 +410,7 @@ test("event chips narrow the deck; the event page opens its deck", async ({ page
   await expect(page.getByRole("article", { name: "Only in the chip's pool" })).toBeVisible();
   await page.getByRole("button", { name: "Pass" }).click();
   await expect(
-    page.getByRole("heading", { name: `You've seen everyone going to Deck Hack ${event.slug}` }),
+    page.getByRole("heading", { name: `No more ideas for Deck Hack ${event.slug}` }),
   ).toBeVisible();
 
   await page.goto(`/e/${event.slug}`);
@@ -394,5 +458,6 @@ test("arrow keys and swipes answer the card; up opens the full profile", async (
   await expect(page.getByRole("article", { name: "Fourth swipe idea" })).toBeVisible();
   await swipe(0, -160);
   await expect(page).toHaveURL(`/?event=${event.slug}&more=1`);
-  expect(await answers()).toEqual(["pass", "interested", "pass"]);
+  expect(await answers()).toEqual(["interested"]);
+  expect(await passes(viewer)).toHaveLength(2);
 });

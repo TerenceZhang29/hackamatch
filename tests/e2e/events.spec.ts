@@ -213,3 +213,54 @@ test("visitors see 3 people and 3 ideas per event; members see everyone, every r
   await expect(going.getByRole("article")).toHaveCount(14);
   await expect(page.getByRole("link", { name: "Show more people" })).toHaveCount(0);
 });
+
+test("on an event page, idea cards lead with the idea and person cards with the person", async ({
+  page,
+}) => {
+  const slug = `e2e-${randomUUID().slice(0, 8)}`;
+  createdEvents.push(slug);
+  const [event] = await query<{ id: string }>(
+    `insert into public.events (slug, name, start_date, end_date)
+     values ($1, 'Card Split Hack', current_date + 7, current_date + 8) returning id`,
+    [slug],
+  );
+  const both = await createUser(newEmail(), { name: "Rae Both", role: "both" });
+  await query(
+    `update public.profiles set skills = '{backend,ml}', stack = '{python}' where user_id = $1`,
+    [both],
+  );
+  await query(`insert into public.event_interests (user_id, event_id) values ($1, $2)`, [
+    both,
+    event!.id,
+  ]);
+  await query(
+    `insert into public.ideas (owner_id, event_id, raw_text, pitch, skills_needed)
+     values ($1, $2, 'Private full text', 'A study buddy finder', '{frontend}')`,
+    [both, event!.id],
+  );
+  await signInOnboarded(page, newEmail());
+
+  await page.goto(`/e/${slug}`);
+  const idea = page.getByRole("article", { name: "A study buddy finder" });
+  await expect(idea.getByRole("heading", { name: "A study buddy finder" })).toBeVisible();
+  await expect(idea.getByRole("link", { name: "Rae B." })).toHaveAttribute(
+    "href",
+    `/people/${both}`,
+  );
+  await expect(idea.getByRole("list", { name: "Hackathons" })).toContainText("Card Split Hack");
+  await expect(idea.getByRole("list", { name: "Skills needed" })).toContainText("frontend");
+
+  const person = page.getByRole("article", { name: "Rae B." });
+  await expect(person).toContainText("Builds: python, backend, ml");
+  await expect(person.getByRole("link", { name: "1 idea" })).toHaveAttribute(
+    "href",
+    `/people/${both}#ideas`,
+  );
+  // The pitch is on the idea card, never on the person card.
+  await expect(person.getByText("A study buddy finder")).toHaveCount(0);
+  await expect(page.getByText("Private full text")).toHaveCount(0);
+
+  await person.getByRole("link", { name: "1 idea" }).click();
+  await expect(page.getByRole("heading", { name: "Rae B.'s ideas" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "A study buddy finder" })).toBeVisible();
+});

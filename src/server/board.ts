@@ -5,6 +5,7 @@ import { nearestPoolEvents, type PoolEvent } from "@/lib/person-card";
 import { localDateString } from "@/lib/time";
 import { createServiceClient } from "@/lib/supabase/service";
 import type { Database } from "@/types/db";
+import { passedCards } from "./card-passes";
 
 /** Public board reads, through the security-definer SQL functions that expose only safe columns. */
 
@@ -25,11 +26,25 @@ export async function excludedUserIds(viewerId: string | null): Promise<string[]
   return [viewerId, ...data.map((m) => (m.user_a === viewerId ? m.user_b : m.user_a))];
 }
 
+/**
+ * What a signed-in viewer's lists leave out: people they already have a
+ * match with (excludedUserIds), and the cards they passed (P1-23). Nothing
+ * for visitors.
+ */
+export async function boardExclusions(
+  viewerId: string | null,
+): Promise<{ users: string[]; ideas: string[]; people: string[] }> {
+  if (!viewerId) return { users: [], ideas: [], people: [] };
+  const [users, passed] = await Promise.all([excludedUserIds(viewerId), passedCards(viewerId)]);
+  return { users, ideas: passed.ideas, people: [...users, ...passed.people] };
+}
+
 /** One more row than asked for, so callers know whether "Load more" has anything to load. */
 export async function listBoardIdeas(
   filters: BoardFilters,
   limit: number,
   exclude: string[],
+  excludeIdeas: string[] = [],
 ): Promise<{ rows: BoardIdea[]; hasMore: boolean }> {
   const { data, error } = await createServiceClient().rpc("public_board_ideas", {
     p_limit: limit + 1,
@@ -39,6 +54,7 @@ export async function listBoardIdeas(
     p_skill: filters.skill ?? undefined,
     p_intent: filters.intent ?? undefined,
     p_exclude_user_ids: exclude,
+    p_exclude_idea_ids: excludeIdeas,
   });
   if (error) throw new Error(`listBoardIdeas: ${error.message}`);
   return { rows: data.slice(0, limit), hasMore: data.length > limit };
@@ -72,23 +88,34 @@ export async function getPublicPerson(userId: string): Promise<BoardPerson | nul
   return data[0] ?? null;
 }
 
-/**
- * Each person's newest open idea pitch, for the "Ideas:" line on person cards.
- * Pitches are already public on the board; full idea text never leaves here.
- */
-export async function firstIdeaPitches(userIds: readonly string[]): Promise<Map<string, string>> {
+/** How many open ideas each person has, for the count on person cards (P1-23). */
+export async function ideaCounts(userIds: readonly string[]): Promise<Map<string, number>> {
   if (userIds.length === 0) return new Map();
   const { data, error } = await createServiceClient()
     .from("ideas")
-    .select("owner_id, pitch")
+    .select("owner_id")
     .in("owner_id", [...userIds])
+    .eq("status", "open");
+  if (error) throw new Error(`ideaCounts: ${error.message}`);
+  const counts = new Map<string, number>();
+  for (const row of data) counts.set(row.owner_id, (counts.get(row.owner_id) ?? 0) + 1);
+  return counts;
+}
+
+/**
+ * A person's open ideas, newest first, for their profile page. Pitches are
+ * already public on the board; full idea text never leaves here.
+ */
+export async function openIdeasOf(userId: string): Promise<{ id: string; pitch: string }[]> {
+  const { data, error } = await createServiceClient()
+    .from("ideas")
+    .select("id, pitch")
+    .eq("owner_id", userId)
     .eq("status", "open")
     .not("pitch", "is", null)
     .order("created_at", { ascending: false });
-  if (error) throw new Error(`firstIdeaPitches: ${error.message}`);
-  const pitches = new Map<string, string>();
-  for (const row of data) if (!pitches.has(row.owner_id)) pitches.set(row.owner_id, row.pitch!);
-  return pitches;
+  if (error) throw new Error(`openIdeasOf: ${error.message}`);
+  return data.map((row) => ({ id: row.id, pitch: row.pitch! }));
 }
 
 /**

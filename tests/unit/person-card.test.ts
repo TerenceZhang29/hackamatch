@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { lookingFor, nearestPoolEvents, roleTags, shortDate, topSkills } from "@/lib/person-card";
+import {
+  ideaHackathons,
+  lookingFor,
+  nearestPoolEvents,
+  roleTags,
+  shortDate,
+  topSkills,
+} from "@/lib/person-card";
 
 describe("roleTags", () => {
   it("is Builds, Ideas or both", () => {
@@ -48,5 +55,28 @@ describe("shortDate", () => {
   it("reads the date as written, in any time zone", () => {
     expect(shortDate("2026-11-09")).toBe("Nov 9");
     expect(shortDate("2027-01-01")).toBe("Jan 1");
+  });
+});
+
+describe("ideaHackathons", () => {
+  const ev = (id: string, startDate: string) => ({ id, name: id, startDate });
+  it("puts the idea's own event first, then the owner's nearest, up to 3, without repeats", () => {
+    const own = [
+      ev("c", "2026-12-01"),
+      ev("a", "2026-11-01"),
+      ev("tagged", "2026-11-20"),
+      ev("b", "2026-11-10"),
+    ];
+    expect(ideaHackathons(ev("tagged", "2026-11-20"), own).map((e) => e.id)).toEqual([
+      "tagged",
+      "a",
+      "b",
+    ]);
+  });
+
+  it("is the owner's nearest when the idea has no event", () => {
+    expect(
+      ideaHackathons(null, [ev("b", "2026-11-10"), ev("a", "2026-11-01")]).map((e) => e.id),
+    ).toEqual(["a", "b"]);
   });
 });

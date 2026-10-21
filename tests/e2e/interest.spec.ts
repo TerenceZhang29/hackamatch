@@ -106,7 +106,7 @@ test("A says Interested on B's idea, B gets an email, B says Interested, both ar
   }
 });
 
-test("Pass hides the person and sends nothing", async ({ browser }) => {
+test("Pass hides that card and sends nothing", async ({ browser }) => {
   const viewer = await member(browser, {
     role: "I want to find an idea to build",
     sentence: "I build Go backends",
@@ -119,7 +119,10 @@ test("Pass hides the person and sends nothing", async ({ browser }) => {
     await viewer.page.goto(`/people/${targetId}`);
     await viewer.page.getByRole("button", { name: "Pass" }).click();
     await expect(viewer.page.getByText("Passed", { exact: true })).toBeVisible();
-    await expect(viewer.page.getByText("You passed.")).toBeVisible();
+    // A Pass hides the card only (P1-23); nothing is recorded on the pair.
+    expect(
+      await query(`select 1 from public.matches where $1 in (user_a, user_b)`, [targetId]),
+    ).toEqual([]);
     await viewer.page.goto("/?tab=people");
     await expect(viewer.page.getByRole("article", { name: `${first} T.` })).toHaveCount(0);
     expect(await readOutbox(target)).toEqual([]);

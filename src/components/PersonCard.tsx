@@ -15,18 +15,18 @@ export interface PersonCardData {
   domains: string[];
 }
 
-/** A person in a list (board, event pages, /people): the same lines as their Discover card. */
+/** A person card (P1-23) in a list: board, event pages, /people. The same lines as on Discover. */
 export function PersonCard({
   person,
-  ideaPitch = null,
+  ideaCount = 0,
   lookingEvents,
   isDemo = false,
   actions,
   headingLevel = 3,
 }: {
   person: PersonCardData;
-  /** Their first open idea's pitch (see firstIdeaPitches). */
-  ideaPitch?: string | null;
+  /** How many open ideas they have (see ideaCounts); the pitches are on idea cards. */
+  ideaCount?: number;
   /** Members only (see poolEventsFor); visitors don't see who's going where. */
   lookingEvents?: readonly PoolEvent[];
   /** A demo profile (docs/plans/demo-profiles.md). */
@@ -51,7 +51,12 @@ export function PersonCard({
           </span>
         ) : null}
       </div>
-      <PersonLines person={person} ideaPitch={ideaPitch} lookingEvents={lookingEvents} />
+      <PersonLines
+        person={person}
+        ideaCount={ideaCount}
+        ideasHref={`/people/${person.user_id}#ideas`}
+        lookingEvents={lookingEvents}
+      />
       <div className="mt-auto">{actions}</div>
     </CardFrame>
   );

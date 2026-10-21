@@ -1,4 +1,5 @@
 import { CalendarDays, Code, Lightbulb } from "lucide-react";
+import Link from "next/link";
 import { Chip, TagList } from "@/components/ui/Chip";
 import {
   lookingFor,
@@ -11,6 +12,22 @@ import {
   type Role,
 } from "@/lib/person-card";
 import { tagLabel } from "@/lib/taxonomy/labels";
+
+/** Hackathons as whole chips that wrap onto new lines ("Name · Nov 9"). */
+export function HackathonChips({ events, label }: { events: readonly PoolEvent[]; label: string }) {
+  return (
+    <ul className="flex flex-wrap gap-1.5" aria-label={label}>
+      {events.map((event) => (
+        <li key={event.id} className="whitespace-nowrap">
+          <Chip tone="accent">
+            <CalendarDays aria-hidden="true" className="size-3" />
+            {event.name} · {shortDate(event.startDate)}
+          </Chip>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 /** Builds / Ideas as two colored tags. */
 export function RoleTags({ role }: { role: Role }) {
@@ -50,14 +67,15 @@ function Line({
 }
 
 /**
- * The body of a person card, in the owner's order (2026-10-19): role tags,
- * Looking for (the nearest 3 hackathons they still want teammates for),
- * Ideas (their first idea's pitch), Builds (top 3 skills), You both (shared
- * hackathons, then areas) and Area.
+ * The body of a person card: role tags, Looking for (the nearest 3
+ * hackathons they still want teammates for), Builds (top 3 skills), Ideas (how
+ * many; the pitches live on idea cards, P1-23), You both (shared hackathons,
+ * then areas) and Area.
  */
 export function PersonLines({
   person,
-  ideaPitch,
+  ideaCount = 0,
+  ideasHref,
   lookingEvents,
   youBoth,
 }: {
@@ -68,8 +86,10 @@ export function PersonLines({
     skills: readonly string[];
     domains: readonly string[];
   };
-  /** Their first open idea's public pitch, when they have one. */
-  ideaPitch: string | null;
+  /** How many open ideas they have; nothing shows for none. */
+  ideaCount?: number;
+  /** Where the count links: their profile, which lists the ideas. */
+  ideasHref?: string;
   /**
    * Nearest hackathons they're going to and still looking at (nearestPoolEvents).
    * Members only; without them the line says what they want in general.
@@ -86,26 +106,25 @@ export function PersonLines({
         <div className="flex flex-col gap-1.5">
           <p className="text-sm font-semibold">Looking for:</p>
           {/* Each hackathon stays whole; ones that don't fit move to the next line. */}
-          <ul className="flex flex-wrap gap-1.5" aria-label="Looking for teammates at">
-            {lookingEvents.map((event) => (
-              <li key={event.id} className="whitespace-nowrap">
-                <Chip tone="accent">
-                  <CalendarDays aria-hidden="true" className="size-3" />
-                  {event.name} · {shortDate(event.startDate)}
-                </Chip>
-              </li>
-            ))}
-          </ul>
+          <HackathonChips events={lookingEvents} label="Looking for teammates at" />
         </div>
       ) : (
         <Line label="Looking for">{lookingFor(person.role, person.intents)}</Line>
       )}
-      {person.role !== "builder" && ideaPitch ? (
-        <Line label="Ideas" clamp>
-          {ideaPitch}
+      {builds.length ? <Line label="Builds">{builds.map(tagLabel).join(", ")}</Line> : null}
+      {ideaCount > 0 ? (
+        <Line label="Ideas">
+          {ideasHref ? (
+            <Link href={ideasHref} className="underline">
+              {ideaCount === 1 ? "1 idea" : `${ideaCount} ideas`}
+            </Link>
+          ) : ideaCount === 1 ? (
+            "1 idea"
+          ) : (
+            `${ideaCount} ideas`
+          )}
         </Line>
       ) : null}
-      {builds.length ? <Line label="Builds">{builds.map(tagLabel).join(", ")}</Line> : null}
       {youBoth?.length ? (
         <div className="flex flex-col gap-1.5">
           <p className="text-sm font-semibold text-success-ink">You both</p>

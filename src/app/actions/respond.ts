@@ -7,6 +7,8 @@ import { requireOnboarded } from "@/lib/auth";
 import { sanitizeNext } from "@/lib/auth-helpers";
 import { LIMITS } from "@/lib/rate-limit";
 import { allow } from "@/server/rate-limit";
+import { parsePassToken, passToken } from "@/lib/deck";
+import { removeCardPass } from "@/server/card-passes";
 import { answerFromBoard, recordResponse, undoPass } from "@/server/matches";
 
 const cardSchema = z.object({
@@ -45,17 +47,15 @@ export async function answerCard(formData: FormData): Promise<void> {
   revalidatePath("/");
   revalidatePath("/matches");
   if (!result.ok) redirect(withOutcome(back, "error", result.error));
+  // A Pass carries the card it hid, so the deck can offer "Undo" for it.
+  if (result.response === "pass") redirect(withOutcome(back, "passed", passToken(kind, targetId)));
   if (result.revealed) redirect(withOutcome(back, "matched", result.matchId));
-  // A Pass carries its match id, so the deck can offer "Undo" for it.
-  redirect(
-    response === "pass"
-      ? withOutcome(back, "passed", result.matchId)
-      : withOutcome(back, "sent", "1"),
-  );
+  redirect(withOutcome(back, "sent", "1"));
 }
 
 const undoSchema = z.object({
-  matchId: z.guid(),
+  /** `idea:<id>` / `person:<id>`, or a match id from before per-card passes. */
+  passed: z.string().max(80),
   returnTo: z.string().max(2048).optional(),
 });
 
@@ -66,7 +66,9 @@ export async function undoPassAction(formData: FormData): Promise<void> {
   if (!parsed.success) redirect("/");
   const back = sanitizeNext(parsed.data.returnTo) ?? "/";
   if (!(await allow(LIMITS.answers, user.id))) redirect(withOutcome(back, "error", "busy"));
-  await undoPass(parsed.data.matchId, user.id);
+  const pass = parsePassToken(parsed.data.passed);
+  if (pass && "matchId" in pass) await undoPass(pass.matchId, user.id);
+  else if (pass) await removeCardPass(user.id, pass.kind, pass.targetId);
   revalidatePath("/");
   redirect(back);
 }

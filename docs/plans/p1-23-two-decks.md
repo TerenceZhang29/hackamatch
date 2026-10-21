@@ -1,6 +1,6 @@
 # P1-23: separate idea cards and person cards, and two decks
 
-Requested by the owner on 2026-10-21. Status: **plan; not built.**
+Requested by the owner on 2026-10-21. Status: **built and tested locally (2026-10-23)**; the production migration and the push need the owner's approval.
 
 ## Context
 Today there's one deck, and its contents depend on the viewer's role (`nextDeckCards` in `src/server/deck.ts`):
@@ -71,6 +71,12 @@ Highlights the person:
   - The visitor limit (3 cards and a blurred row) is unchanged.
 - **`/people/[id]` and `/ideas/[id]`:** the same cards at the top. Their pages keep their current details below.
 - **Unchanged:** match emails, the pair page, matches rows, the admin pages and P1-22's draft ideas. Drafts are never `open`, so they never appear on idea cards.
+
+## Built (2026-10-23): notes
+- **The deck is chosen with `?deck=ideas|builders`**, not `?view=`, which the board already uses for `view=list`. A link names the deck only when the viewer picked one; otherwise the role decides.
+- **`public_board_people` is unchanged.** The people deck leaves out passed people through the existing excluded-users argument. Only `public_board_ideas` changed: it gains `owner_id` and `p_exclude_idea_ids`.
+- **Person and idea pages:** a Pass there also hides just that card, and the page shows "Passed". `/people/<id>` lists the person's open ideas under the card, which is where the card's "N ideas" link goes. `/ideas/<id>` keeps its own layout.
+- **Analytics:** a card Pass is tracked as `passed` with `{ kind, source: "board" }` and no `match_id`.
 
 ## Order of work
 1. The migration (`card_passes` and the two board functions) and the server pieces: `nextDeckCards` with `view`, the exclusions, Pass and Undo.

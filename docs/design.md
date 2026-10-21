@@ -26,6 +26,22 @@ These are defined in `src/app/globals.css` as CSS variables, with dark values un
 - `Avatar`: an initials circle with a stable color per name. It's decorative; the name always appears next to it.
 - `Surface`, `Section` (title plus count, and labels its region), `EmptyState` (icon, one heading, at most two actions), `Notice` (one status line), and `inputClass` / `labelClass` / `FieldError` (`Field.tsx`).
 
+## Cards (P1-23)
+There are two kinds of card, one subject each. They're used on Discover, the board, event pages and `/people`:
+- **Idea card** (`IdeaCard`; on Discover, `DeckCardView`):
+  - the **pitch** as the title;
+  - the owner (avatar and name, linking to their person card);
+  - area and scope;
+  - **hackathons**: the idea's event first, then the owner's nearest ones where they're still looking, as chips. These are for members only;
+  - the skills it needs (✓ on Discover for the ones you have).
+- **Person card** (`PersonCard` and `PersonLines`):
+  - name and role tags;
+  - Looking for (their hackathons);
+  - Builds (top 3 skills);
+  - **Ideas: N ideas**, which is a count linking to `/people/<id>#ideas`, never a pitch;
+  - You both, and Area.
+- Discover has an **Ideas | Builders** toggle (`?deck=`). The default depends on the role: idea people start on Builders, everyone else on Ideas. **Pass hides that one card** (`card_passes`), and Interested still answers the person.
+
 ## Shell
 - **Route groups** keep the URLs unchanged.
   - `src/app/(app)` has the shell (`src/components/shell/`): a slim top bar on every page.

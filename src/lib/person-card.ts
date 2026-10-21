@@ -55,3 +55,19 @@ export function shortDate(isoDate: string): string {
     timeZone: "UTC",
   });
 }
+
+/**
+ * The hackathons on an idea card (P1-23): the event the idea is tagged with
+ * first, then its owner's nearest ones where they're still looking, up to `n`.
+ */
+export function ideaHackathons<T extends PoolEvent>(
+  ideaEvent: T | null,
+  ownerEvents: readonly T[],
+  n = 3,
+): T[] {
+  const rest = nearestPoolEvents(
+    ownerEvents.filter((event) => event.id !== ideaEvent?.id),
+    n,
+  );
+  return (ideaEvent ? [ideaEvent, ...rest] : rest).slice(0, n);
+}

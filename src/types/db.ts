@@ -88,6 +88,43 @@ export type Database = {
         };
         Relationships: [];
       };
+      card_passes: {
+        Row: {
+          created_at: string;
+          kind: Database["public"]["Enums"]["card_kind"];
+          target_id: string;
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          kind: Database["public"]["Enums"]["card_kind"];
+          target_id: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          kind?: Database["public"]["Enums"]["card_kind"];
+          target_id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "card_passes_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "active_pool";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "card_passes_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       event_interests: {
         Row: {
           created_at: string;
@@ -892,6 +929,7 @@ export type Database = {
         Args: {
           p_domain?: string;
           p_event_slug?: string;
+          p_exclude_idea_ids?: string[];
           p_exclude_user_ids?: string[];
           p_intent?: Database["public"]["Enums"]["user_intent"];
           p_limit?: number;
@@ -905,6 +943,7 @@ export type Database = {
           featured: boolean;
           id: string;
           owner_display: string;
+          owner_id: string;
           pitch: string;
           scope: Database["public"]["Enums"]["idea_scope"];
           skills_needed: string[];
@@ -985,6 +1024,7 @@ export type Database = {
       };
     };
     Enums: {
+      card_kind: "idea" | "person";
       experience_level: "beginner" | "intermediate" | "advanced";
       idea_scope: "weekend" | "few_weeks" | "ongoing";
       idea_status: "open" | "filled" | "archived" | "draft";
@@ -1107,6 +1147,7 @@ export const Constants = {
   },
   public: {
     Enums: {
+      card_kind: ["idea", "person"],
       experience_level: ["beginner", "intermediate", "advanced"],
       idea_scope: ["weekend", "few_weeks", "ongoing"],
       idea_status: ["open", "filled", "archived", "draft"],

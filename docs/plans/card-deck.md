@@ -1,6 +1,6 @@
 # Plan: one card at a time ("the deck")
 
-Requested by the owner on 2026-10-19. Status: **built** (2026-10-19), all five steps. The code is in `src/components/deck/`, `src/server/deck.ts` and `src/lib/deck.ts`.
+Requested by the owner on 2026-10-19. Status: **built** (2026-10-19), all five steps. **Since P1-23 (2026-10-23)** there are two decks, Ideas and Builders, with a toggle, in place of one deck mixed by role; Pass hides one card ([`p1-23-two-decks.md`](./p1-23-two-decks.md)). The code is in `src/components/deck/`, `src/server/deck.ts` and `src/lib/deck.ts`.
 
 ## The ask
 Make browsing feel easier and less overwhelming. Members see **one card at a time** and answer Interested or Pass, like a dating app, instead of scanning a list. In a later iteration, the matching score (Phase 2) decides which cards each person sees first.

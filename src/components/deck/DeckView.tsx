@@ -14,7 +14,7 @@ import { Outcome } from "@/components/Outcome";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { deckHref, leftLabel } from "@/lib/deck";
+import { deckHref, leftLabel, parseDeckKind, parsePassToken, type DeckKind } from "@/lib/deck";
 import type { DeckCard, DeckDetails } from "@/server/deck";
 import { DeckCardView } from "./DeckCardView";
 import { Swipe } from "./Swipe";
@@ -43,7 +43,7 @@ function AnswerBar({
     <div className="sticky bottom-16 z-10 flex items-center justify-center gap-6 bg-bg/90 py-3 backdrop-blur sm:bottom-0">
       {undoable ? (
         <form action={undoPassAction}>
-          <input type="hidden" name="matchId" value={undoable} />
+          <input type="hidden" name="passed" value={undoable} />
           <input type="hidden" name="returnTo" value={returnTo} />
           <button
             type="submit"
@@ -119,10 +119,13 @@ function Matched({ name, matchId, next }: { name: string; matchId: string; next:
 function EventChips({
   events,
   current,
+  kind,
   left,
 }: {
   events: { slug: string; name: string }[];
   current: string | null;
+  /** The deck named in the URL, kept when switching events; null for the default. */
+  kind: DeckKind | null;
   left: string | null;
 }) {
   // Whole chips that wrap onto new lines, never shrunk or cut.
@@ -135,7 +138,7 @@ function EventChips({
       {events.length ? (
         <nav aria-label="Whose cards" className="flex flex-wrap gap-2">
           <Link
-            href="/"
+            href={deckHref(null, kind)}
             aria-current={current === null ? "page" : undefined}
             className={chip(current === null)}
           >
@@ -144,7 +147,7 @@ function EventChips({
           {events.map((event) => (
             <Link
               key={event.slug}
-              href={deckHref(event.slug)}
+              href={deckHref(event.slug, kind)}
               aria-current={current === event.slug ? "page" : undefined}
               className={chip(current === event.slug)}
             >
@@ -164,11 +167,32 @@ function EventChips({
   );
 }
 
+/** Ideas | Builders: which deck to swipe through (P1-23). Plain links, so it works without JavaScript. */
+function DeckToggle({ kind, eventSlug }: { kind: DeckKind; eventSlug: string | null }) {
+  return (
+    <nav aria-label="Swipe through" className="grid grid-cols-2 gap-1 rounded-xl bg-surface p-1">
+      {(["ideas", "builders"] as const).map((option) => (
+        <Link
+          key={option}
+          href={deckHref(eventSlug, option)}
+          aria-current={kind === option ? "page" : undefined}
+          className={`rounded-lg px-4 py-2 text-center text-sm font-medium ${
+            kind === option ? "bg-bg text-ink shadow-sm" : "text-muted"
+          }`}
+        >
+          {option === "ideas" ? "Ideas" : "Builders"}
+        </Link>
+      ))}
+    </nav>
+  );
+}
+
 /**
  * One card at a time for members (docs/plans/card-deck.md). Answering posts
  * the card's form and comes back here, where the next card is on top.
  */
 export function DeckView({
+  kind,
   cards,
   more,
   details,
@@ -179,6 +203,8 @@ export function DeckView({
   params,
   matched,
 }: {
+  /** Which deck: ideas or builders (P1-23). */
+  kind: DeckKind;
   cards: DeckCard[];
   more: boolean;
   /** Extra details for the card on top (null when the deck is empty). */
@@ -193,18 +219,23 @@ export function DeckView({
   /** Set right after a mutual match: show the celebration before the next card. */
   matched: { name: string; matchId: string } | null;
 }) {
-  const here = deckHref(eventSlug);
+  // The URL names the deck only when the viewer picked one; otherwise it's their role's default.
+  const chosen = parseDeckKind(params.deck);
+  const here = deckHref(eventSlug, chosen);
+  const other: DeckKind = kind === "ideas" ? "builders" : "ideas";
   const card = cards[0];
   const passed = typeof params.passed === "string" ? params.passed : null;
-  const undoable = passed && /^[0-9a-f-]{36}$/.test(passed) ? passed : null;
+  const undoable = parsePassToken(passed) ? passed : null;
   const eventName =
     myEvents.find((e) => e.slug === eventSlug)?.name ?? (eventSlug ? "this event" : null);
   return (
     <div className="mx-auto flex w-full max-w-md flex-col gap-4">
       <h1 className="sr-only">Discover</h1>
+      <DeckToggle kind={kind} eventSlug={eventSlug} />
       <EventChips
         events={myEvents}
         current={eventSlug}
+        kind={chosen}
         left={card && !matched ? leftLabel(cards.length, more) : null}
       />
       {matched ? null : <Outcome params={params} />}
@@ -233,13 +264,20 @@ export function DeckView({
           <EmptyState
             icon={Sparkles}
             title={
-              eventName
-                ? `You've seen everyone going to ${eventName}`
-                : "You've seen everyone for now"
+              kind === "ideas"
+                ? eventName
+                  ? `No more ideas for ${eventName}`
+                  : "No more ideas for now"
+                : eventName
+                  ? `You've seen every builder going to ${eventName}`
+                  : "You've seen every builder for now"
             }
           >
+            <Button href={deckHref(eventSlug, other)} variant="primary">
+              {other === "ideas" ? "Swipe ideas" : "Find builders"}
+            </Button>
             {eventName ? (
-              <Button href="/" variant="outline">
+              <Button href={deckHref(null, chosen)} variant="outline">
                 Everyone
               </Button>
             ) : (
@@ -255,7 +293,7 @@ export function DeckView({
           </EmptyState>
           {undoable ? (
             <form action={undoPassAction} className="flex justify-center">
-              <input type="hidden" name="matchId" value={undoable} />
+              <input type="hidden" name="passed" value={undoable} />
               <input type="hidden" name="returnTo" value={here} />
               <Button type="submit" variant="ghost" size="sm">
                 <RotateCcw aria-hidden="true" className="size-4" /> Undo

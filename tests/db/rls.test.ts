@@ -77,6 +77,9 @@ describe("anon (logged-out visitors)", () => {
         "featured",
         "id",
         "owner_display",
+        // Since P1-23, for the owner's hackathons on idea cards; owner ids were
+        // already public through public_idea and links to /people/<id>.
+        "owner_id",
         "pitch",
         "scope",
         "skills_needed",
