@@ -20,10 +20,20 @@ test.afterEach(async () => {
 
 const SEEDED_PITCH = "Let nurses swap shifts in minutes instead of days.";
 
+test("the logged-out landing page shows the slogan and upcoming hackathons", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "Match for your next Hackathon here",
+  );
+  await expect(page.getByRole("region", { name: "Upcoming in NYC" })).toBeVisible();
+  // Nothing below the hackathons: no sample cards on the landing page.
+  await expect(page.getByRole("article")).toHaveCount(0);
+});
+
 test("the logged-out board shows seeded ideas and never emails or full idea text", async ({
   page,
 }) => {
-  const response = await page.goto("/");
+  const response = await page.goto("/?view=list");
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Find someone to build with");
   await expect(page.getByRole("article", { name: SEEDED_PITCH })).toBeVisible();
   // Featured ideas come first.
@@ -35,18 +45,18 @@ test("the logged-out board shows seeded ideas and never emails or full idea text
   expect(html).not.toContain("Hospitals approve rules once");
 
   await page.getByRole("link", { name: "Builders" }).click();
-  await expect(page).toHaveURL("/?tab=people");
+  await expect(page).toHaveURL("/?tab=people&view=list");
   await expect(page.getByRole("article", { name: "Sofia C." })).toBeVisible();
   // Paused users are not on the board.
   await expect(page.getByRole("article", { name: "Lena H." })).toHaveCount(0);
 });
 
 test("filters change the results and the URL can be shared", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/?view=list");
   await page.getByText("Filter", { exact: true }).click();
   await page.getByLabel("Skill", { exact: true }).selectOption("ml");
   await page.getByRole("button", { name: "Apply" }).click();
-  await expect(page).toHaveURL("/?skill=ml");
+  await expect(page).toHaveURL("/?skill=ml&view=list");
   await expect(
     page.getByRole("article", { name: "Turn lecture recordings into flashcards automatically." }),
   ).toBeVisible();
@@ -97,7 +107,7 @@ test("logged-out calls to action record the click and lead to sign-in", async ({
   await page.getByRole("link", { name: "Join with your Cornell email" }).click();
   await expect(page).toHaveURL("/login?next=%2Fonboarding");
 
-  await page.goto("/");
+  await page.goto("/?view=list");
   const card = page.getByRole("article", { name: SEEDED_PITCH });
   await card.getByRole("link", { name: "Interested" }).click();
   await expect(page).toHaveURL(/\/login\?next=%2Fideas%2F[0-9a-f-]{36}$/);
@@ -139,11 +149,11 @@ test("the board works without JavaScript", async ({ browser }) => {
   const context = await browser.newContext({ javaScriptEnabled: false });
   try {
     const page = await context.newPage();
-    await page.goto("/");
+    await page.goto("/?view=list");
     await page.getByText("Filter", { exact: true }).click();
     await page.getByLabel("Area", { exact: true }).selectOption("climate");
     await page.getByRole("button", { name: "Apply" }).click();
-    await expect(page).toHaveURL("/?domain=climate");
+    await expect(page).toHaveURL("/?domain=climate&view=list");
     await expect(
       page.getByRole("article", { name: "A live air-quality map from cheap campus sensors." }),
     ).toBeVisible();

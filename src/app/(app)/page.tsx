@@ -8,6 +8,7 @@ import { CardActions, type Viewer } from "@/components/CardActions";
 import { DeckView } from "@/components/deck/DeckView";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { Landing } from "@/components/landing/Landing";
 import { Notice } from "@/components/ui/Notice";
 import { IdeaCard } from "@/components/IdeaCard";
 import { Outcome } from "@/components/Outcome";
@@ -25,7 +26,10 @@ import {
   wantsDeck,
   type BoardState,
 } from "@/lib/board";
+import { getConfig } from "@/lib/config";
+import { upcomingNycHackathons } from "@/lib/nyc-hackathons";
 import { slugsOf } from "@/lib/taxonomy/skills";
+import { localDateString } from "@/lib/time";
 import { defaultDeckKind, parseDeckKind } from "@/lib/deck";
 import { ideaHackathons } from "@/lib/person-card";
 import {
@@ -52,9 +56,22 @@ export default async function BoardPage({
   const user = await getUser();
   const viewer: Viewer = !user ? "anon" : user.onboarded_at ? "onboarded" : "not-onboarded";
   const deleted = params.deleted !== undefined;
+
+  // Visitors start on the landing page; any board parameter opens the board itself.
+  if (viewer === "anon" && !BOARD_PARAM_KEYS.some((key) => params[key] !== undefined)) {
+    after(() => track("board_viewed", { tab: "landing", filtered: false, signed_in: false }, null));
+    return (
+      <main className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-6">
+        <Outcome params={params} />
+        {deleted ? <Notice>Your account has been deleted.</Notice> : null}
+        <Landing hackathons={upcomingNycHackathons(localDateString(getConfig().APP_TIMEZONE))} />
+      </main>
+    );
+  }
   const deck = viewer === "onboarded" && wantsDeck(params);
-  // Members reach the list through "Browse all"; keep them on it while they use it.
-  const state: BoardState = viewer === "onboarded" ? { ...parsed, view: "list" } : parsed;
+  // `/` is the deck for members and the landing page for visitors; keep both on
+  // the list (`?view=list`) while they use it.
+  const state: BoardState = viewer !== "not-onboarded" ? { ...parsed, view: "list" } : parsed;
 
   const [events, exclude] = await Promise.all([
     listUpcomingEvents(),
@@ -141,7 +158,6 @@ export default async function BoardPage({
               <h1 className="max-w-2xl text-4xl font-bold tracking-tight sm:text-5xl">
                 Find someone to build with.
               </h1>
-              <p className="text-lg text-muted">Cornell students only. One sentence to join.</p>
               <Button
                 href={`/join?${new URLSearchParams({ next: "/onboarding", from: "hero" })}`}
                 prefetch={false}

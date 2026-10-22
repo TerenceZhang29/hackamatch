@@ -222,7 +222,9 @@ test("Browse all opens the list, which keeps members on it; visitors get the lis
   try {
     const visitorPage = await visitor.newPage();
     await visitorPage.goto("/");
-    await expect(visitorPage.getByRole("navigation", { name: "Board tabs" })).toBeVisible();
+    await expect(
+      visitorPage.getByRole("heading", { name: "Match for your next Hackathon here" }),
+    ).toBeVisible();
     await expect(visitorPage.getByRole("heading", { name: "Discover" })).toHaveCount(0);
   } finally {
     await visitor.close();

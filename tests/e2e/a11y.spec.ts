@@ -54,7 +54,8 @@ async function expectAccessible(page: Page, label: string) {
 
 test("public pages", async ({ page }) => {
   for (const [path, label] of [
-    ["/", "board"],
+    ["/", "landing"],
+    ["/?view=list", "board"],
     ["/?tab=people", "builders"],
     ["/login", "login"],
     ["/e/cornell-tech-fall-hack", "event"],
