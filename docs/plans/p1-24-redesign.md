@@ -1,15 +1,25 @@
 # P1-24: redesign of the landing page, sign-up, cards and events
 
-Requested by the owner on 2026-10-22. Status: **planned**; the open questions below need the owner's answers before building.
+Requested by the owner on 2026-10-22. Status: **planned**; the owner answered every open question on 2026-10-22 and reviewed the remaining screens on the canvas on 2026-10-23 (see Decisions). Checked against the canvas on 2026-10-23: no differences left.
 
-The design was worked out in a clickable mockup, reviewed through about 30 comments on it: [HackaMatch Sign-up Flow](https://claude.ai/artifact/HZn2BMBxNwiwDMg1J1j9HP) (private to the owner). It has a landing screen, the four sign-up steps, two person cards, and an Events screen that opens a filtered Discover. Where the mockup and this plan differ, this plan wins.
+The design was worked out in a clickable mockup, reviewed through about 40 comments on it: [HackaMatch Sign-up Flow](https://claude.ai/artifact/HZn2BMBxNwiwDMg1J1j9HP) (private to the owner). Its four rows:
+- **Landing:** the signed-out page.
+- **Sign-up flow:** the four steps.
+- **Cards:** the person card, and the same card when the viewer shares a hackathon.
+- **Events:**
+  - the Events list, which in Play opens an event's details and then the filtered Discover;
+  - an Event details screen;
+  - the same screen once the viewer is going.
+
+Where the mockup and this plan differ, this plan wins. The mockup's Discover | Events switch in the top bar and its sample counts are only sketches.
 
 ## What changes, at a glance
 - **Landing (signed out):** a new headline, the upcoming hackathons rolling sideways inside a soft panel, and a "Match Now" button.
 - **Sign-up:** four short steps in a new order: hackathons, areas, skills, then name and email. **The email comes last**, so the answers are saved before the sign-in link is sent.
 - **Person card:** name, Going to, Interest areas, Top skills, and icon-only Pass and Interested buttons. A hackathon the viewer shares is highlighted and listed first.
+- **One kind of card:** HackaMatch matches people. Ideas leave the app (owner, 2026-10-22), so there's one deck of person cards.
 - **Discover:** a row of hackathon chips filters the deck.
-- **Events:** "You're going" and "More hackathons" sections. Tapping a hackathon opens Discover filtered on it.
+- **Events:** "You're going" and "More hackathons" sections. Tapping a hackathon opens its details (area tags, time, place, host, description, how many are going), with "Discover who's going" opening Discover filtered on it.
 
 ## 1. Landing page (signed out, `/`)
 Today: `src/components/landing/Landing.tsx` and `HackathonTicker.tsx` (vertical roll, "Join with your Cornell email").
@@ -25,7 +35,7 @@ From top to bottom:
 
 Changes to make:
 - `HackathonTicker` slides horizontally and gets the dots; the date becomes a pill; the place is dropped.
-- The hackathon list comes from **the events table** (`listUpcomingEvents`) instead of the hand-kept `src/lib/nyc-hackathons.ts`, so new events show up without a code change. The four NYC events are added as events (an admin task, no migration). `nyc-hackathons.ts` and its unit test are then removed.
+- The hackathon list is **the next 5 upcoming events** from the events table (`listUpcomingEvents`, soonest first), instead of the hand-kept `src/lib/nyc-hackathons.ts`. New events show up without a code change. The four NYC events are added as events (an admin task, no migration). `nyc-hackathons.ts` and its unit test are then removed.
 - "Match Now" goes to `/signup` (below), not `/join → /login`.
 
 ## 2. Sign-up: four steps, email last
@@ -39,8 +49,14 @@ Today: `/login` asks for the Cornell email first. Then `/onboarding` asks for th
 - An **"or"** divider, then **"Undecided yet"** as a quieter row with a question-mark icon. It clears the picks, and picking an event clears it.
 
 ### Step 2: Getting to your visions ("So your matches come faster")
-- "Which area(s) do you hack?": chips from the `domains` taxonomy, **up to 5**, with a "2 of 5" counter. The other chips are disabled at 5.
-- "Something special? Tell us in a short sentence": optional, up to 140 characters.
+- "Which area(s) do you hack?": 12 popular areas as chips from the `domains` taxonomy, **up to 5** in total, with a "2 of 5" counter. The other chips are disabled at 5.
+- **"Something special? Search all areas"** (owner, 2026-10-22; replaces the free-text sentence, so no AI is needed):
+  - a search box over all 42 areas;
+  - under the box, clickable chips: the areas whose name matches what's typed, then the areas **related** to them, marked "· related";
+  - with nothing typed, it shows areas related to the ones already picked ("Related to your picks");
+  - picking one adds it to the chips above and counts toward the 5;
+  - "No results" when nothing matches, and nothing can be typed in as a new area.
+- **New: `RELATED_DOMAINS`** in `src/lib/taxonomy/skills.ts`, a hand-written map from each area to 2 to 4 related areas (for example climate → energy, agriculture, transportation). It's checked by a unit test: every area has an entry, and every entry names a real area. The mockup's map is the starting point.
 
 ### Step 3: Now your specialty
 - "Pick your top skills": **up to 3** across two labelled groups, **Technical** and **Business**. Design, product and research count as Business.
@@ -55,7 +71,7 @@ Today: `/login` asks for the Cornell email first. Then `/onboarding` asks for th
 The account can't exist before the email is verified, but the answers must survive the trip to the inbox, **including on another device** (the reason for P1-03's token-hash link).
 
 **Proposed:** a server-side **pending sign-up**.
-- **New table `pending_signups`:** `email` (unique, lowercased), `answers` (jsonb: events, undecided, domains, sentence, skills, first and last name), `created_at`, `expires_at` (48 hours). RLS is on with no policies, so it's server-only, like `rate_limits`.
+- **New table `pending_signups`:** `email` (unique, lowercased), `answers` (jsonb: events, undecided, domains, skills, first and last name), `created_at`, `expires_at` (48 hours). RLS is on with no policies, so it's server-only, like `rate_limits`.
 - **Step 4** validates everything (zod, as the onboarding schemas do now), upserts the row and sends the magic link with `next=/signup/finish`. The existing login rate limits apply.
 - **`/signup/finish`** (after `/auth/confirm`) shows a one-screen summary ("Here's what you told us") with **Join**. Join creates the profile and the event interests, sets `onboarded_at`, deletes the row and goes to Discover.
   - The summary is never applied silently, because anyone can type someone else's email at step 4.
@@ -66,7 +82,28 @@ The account can't exist before the email is verified, but the answers must survi
 ### What happens to today's onboarding
 - `/onboarding` stays only for **signed-in people who haven't finished** (accounts made before this ships). It becomes the same four steps without the email step.
 - `/login` stays for **returning members**: "Sign in" in the top bar, Cornell email, magic link.
-- **The role choice (P1-22) and the AI sentence step leave sign-up.** See the open questions.
+- **Gone from sign-up:**
+  - the role choice (P1-22);
+  - the goals question;
+  - the AI sentence step and its tag review;
+  - GitHub and LinkedIn import, which stays on `/me` only.
+- **No AI call at sign-up.** The picks are the profile, and the embedding is built from the areas and skills (`profileEmbeddingText`), plus the GitHub summary if added later on `/me`. This removes the Claude extraction call per sign-up; the Voyage embedding stays.
+
+### Removing roles and goals (owner, 2026-10-22)
+There are **no roles**: everyone is a person in the pool, shown on the same card. There are **no goals** (hackathon, side project, cofounder).
+- **Code:**
+  - `users.role` and `profiles.intents` stop being read or written.
+  - Remove:
+    - the role step and idea route from onboarding (P1-22);
+    - role editing and goals editing on `/me`;
+    - the role tags and "Looking for: Hackathon partner" text on cards (`PersonLines`);
+    - the board's goal filter (`intent` in `BOARD_PARAM_KEYS` and `BoardFilters`).
+  - Old `?intent=` links are ignored.
+- **The deck and the board** list everyone in the pool (`listBoardPeople` with `role: null`).
+- **Database:**
+  - First, deploy the code that no longer uses the columns.
+  - Then, in a second migration, drop the `role` check, the `intents` column and the role and intent arguments of `public_board_people` and `public_board_ideas`.
+  - Two steps, so the running app never reads a missing column.
 
 ## 3. Person card
 Today: `src/components/PersonCard.tsx`, `PersonLines.tsx` and the deck's `DeckCardView.tsx` (P1-23).
@@ -82,60 +119,127 @@ Today: `src/components/PersonCard.tsx`, `PersonLines.tsx` and the deck's `DeckCa
 - **Pass and Interested:** round, **icon-only** buttons below the card:
   - Pass is a white circle with an ×; Interested is a larger accent circle with the handshake.
   - Their `aria-label` and `title` stay "Pass" and "Interested", so screen readers, tooltips and the e2e tests that look for those names keep working.
-- **Dropped from the card:** role tags, the "Ideas: N" link and "You both" areas.
-  - On the board, event pages and `/people/[id]`, the card's own actions stay as today.
-  - The idea card (P1-23) is unchanged in this ticket.
+- **Dropped from the card:** role tags, goals, the "Ideas: N" link and "You both" areas.
+  - On the visitor board and `/people/[id]`, the card's own actions stay as today. Event pages no longer list people (section 7).
+  - Idea cards are removed (section 4).
 
-## 4. Discover: a hackathon filter
-- **A row of chips** above the deck: "All hackathons", then the viewer's hackathons.
-  - The selected chip is filled dark, with ✓, and moves next to "All".
+## 4. One deck: people only (owner, 2026-10-22)
+There is only one kind of card, the person card, so **ideas are removed** from the product. P1-23's idea cards and two decks go away.
+- **Discover** is one deck of person cards. Remove:
+  - the Ideas | Builders toggle (`?deck=`, `parseDeckKind`, `defaultDeckKind`);
+  - idea cards in the deck (`DeckCardView`'s idea branch, `nextDeckCards` for ideas).
+- **Remove everywhere:**
+  - "Post an idea" (the + in the shell) and `/ideas/new`;
+  - `/ideas/[id]`, which returns 404 (old email links included);
+  - the board's Ideas tab, so the visitor board is people only;
+  - the ideas list on event pages and on `/people/[id]`;
+  - the ideas section on `/me`;
+  - the idea count on cards;
+  - `/admin/ideas`, plus the idea fields on the admin users page.
+- **Matching:** Interested is only on people. A `card_passes` row of kind `idea` is no longer written, and `kind` stays for old rows.
+- **Existing ideas are hidden, not deleted.** No page reads them, and they're no longer embedded or listed, but the rows stay (owner's choice: nothing lost).
+  - Matches that started from an idea keep working, because a match is between two people.
+  - The pair page and emails stop mentioning the idea.
+- **Unused code to delete:**
+  - the idea extraction prompt (`extract-idea`);
+  - `public_board_ideas` and `public_idea` (in the second migration);
+  - idea embedding;
+  - the demo ideas in the demo seed. The 12 demo ideas on production are left in place but unseen.
+- **Analytics:** `idea_posted` stops being sent. It stays in the list so old rows still validate.
+
+## 5. Discover: a hackathon filter
+- **A row of chips** above the deck: "All hackathons", then the upcoming hackathons, the viewer's own first.
+  - **"All hackathons" is pinned** at the left, then a thin divider. The hackathon chips after it scroll sideways and fade at the right edge (owner, 2026-10-23).
+  - The selected chip is filled dark, with ✓, and moves to the front of the scrolling chips.
   - It sets `?event=<slug>`, which `nextDeckCards` already supports, replacing today's event chips.
   - The chips are links, so they work without JavaScript.
-- **The top bar** becomes a compact Discover | Events switch on phones. This replaces the bottom tab bar in the mockup; see the open questions.
+- **Navigation stays as today** (owner, 2026-10-22): Discover, Events, Matches and Me tabs, as a bottom bar on phones and inline in the top bar from `sm` up. The mockup's Discover | Events switch is only a sketch.
 
-## 5. Events page (`/events`)
+## 6. Events page (`/events`)
 - **Two sections:** "You're going" (the viewer's events, green outline and tile) and "More hackathons" (the rest, soonest first), under a thin divider. Visitors see only the second section.
 - **Rows:** a date tile, name, full dates and a chevron.
-- **Tapping a row opens Discover filtered on that event** (`/?event=<slug>`) for members. Visitors still go to the event page, `/e/<slug>`, which keeps its share link and visitor limits.
+- **Tapping a row opens the event's details page**, `/e/<slug>`, for everyone (owner, 2026-10-23).
 
-## Open questions (owner)
-1. **Role and ideas.**
-   - Sign-up no longer asks "idea or builder" or for an idea. Does everyone join as a **builder**, posting ideas later from "Post an idea"?
-   - Today's deck default (P1-23) and the idea route (P1-22) depend on the role. Proposed: everyone joins as `builder`; posting an idea makes them `both`.
-2. **The AI step.** Proposed: no AI call at sign-up at all; the picks are the profile.
-   - The optional sentence is saved as written (and embedded with the picks for matching), not turned into tags.
-   - This removes the extraction call and its cost at sign-up. The sentence is still checked for length, and the embedding stays (Voyage, about the same cost as today).
-3. **Intents** (hackathon, side project, cofounder) aren't asked any more. Default them to `hackathon`?
-4. **GitHub and LinkedIn import** isn't in the new flow. Move it to `/me` only?
-5. **Navigation.** The mockup's top bar has Discover and Events only. Should Matches and Me stay as tabs (today's bottom bar on phones), or move?
-6. **Events page for visitors.** Is the event page the right destination when signed out, as proposed?
-7. **The landing list.** Should it show every upcoming event in the table, or only ones marked for the landing page?
+## 7. Event details page (`/e/<slug>`, redesigned)
+- **Layout:** a back link to Events, then a card with:
+  - a date tile and the event name ("✓ You're going" if the viewer is);
+  - **area tags**: the event's topics as chips, using the same `domains` taxonomy people pick at sign-up, so events and people share one vocabulary;
+  - rows for **when** (dates and time), **where** and **host**, each with an icon;
+  - a short **description**.
+- **Below the card:** a few avatars and "**N people going**" (`countEventInterest`), then **"Discover who's going"**.
+- **The button:**
+  - for members, it opens Discover filtered on the event (`/?event=<slug>`);
+  - for visitors, it starts sign-up with the event already ticked on step 1.
+- **"I'm going!"** (members): a green-outline button above "Discover who's going". Once pressed:
+  - the card gets a green outline and date tile, with "✓ You're going" under the name;
+  - the button becomes a green status box, "You're going! You're in the pool for this hackathon.", with a "Not going?" link;
+  - the count reads "N people going, including you";
+  - the event moves into "You're going" on `/events`.
+  - It uses the existing event-interest actions; "Not going?" keeps today's confirmation when the viewer has matches for that event.
+- **Kept:** the share link.
+- **Removed:**
+  - the ideas list (section 4);
+  - the people list on this page, since the cards live in Discover now.
+- **Data:** `events` already has `description`. Add these in the first migration, and to `/admin/events`:
+  - `starts_at_time` / `ends_at_time` (text, optional);
+  - `venue` and `host` (text, optional);
+  - `domains` (text array of area slugs, checked against the taxonomy like profile tags).
+  - A missing field just isn't shown.
+
+## Decisions (owner, 2026-10-22 and 2026-10-23)
+1. **Roles: none.** Everyone is simply a person in the pool. See "Removing roles and goals".
+2. **No AI at sign-up.** The free-text sentence becomes a search over all areas, with related areas suggested from a hand-written map (`RELATED_DOMAINS`).
+3. **Goals: dropped entirely.** Intents leave profiles, cards and the board filter.
+4. **GitHub and LinkedIn import:** on the profile page (`/me`) only.
+5. **Navigation:** keep all four tabs (Discover, Events, Matches, Me).
+6. **Event details:** tapping a hackathon opens its details page (`/e/<slug>`) for everyone. "Discover who's going" opens the filtered Discover for members, or sign-up for visitors.
+7. **Landing list:** the next 5 upcoming events.
+8. **One kind of card:** person cards only, so Discover has one deck and **ideas are removed** from the app. Existing ideas are hidden, not deleted.
+9. **Event details** (2026-10-23):
+   - area tags, time, place, host, description and the going count;
+   - "I'm going!" and a going status with "Not going?";
+   - "Discover who's going".
+10. **Discover filter** (2026-10-23): the chips filter the people deck; "All hackathons" is pinned and the rest scroll.
+
+Still to confirm: whether step 3 requires at least one skill (proposed, to keep P1-21's rule).
 
 ## Order of work
 1. **Data:**
-   - the `pending_signups` migration;
-   - the technical/business `group` on skills;
+   - the `pending_signups` migration, and the event time, venue, host and areas columns;
+   - the technical/business `group` on skills and the `RELATED_DOMAINS` map;
    - the NYC events added through `/admin/events`.
-2. **Sign-up:** `/signup` steps 1 to 4 (shared step components, so `/onboarding` reuses steps 1 to 3), the pending row, `/signup/finish`, and the rate limits.
-3. **Landing:** the new layout and horizontal ticker, fed from the events table; remove `nyc-hackathons.ts`.
-4. **Person card and deck:** the new card and the round buttons; the hackathon chips on Discover.
-5. **Events page:** the sections and the links to the filtered Discover.
-6. **Docs:**
+2. **Roles, goals and ideas out of the code:**
+   - onboarding, `/me`, cards and the board filter;
+   - the deck toggle and idea cards;
+   - "Post an idea", `/ideas/*` (404), the Ideas tab, and the ideas on event and person pages;
+   - no migration yet.
+3. **Sign-up:** `/signup` steps 1 to 4 (shared step components, so `/onboarding` reuses steps 1 to 3), the pending row, `/signup/finish`, and the rate limits.
+4. **Landing:** the new layout and horizontal ticker, fed from the next 5 events; remove `nyc-hackathons.ts`.
+5. **Person card and deck:** the new card and the round buttons; the hackathon chips on Discover.
+6. **Events and event details:** the sections, the redesigned `/e/<slug>` and its button to the filtered Discover; the new fields in `/admin/events`.
+7. **Second migration**, once step 2 is live:
+   - drop `intents` and the role check;
+   - drop the role and intent arguments of `public_board_people`;
+   - drop `public_board_ideas` and `public_idea`.
+   - The `ideas` table and its rows stay.
+8. **Docs:**
    - `docs/design.md` (cards, landing, sign-up);
    - `PROGRESS.md` row P1-24;
    - notes in the P1-22 and P1-23 plans that parts are superseded.
 
 ## Approvals needed
-- **The migration on production** (`supabase db push`).
+- **The two migrations on production** (`supabase db push`), the second one only after the code that stops using roles and goals is deployed.
 - **Adding the NYC events on production** (an admin write).
 - **Commit and push.**
-- **Cost:** none new, and less AI use if open question 2 is accepted. No live AI or email tests without asking.
+- **Cost:** none new, and less AI use (no Claude call at sign-up). No live AI or email tests without asking.
 
 ## Tests
 - **Unit:**
   - the step schemas: at most 5 areas and 3 skills; Undecided and events are exclusive; the name rules from `nameFields`;
   - the search filter (match on any part of the name, no free text);
   - the technical/business grouping covers every skill slug;
+  - `RELATED_DOMAINS` has an entry for every area, and every related area is a real one;
+  - the area search returns matches first, then related areas, and nothing for an unknown word;
   - the pending-row expiry.
 - **Database:**
   - `pending_signups` is server-only;
@@ -146,14 +250,17 @@ Today: `src/components/PersonCard.tsx`, `PersonLines.tsx` and the deck's `DeckCa
   2. The full sign-up with the fake email provider: answers are kept across the magic link; `/signup/finish` shows them; Join lands on Discover with the picked events and tags saved.
   3. **The link opened in a fresh browser context** still finds the answers.
   4. Searching a hackathon or skill that doesn't exist shows "No results" and can't be added.
-  5. A 6th area and a 4th skill are disabled.
-  6. The person card shows a shared hackathon first with "You're going too", and the icon-only buttons are found by the names Pass and Interested.
-  7. Events: going first, the others below; a tap opens Discover with that event's chip selected.
-  8. axe and no horizontal scroll on every new page, desktop and mobile; the landing works without JavaScript (first hackathon shown).
-- **Existing tests updated:** the landing, onboarding, login, deck and events specs.
+  5. A 6th area and a 4th skill are disabled. Searching "space" on step 2 offers Space, then its related areas, and picking one adds it.
+  6. There's no Ideas tab, toggle or "Post an idea"; `/ideas/<id>` and `/ideas/new` return 404; Discover shows only person cards.
+  7. The person card shows a shared hackathon first with "You're going too", and the icon-only buttons are found by the names Pass and Interested.
+  8. Events: going first, the others below. "I'm going!" on a details page shows the status box and moves the event into "You're going"; "Not going?" undoes it. A tap opens the details page with time, place, host and the going count. "Discover who's going" opens Discover with that event's chip selected, or sign-up with it ticked for a visitor.
+  9. axe and no horizontal scroll on every new page, desktop and mobile; the landing works without JavaScript (first hackathon shown).
+- **Existing tests updated or removed:**
+  - updated: the landing, onboarding, login, deck, board, event and journey specs;
+  - removed: the idea specs (`ideas.spec.ts`, the idea parts of `interest.spec.ts` and `deck.spec.ts`) and the idea database tests (`draft-ideas`, `public-idea`).
 
 ## Relation to other work
-- **Supersedes parts of P1-22:** the idea-or-builder question and the AI sentence step at sign-up.
-- **Supersedes parts of P1-23:** the person card layout, and the deck's event chips.
-- P1-23's two decks and per-card Pass stay.
+- **Supersedes P1-22:** the idea-or-builder question, the idea route and the AI sentence step at sign-up, and the role itself.
+- **Supersedes most of P1-23:** idea cards, the two decks and the role-based default go. The person card is redesigned. Per-card Pass stays, for people.
+- **Supersedes P1-09** (post an idea) and the idea parts of P1-10, P1-11 and P1-17.
 - P1-21's rule ("no idea and no skill → blocked") is met by requiring at least one skill at step 3. Proposed: at least one skill is required.

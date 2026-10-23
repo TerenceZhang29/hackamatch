@@ -9,7 +9,7 @@ What the redesign settles:
 - **Landing:** "Find your **Hackathon Partner** for", then the upcoming hackathons rolling **sideways** one at a time (3 seconds each, with dots) on an `accent-soft` panel, each with a solid accent date pill. Then "Match Now".
 - **Sign-up:** four steps.
   1. Hackathons: rows, a search box with no free text, and "Undecided yet" after an "or" divider.
-  2. Areas: up to 5, with an optional short sentence.
+  2. Areas: up to 5, with a search over all areas that also suggests related ones (a fixed map, no AI).
   3. Skills: up to 3, in Technical and Business groups, with a search box.
   4. First name, last name ("only your initial is shown") and email, **last**.
 - **Search boxes** only pick from supported names. With no match they say "No results".
@@ -18,8 +18,10 @@ What the redesign settles:
   - Going to, as date tiles, with **shared hackathons first in the success colors** and "✓ You're going too";
   - Interest areas, then Top skills;
   - **round, icon-only Pass and Interested** buttons, whose accessible names stay "Pass" and "Interested".
+- **One kind of card:** person cards only. Ideas leave the app, and Discover is one deck.
 - **Discover:** hackathon chips filter the deck; the selected chip is filled dark with ✓.
-- **Events:** "You're going", then "More hackathons", under a thin divider. A tap opens Discover filtered on that event.
+- **Events:** "You're going", then "More hackathons", under a thin divider.
+- **Event details:** area tags (the same areas as sign-up), time, place, host, description and "N people going", then "Discover who's going", which opens Discover filtered on that event.
 
 ## Tokens
 These are defined in `src/app/globals.css` as CSS variables, with dark values under `prefers-color-scheme: dark`, and exposed to Tailwind through `@theme inline`.
