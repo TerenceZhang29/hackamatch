@@ -2,6 +2,25 @@
 
 Owner's direction (2026-10-19): cleaner and simpler, with the least text possible. A bottom tab bar on phones, neutral surfaces, and one **indigo** accent. It covers every page students see; `/admin` keeps its own plain style.
 
+## Redesign in progress (P1-24, 2026-10-22)
+The owner reworked the landing page, sign-up, person card, Discover filter and Events page in a clickable mockup: [HackaMatch Sign-up Flow](https://claude.ai/artifact/HZn2BMBxNwiwDMg1J1j9HP) (private). [`plans/p1-24-redesign.md`](./plans/p1-24-redesign.md) has the full spec and the open questions. Until it ships, the sections below describe the app as built.
+
+What the redesign settles:
+- **Landing:** "Find your **Hackathon Partner** for", then the upcoming hackathons rolling **sideways** one at a time (3 seconds each, with dots) on an `accent-soft` panel, each with a solid accent date pill. Then "Match Now".
+- **Sign-up:** four steps.
+  1. Hackathons: rows, a search box with no free text, and "Undecided yet" after an "or" divider.
+  2. Areas: up to 5, with an optional short sentence.
+  3. Skills: up to 3, in Technical and Business groups, with a search box.
+  4. First name, last name ("only your initial is shown") and email, **last**.
+- **Search boxes** only pick from supported names. With no match they say "No results".
+- **Person card:**
+  - avatar over an `accent-soft` band, with the name centered;
+  - Going to, as date tiles, with **shared hackathons first in the success colors** and "✓ You're going too";
+  - Interest areas, then Top skills;
+  - **round, icon-only Pass and Interested** buttons, whose accessible names stay "Pass" and "Interested".
+- **Discover:** hackathon chips filter the deck; the selected chip is filled dark with ✓.
+- **Events:** "You're going", then "More hackathons", under a thin divider. A tap opens Discover filtered on that event.
+
 ## Tokens
 These are defined in `src/app/globals.css` as CSS variables, with dark values under `prefers-color-scheme: dark`, and exposed to Tailwind through `@theme inline`.
 
