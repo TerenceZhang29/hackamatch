@@ -59,7 +59,7 @@ Today: `/login` asks for the Cornell email first. Then `/onboarding` asks for th
 - **New: `RELATED_DOMAINS`** in `src/lib/taxonomy/skills.ts`, a hand-written map from each area to 2 to 4 related areas (for example climate → energy, agriculture, transportation). It's checked by a unit test: every area has an entry, and every entry names a real area. The mockup's map is the starting point.
 
 ### Step 3: Now your specialty
-- "Pick your top skills": **up to 3** across two labelled groups, **Technical** and **Business**. Design, product and research count as Business.
+- "Pick your top skills": **1 to 3** (at least one is required; Continue is disabled until then) across two labelled groups, **Technical** and **Business**. Design, product and research count as Business.
 - "Or type it in": a search over every supported skill (the `skills` and `stack` taxonomy) with the same dropdown behavior as step 1. "No results" when nothing matches; "You have 3 skills. Remove one to add another." when full.
 - **New:** a `group` per skill slug in `src/lib/taxonomy/skills.ts` (technical or business), so the split isn't hard-coded in the page.
 
@@ -200,8 +200,7 @@ There is only one kind of card, the person card, so **ideas are removed** from t
    - "I'm going!" and a going status with "Not going?";
    - "Discover who's going".
 10. **Discover filter** (2026-10-23): the chips filter the people deck; "All hackathons" is pinned and the rest scroll.
-
-Still to confirm: whether step 3 requires at least one skill (proposed, to keep P1-21's rule).
+11. **At least one skill is required** at step 3 (2026-10-23), which keeps P1-21's rule now that ideas are gone. Continue stays disabled until one is picked.
 
 ## Order of work
 1. **Data:**
@@ -235,7 +234,7 @@ Still to confirm: whether step 3 requires at least one skill (proposed, to keep 
 
 ## Tests
 - **Unit:**
-  - the step schemas: at most 5 areas and 3 skills; Undecided and events are exclusive; the name rules from `nameFields`;
+  - the step schemas: at most 5 areas; 1 to 3 skills (none is rejected); Undecided and events are exclusive; the name rules from `nameFields`;
   - the search filter (match on any part of the name, no free text);
   - the technical/business grouping covers every skill slug;
   - `RELATED_DOMAINS` has an entry for every area, and every related area is a real one;
@@ -263,4 +262,4 @@ Still to confirm: whether step 3 requires at least one skill (proposed, to keep 
 - **Supersedes P1-22:** the idea-or-builder question, the idea route and the AI sentence step at sign-up, and the role itself.
 - **Supersedes most of P1-23:** idea cards, the two decks and the role-based default go. The person card is redesigned. Per-card Pass stays, for people.
 - **Supersedes P1-09** (post an idea) and the idea parts of P1-10, P1-11 and P1-17.
-- P1-21's rule ("no idea and no skill → blocked") is met by requiring at least one skill at step 3. Proposed: at least one skill is required.
+- P1-21's rule ("no idea and no skill → blocked") is met by requiring at least one skill at step 3 (owner, 2026-10-23).
