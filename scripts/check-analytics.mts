@@ -19,6 +19,14 @@ const NOT_YET: Record<string, string> = {
   digest_sent: "P2-06 (daily digest email)",
 };
 
+/**
+ * Events no longer sent, kept in the list so old rows still validate, with
+ * the ticket that stopped them.
+ */
+const RETIRED: Record<string, string> = {
+  idea_posted: "P1-24 (ideas removed)",
+};
+
 function eventNames(): string[] {
   const source = readFileSync(DEFINITION, "utf8");
   const list = /ANALYTICS_EVENTS = \[([\s\S]*?)\] as const/.exec(source)?.[1];
@@ -49,6 +57,8 @@ for (const name of eventNames()) {
     process.exitCode = 1;
   } else if (!used && NOT_YET[name]) {
     waiting.push(`${name} (${NOT_YET[name]})`);
+  } else if (!used && RETIRED[name]) {
+    continue;
   } else if (!used) {
     missing.push(name);
   }

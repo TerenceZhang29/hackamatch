@@ -90,6 +90,11 @@ export async function completeSignup(userId: string, answers: SignupAnswers): Pr
   await addEventInterests(userId, await filterUpcomingEventIds(answers.eventIds));
   const joined = await markJoinedPool(userId);
   if (joined) {
+    // The steps only reach the server together, at the end, so all four are
+    // recorded here (as P1-21 did for steps 1 and 2).
+    for (const step of [1, 2, 3, 4]) {
+      await track("onboarding_step_completed", { step }, userId);
+    }
     await track(
       "pool_joined",
       { seconds_since_link_click: joined.secondsSinceLinkClick, route: "signup" },
