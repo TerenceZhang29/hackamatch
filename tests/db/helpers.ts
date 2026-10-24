@@ -98,7 +98,7 @@ export function setupTestDb() {
       );
       if (opts.onboarded) {
         await this.asPostgres(
-          `update public.users set role = 'builder', intents = '{hackathon}', onboarded_at = now()
+          `update public.users set role = 'builder', onboarded_at = now()
            where id = $1`,
           [id],
         );

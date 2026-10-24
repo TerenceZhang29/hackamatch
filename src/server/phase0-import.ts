@@ -137,7 +137,6 @@ export async function importPhase0(input: ImportInput): Promise<ImportSummary> {
       await saveOnboardingBasics(userId, {
         name: row.name,
         role: row.role,
-        intents: row.intents,
         sentence: row.sentence,
         githubUrl: github ? `https://github.com/${github.username}` : null,
         githubSummary: github?.summaryText || null,

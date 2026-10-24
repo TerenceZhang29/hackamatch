@@ -270,6 +270,7 @@ There is only one kind of card, the person card, so **ideas are removed** from t
   - match emails and the pair page no longer name an idea.
 - **First migration:** `20261024000000_signup_and_event_details.sql`. Applied locally, and on production on 2026-10-24 (owner approved; backup taken first).
 - **NYC events on production** (2026-10-24, owner approved): Spacefast Build and Hack Night, NYC Environmental Agent-a-thon, Fashion and Finance Hackathon and Innodata Hackathon 2026, with venue, host, areas and link. No time or description yet; add them in `/admin/events`.
+- **Second migration:** `20261025000000_drop_goals_and_idea_fns.sql` drops `users.intents` and its type, the idea board and idea page functions, and the role check and the role and goal arguments of `public_board_people` and `public_person`. The `role` column stays. Code and tests stopped using them first, so it runs after that deploy (owner approved 2026-10-24).
 - **Deviations from the plan:**
   - The event time is one free-text field, `time_label` (for example "9:00 AM – 5:00 PM"), not separate start and end times.
   - New members get `role = 'both'`, hidden, until the second migration drops the board functions' role check.

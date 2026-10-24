@@ -55,41 +55,40 @@ from (values
 update public.users set is_admin = true, is_organizer = true
 where id = '00000000-0000-4000-a000-000000000001';
 
--- Onboarded users: role, intents, the one sentence, activity timestamps.
+-- Onboarded users: role, the one sentence, activity timestamps.
 update public.users u
 set role = s.role::public.user_role,
-    intents = s.intents::public.user_intent[],
     raw_bio = s.raw_bio,
     github_url = s.github_url,
     onboarding_started_at = now() - interval '10 days',
     onboarded_at = now() - interval '10 days' + interval '45 seconds',
     last_active_at = now() - s.inactive_days * interval '1 day'
 from (values
-  ('00000000-0000-4000-a000-000000000101', 'idea',    '{hackathon,side_project}',
+  ('00000000-0000-4000-a000-000000000101', 'idea',
    'An app that lets nurses swap shifts without a manager in the loop.', null, 1),
-  ('00000000-0000-4000-a000-000000000102', 'idea',    '{hackathon}',
+  ('00000000-0000-4000-a000-000000000102', 'idea',
    'A tool that turns lecture recordings into spaced-repetition flashcards.', null, 2),
-  ('00000000-0000-4000-a000-000000000103', 'idea',    '{cofounder,side_project}',
+  ('00000000-0000-4000-a000-000000000103', 'idea',
    'A marketplace for NYC restaurants to sell surplus food at closing time.', null, 0),
-  ('00000000-0000-4000-a000-000000000104', 'idea',    '{hackathon}',
+  ('00000000-0000-4000-a000-000000000104', 'idea',
    'A civic app that explains city council votes in plain language.', null, 12),
-  ('00000000-0000-4000-a000-000000000201', 'builder', '{hackathon,side_project}',
+  ('00000000-0000-4000-a000-000000000201', 'builder',
    'I build React and Next.js apps and like health projects.',
    'https://github.com/sofia-chen-dev', 0),
-  ('00000000-0000-4000-a000-000000000202', 'builder', '{hackathon,cofounder}',
+  ('00000000-0000-4000-a000-000000000202', 'builder',
    'ML engineer: PyTorch, recommendation systems, some backend in Python.', null, 1),
-  ('00000000-0000-4000-a000-000000000203', 'builder', '{side_project}',
+  ('00000000-0000-4000-a000-000000000203', 'builder',
    'iOS developer, Swift and SwiftUI, shipped two apps to the App Store.', null, 3),
-  ('00000000-0000-4000-a000-000000000204', 'builder', '{hackathon}',
+  ('00000000-0000-4000-a000-000000000204', 'builder',
    'Backend and data: Postgres, Go, and building APIs that scale.', null, 5),
-  ('00000000-0000-4000-a000-000000000205', 'builder', '{hackathon,side_project}',
+  ('00000000-0000-4000-a000-000000000205', 'builder',
    'Product designer, Figma prototypes and user research.', null, 2),
-  ('00000000-0000-4000-a000-000000000301', 'both',    '{hackathon,cofounder}',
+  ('00000000-0000-4000-a000-000000000301', 'both',
    'Building a climate sensor dashboard; I can do the hardware and need a frontend dev.',
    null, 1),
-  ('00000000-0000-4000-a000-000000000302', 'both',    '{side_project}',
+  ('00000000-0000-4000-a000-000000000302', 'both',
    'Edtech idea for language practice; I can build the backend in Python.', null, 30)
-) as s (id, role, intents, raw_bio, github_url, inactive_days)
+) as s (id, role, raw_bio, github_url, inactive_days)
 where u.id = s.id::uuid;
 
 -- Lena is paused; seed-303 signed up but never finished onboarding.

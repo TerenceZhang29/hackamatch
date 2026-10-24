@@ -161,27 +161,6 @@ export async function getOwnIdea(userId: string, ideaId: string): Promise<OwnerI
   return data;
 }
 
-export type PublicIdea = {
-  id: string;
-  owner_id: string;
-  pitch: string | null;
-  domain: string | null;
-  skills_needed: string[];
-  scope: IdeaScope | null;
-  status: IdeaStatus;
-  event_id: string | null;
-  featured: boolean;
-  created_at: string;
-  owner_display: string;
-};
-
-/** An idea's public fields (never raw_text), or null when it is hidden. */
-export async function getPublicIdea(ideaId: string): Promise<PublicIdea | null> {
-  const { data, error } = await createServiceClient().rpc("public_idea", { p_id: ideaId });
-  if (error) throw new Error(`getPublicIdea: ${error.message}`);
-  return (data[0] as PublicIdea | undefined) ?? null;
-}
-
 /**
  * The full text of an idea, for a viewer who has a revealed (mutual) match on
  * it; otherwise null. Mirrors the RLS rule on `ideas`.

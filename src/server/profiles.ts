@@ -15,7 +15,6 @@ import { embedIdea, embedProfile } from "./embed";
  */
 
 export type Role = Enums<"user_role">;
-export type Intent = Enums<"user_intent">;
 
 export interface ProfileTags {
   skills: string[];
@@ -59,7 +58,6 @@ export async function saveOnboardingBasics(
   input: {
     name: string | null;
     role: Role;
-    intents: Intent[];
     sentence: string;
     githubUrl: string | null;
     githubSummary: string | null;
@@ -70,7 +68,6 @@ export async function saveOnboardingBasics(
   const supabase = createServiceClient();
   const update: {
     role: Role;
-    intents: Intent[];
     raw_bio: string;
     github_url: string | null;
     linkedin_url: string | null;
@@ -78,7 +75,6 @@ export async function saveOnboardingBasics(
     name?: string;
   } = {
     role: input.role,
-    intents: input.intents,
     raw_bio: input.sentence,
     github_url: input.githubUrl,
     linkedin_url: input.linkedinUrl,
@@ -462,14 +458,6 @@ export async function updateSentence(userId: string, sentence: string) {
 export async function updateName(userId: string, name: string | null) {
   const { error } = await createServiceClient().from("users").update({ name }).eq("id", userId);
   if (error) throw new Error(`updateName: ${error.message}`);
-}
-
-export async function updateRoleAndIntents(userId: string, role: Role, intents: Intent[]) {
-  const { error } = await createServiceClient()
-    .from("users")
-    .update({ role, intents })
-    .eq("id", userId);
-  if (error) throw new Error(`updateRoleAndIntents: ${error.message}`);
 }
 
 export async function setPausedUntil(userId: string, pausedUntil: string | null) {

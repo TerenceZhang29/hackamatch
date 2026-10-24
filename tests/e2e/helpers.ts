@@ -64,7 +64,7 @@ async function withDb<T>(run: (client: pg.Client) => Promise<T>) {
 export async function markOnboarded(email: string) {
   await withDb(async (client) => {
     const result = await client.query(
-      `update public.users set role = 'builder', intents = '{hackathon}', onboarded_at = now()
+      `update public.users set role = 'builder', onboarded_at = now()
        where cornell_email = $1`,
       [email],
     );
@@ -166,7 +166,7 @@ export async function createUser(
   );
   if (opts.onboarded ?? true) {
     await query(
-      `update public.users set role = $2, intents = '{hackathon}', raw_bio = 'Test user',
+      `update public.users set role = $2, raw_bio = 'Test user',
               onboarded_at = now() where id = $1`,
       [id, opts.role ?? "builder"],
     );
@@ -243,7 +243,7 @@ export async function createDemoUser(
     );
     await client.query(
       `update public.users set is_demo = true, notify_channel = 'none', role = $2,
-         intents = '{hackathon}', onboarded_at = now() where id = $1`,
+         onboarded_at = now() where id = $1`,
       [id, opts.role ?? "idea"],
     );
     if (opts.pitch) {

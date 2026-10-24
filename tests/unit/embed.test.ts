@@ -24,11 +24,7 @@ vi.mock("@/lib/supabase/service", () => ({ createServiceClient }));
 const { embedIdea, embedProfile, ideaEmbeddingText, profileEmbeddingText } =
   await import("@/server/embed");
 
-const user = {
-  role: "builder" as const,
-  intents: ["hackathon" as const, "side_project" as const],
-  raw_bio: "I build iOS apps in Swift",
-};
+const user = { raw_bio: "I build iOS apps in Swift" };
 const profile = { skills: ["ios", "mobile"], stack: ["swift"], domains: ["health"] };
 const idea = {
   raw_text: "An app that helps nurses swap shifts",
@@ -43,9 +39,9 @@ beforeEach(() => {
 });
 
 describe("profileEmbeddingText", () => {
-  it("lists role, intents, tags and the bio", () => {
+  it("lists the tags and the bio, with no role or goals (P1-24)", () => {
     expect(profileEmbeddingText(user, profile)).toBe(
-      "Role: builder Intents: hackathon, side_project Skills: ios, mobile Stack: swift Domains: health About: I build iOS apps in Swift",
+      "Skills: ios, mobile Stack: swift Domains: health About: I build iOS apps in Swift",
     );
   });
 
@@ -57,7 +53,7 @@ describe("profileEmbeddingText", () => {
 
   it("leaves out empty sections", () => {
     const text = profileEmbeddingText(
-      { role: null, intents: [], raw_bio: null },
+      { raw_bio: null },
       { skills: [], stack: ["react"], domains: [] },
     );
     expect(text).toBe("Stack: react");

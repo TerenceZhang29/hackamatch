@@ -16,15 +16,11 @@ async function createDemo(name: string) {
   );
   await db.asPostgres("set local hackamatch.demo_seed = 'off'");
   await db.asPostgres(
-    `update public.users set is_demo = true, role = 'both', intents = '{hackathon}',
+    `update public.users set is_demo = true, role = 'both',
        onboarded_at = now(), notify_channel = 'none' where id = $1`,
     [id],
   );
-  const idea = await db.asPostgres<{ id: string }>(
-    `insert into public.ideas (owner_id, raw_text, pitch) values ($1, 'Demo text', 'A demo idea.') returning id`,
-    [id],
-  );
-  return { id, ideaId: idea.rows[0]!.id };
+  return { id };
 }
 
 describe("demo profiles", () => {
@@ -56,26 +52,20 @@ describe("demo profiles", () => {
     expect(rows[0]!.app_email).toMatch(/@hackamatch\.invalid$/);
   });
 
-  it("show_demo = false hides demo people and ideas everywhere; the pool never has them", async () => {
-    const { id, ideaId } = await createDemo("Demo Hidden");
+  it("show_demo = false hides demo people everywhere; the pool never has them", async () => {
+    const { id } = await createDemo("Demo Hidden");
     const visible = async () => ({
       people: (
         await db.asService("select 1 from public.public_board_people(100, 0) where user_id = $1", [
           id,
         ])
       ).rowCount,
-      ideas: (
-        await db.asService("select 1 from public.public_board_ideas(100, 0) where id = $1", [
-          ideaId,
-        ])
-      ).rowCount,
       person: (await db.asService("select 1 from public.public_person($1)", [id])).rowCount,
-      idea: (await db.asService("select 1 from public.public_idea($1)", [ideaId])).rowCount,
     });
-    expect(await visible()).toEqual({ people: 1, ideas: 1, person: 1, idea: 1 });
+    expect(await visible()).toEqual({ people: 1, person: 1 });
 
     await db.asPostgres("update public.app_settings set show_demo = false");
-    expect(await visible()).toEqual({ people: 0, ideas: 0, person: 0, idea: 0 });
+    expect(await visible()).toEqual({ people: 0, person: 0 });
 
     const pool = await db.asPostgres("select 1 from public.active_pool where id = $1", [id]);
     expect(pool.rowCount).toBe(0);

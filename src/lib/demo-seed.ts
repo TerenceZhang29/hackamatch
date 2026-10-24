@@ -10,7 +10,6 @@ export const DEMO_DOMAIN = "hackamatch.invalid";
 export interface DemoSeedPerson {
   name: string;
   role: "idea" | "builder" | "both";
-  intents: string[];
   summary: string;
   skills: string[];
   stack: string[];
@@ -69,7 +68,7 @@ export function demoSeedSql(people: readonly DemoSeedPerson[]): string {
       `  now(), '9999-01-01', now(), now(), '', '', '', '', '', '', '', '')`,
       `on conflict (id) do nothing;`,
       `update public.users set is_demo = true, notify_channel = 'none', role = '${person.role}',`,
-      `  intents = ${textArray(person.intents)}::public.user_intent[], raw_bio = ${text(person.summary)},`,
+      `  raw_bio = ${text(person.summary)},`,
       `  onboarded_at = coalesce(onboarded_at, now())`,
       `where id = '${id}';`,
       `update public.profiles set summary = ${text(person.summary)}, skills = ${textArray(person.skills)},`,

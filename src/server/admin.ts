@@ -10,8 +10,6 @@ export interface AdminUserRow {
   id: string;
   email: string;
   name: string | null;
-  role: Enums<"user_role"> | null;
-  intents: Enums<"user_intent">[];
   isAdmin: boolean;
   isOrganizer: boolean;
   isDemo: boolean;
@@ -27,7 +25,7 @@ export async function listUsers(search: string | null): Promise<AdminUserRow[]> 
   let query = supabase
     .from("users")
     .select(
-      "id, cornell_email, name, role, intents, is_admin, is_organizer, is_demo, onboarded_at, paused_until, last_active_at",
+      "id, cornell_email, name, is_admin, is_organizer, is_demo, onboarded_at, paused_until, last_active_at",
     )
     .order("created_at", { ascending: false })
     .limit(500);
@@ -56,8 +54,6 @@ export async function listUsers(search: string | null): Promise<AdminUserRow[]> 
     id: u.id,
     email: u.cornell_email,
     name: u.name,
-    role: u.role,
-    intents: u.intents,
     isAdmin: u.is_admin,
     isOrganizer: u.is_organizer,
     isDemo: u.is_demo,

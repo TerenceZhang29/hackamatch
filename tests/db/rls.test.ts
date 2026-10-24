@@ -54,10 +54,8 @@ describe("anon (logged-out visitors)", () => {
   it("cannot call the board functions directly; only the server can", async () => {
     const user = await db.createAuthUser("db-224@cornell.edu", { onboarded: true });
     for (const call of [
-      "select * from public.public_board_ideas(20, 0)",
       "select * from public.public_board_people(20, 0, p_event_slug => 'cornell-tech-fall-hack')",
       "select * from public.public_person('00000000-0000-4000-a000-000000000201')",
-      "select * from public.public_idea('00000000-0000-0000-0000-000000000000')",
     ]) {
       const anon = await db.expectError(() => db.asAnon(call));
       expect(anon?.message, call).toMatch(PERMISSION_DENIED);
@@ -66,53 +64,8 @@ describe("anon (logged-out visitors)", () => {
     }
   });
 
-  it("sees open seeded ideas on the board without private fields", async () => {
-    const { rows, fields } = await db.asService("select * from public.public_board_ideas(20, 0)");
-    expect(rows).toHaveLength(5);
-    expect(fields.map((f) => f.name).sort()).toEqual(
-      [
-        "created_at",
-        "domain",
-        "event_id",
-        "featured",
-        "id",
-        "owner_display",
-        // Since P1-23, for the owner's hackathons on idea cards; owner ids were
-        // already public through public_idea and links to /people/<id>.
-        "owner_id",
-        "pitch",
-        "scope",
-        "skills_needed",
-      ].sort(),
-    );
-    expect(rows[0]).toMatchObject({ featured: true, owner_display: "Maya P." });
-  });
-
-  it("filters board ideas by event and caps the page size", async () => {
-    const byEvent = await db.asService(
-      "select id from public.public_board_ideas(20, 0, 'cornell-tech-fall-hack')",
-    );
-    expect(byEvent.rowCount).toBe(3);
-    const capped = await db.asService("select id from public.public_board_ideas(1000, 0)");
-    expect(capped.rowCount).toBe(5);
-  });
-
-  it("hides ideas from paused or not-yet-onboarded owners", async () => {
-    const owner = await db.createAuthUser("db-201@cornell.edu", { onboarded: true });
-    const ideaId = await createIdea(owner);
-    const visible = () =>
-      db.asService("select id from public.public_board_ideas(100, 0) where id = $1", [ideaId]);
-
-    expect((await visible()).rowCount).toBe(1);
-    await db.asPostgres(
-      "update public.users set paused_until = now() + interval '7 days' where id = $1",
-      [owner],
-    );
-    expect((await visible()).rowCount).toBe(0);
-  });
-
   it("sees people on the board with display names and no contact details", async () => {
-    const { rows, fields } = await db.asService<{ display_name: string; role: string }>(
+    const { rows, fields } = await db.asService<{ display_name: string }>(
       "select * from public.public_board_people(50, 0)",
     );
     // 11 onboarded seed users, minus Lena (paused).
@@ -122,11 +75,25 @@ describe("anon (logged-out visitors)", () => {
     expect(rows.map((r) => r.display_name)).not.toContain("Lena H.");
   });
 
-  it("filters people by role, counting 'both' on either side", async () => {
-    const builders = await db.asService<{ role: string }>(
-      "select role from public.public_board_people(50, 0, 'builder')",
+  it("shows onboarded people with no role, and has no idea or goal functions (P1-24)", async () => {
+    const user = await db.createAuthUser("db-225@cornell.edu", { onboarded: true });
+    await db.asPostgres("update public.users set role = null where id = $1", [user]);
+    const people = await db.asService(
+      "select 1 from public.public_board_people(100, 0) where user_id = $1",
+      [user],
     );
-    expect(new Set(builders.rows.map((r) => r.role))).toEqual(new Set(["builder", "both"]));
+    expect(people.rowCount).toBe(1);
+    expect((await db.asService("select 1 from public.public_person($1)", [user])).rowCount).toBe(1);
+
+    const { rows } = await db.asPostgres<{ fn: string }>(
+      `select proname as fn from pg_proc
+       where pronamespace = 'public'::regnamespace and proname in ('public_board_ideas', 'public_idea')`,
+    );
+    expect(rows).toEqual([]);
+    const column = await db.asPostgres(
+      "select 1 from information_schema.columns where table_schema = 'public' and table_name = 'users' and column_name = 'intents'",
+    );
+    expect(column.rowCount).toBe(0);
   });
 });
 

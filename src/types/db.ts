@@ -806,7 +806,6 @@ export type Database = {
           created_at: string;
           github_url: string | null;
           id: string;
-          intents: Database["public"]["Enums"]["user_intent"][];
           is_admin: boolean;
           is_demo: boolean;
           is_organizer: boolean;
@@ -830,7 +829,6 @@ export type Database = {
           created_at?: string;
           github_url?: string | null;
           id: string;
-          intents?: Database["public"]["Enums"]["user_intent"][];
           is_admin?: boolean;
           is_demo?: boolean;
           is_organizer?: boolean;
@@ -853,7 +851,6 @@ export type Database = {
           created_at?: string;
           github_url?: string | null;
           id?: string;
-          intents?: Database["public"]["Enums"]["user_intent"][];
           is_admin?: boolean;
           is_demo?: boolean;
           is_organizer?: boolean;
@@ -881,7 +878,6 @@ export type Database = {
           created_at: string | null;
           github_url: string | null;
           id: string | null;
-          intents: Database["public"]["Enums"]["user_intent"][] | null;
           is_admin: boolean | null;
           is_demo: boolean | null;
           is_organizer: boolean | null;
@@ -905,7 +901,6 @@ export type Database = {
           created_at?: string | null;
           github_url?: string | null;
           id?: string | null;
-          intents?: Database["public"]["Enums"]["user_intent"][] | null;
           is_admin?: boolean | null;
           is_demo?: boolean | null;
           is_organizer?: boolean | null;
@@ -928,7 +923,6 @@ export type Database = {
           created_at?: string | null;
           github_url?: string | null;
           id?: string | null;
-          intents?: Database["public"]["Enums"]["user_intent"][] | null;
           is_admin?: boolean | null;
           is_demo?: boolean | null;
           is_organizer?: boolean | null;
@@ -959,67 +953,23 @@ export type Database = {
       is_organizer: { Args: Record<PropertyKey, never>; Returns: boolean };
       is_team_member: { Args: { p_team_id: string }; Returns: boolean };
       pilot_can_sign_in: { Args: { p_email: string }; Returns: boolean };
-      public_board_ideas: {
-        Args: {
-          p_domain?: string;
-          p_event_slug?: string;
-          p_exclude_idea_ids?: string[];
-          p_exclude_user_ids?: string[];
-          p_intent?: Database["public"]["Enums"]["user_intent"];
-          p_limit?: number;
-          p_offset?: number;
-          p_skill?: string;
-        };
-        Returns: {
-          created_at: string;
-          domain: string;
-          event_id: string;
-          featured: boolean;
-          id: string;
-          owner_display: string;
-          owner_id: string;
-          pitch: string;
-          scope: Database["public"]["Enums"]["idea_scope"];
-          skills_needed: string[];
-        }[];
-      };
       public_board_people: {
         Args: {
           p_domain?: string;
           p_event_slug?: string;
           p_exclude_user_ids?: string[];
-          p_intent?: Database["public"]["Enums"]["user_intent"];
           p_limit?: number;
           p_offset?: number;
-          p_role?: Database["public"]["Enums"]["user_role"];
           p_skill?: string;
         };
         Returns: {
           display_name: string;
           domains: string[];
           experience_level: Database["public"]["Enums"]["experience_level"];
-          intents: Database["public"]["Enums"]["user_intent"][];
-          role: Database["public"]["Enums"]["user_role"];
           skills: string[];
           stack: string[];
           summary: string;
           user_id: string;
-        }[];
-      };
-      public_idea: {
-        Args: { p_id: string };
-        Returns: {
-          created_at: string;
-          domain: string;
-          event_id: string;
-          featured: boolean;
-          id: string;
-          owner_display: string;
-          owner_id: string;
-          pitch: string;
-          scope: Database["public"]["Enums"]["idea_scope"];
-          skills_needed: string[];
-          status: Database["public"]["Enums"]["idea_status"];
         }[];
       };
       public_person: {
@@ -1028,8 +978,6 @@ export type Database = {
           display_name: string;
           domains: string[];
           experience_level: Database["public"]["Enums"]["experience_level"];
-          intents: Database["public"]["Enums"]["user_intent"][];
-          role: Database["public"]["Enums"]["user_role"];
           skills: string[];
           stack: string[];
           summary: string;
@@ -1065,7 +1013,6 @@ export type Database = {
       match_response: "pending" | "interested" | "pass";
       match_source: "admin" | "board" | "nightly" | "curated";
       notify_channel: "email" | "sms" | "slack" | "none";
-      user_intent: "hackathon" | "side_project" | "cofounder";
       user_role: "idea" | "builder" | "both";
     };
     CompositeTypes: {
@@ -1188,7 +1135,6 @@ export const Constants = {
       match_response: ["pending", "interested", "pass"],
       match_source: ["admin", "board", "nightly", "curated"],
       notify_channel: ["email", "sms", "slack", "none"],
-      user_intent: ["hackathon", "side_project", "cofounder"],
       user_role: ["idea", "builder", "both"],
     },
   },

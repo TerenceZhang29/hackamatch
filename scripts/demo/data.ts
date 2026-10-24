@@ -4,7 +4,6 @@
  */
 
 export type DemoRole = "idea" | "builder" | "both";
-export type DemoIntent = "hackathon" | "side_project" | "cofounder";
 
 export interface DemoIdea {
   pitch: string;
@@ -17,7 +16,6 @@ export interface DemoIdea {
 export interface DemoPerson {
   name: string;
   role: DemoRole;
-  intents: DemoIntent[];
   summary: string;
   skills: string[];
   stack: string[];
@@ -38,7 +36,6 @@ export const DEMO_PEOPLE: DemoPerson[] = [
   {
     name: "Aiden Park",
     role: "builder",
-    intents: ["hackathon"],
     summary: "Full-stack engineer who ships React and Node apps fast.",
     skills: ["fullstack", "frontend"],
     stack: ["react", "nextjs", "nodejs", "postgres"],
@@ -48,7 +45,6 @@ export const DEMO_PEOPLE: DemoPerson[] = [
   {
     name: "Bianca Rossi",
     role: "builder",
-    intents: ["hackathon", "side_project"],
     summary: "iOS developer who loves health and fitness apps.",
     skills: ["mobile", "ios"],
     stack: ["swift", "swiftui", "firebase"],
@@ -58,7 +54,6 @@ export const DEMO_PEOPLE: DemoPerson[] = [
   {
     name: "Caleb Wright",
     role: "builder",
-    intents: ["hackathon"],
     summary: "ML engineer working on language models and retrieval.",
     skills: ["ml", "nlp", "llm-apps"],
     stack: ["python", "pytorch", "huggingface", "langchain"],
@@ -68,7 +63,6 @@ export const DEMO_PEOPLE: DemoPerson[] = [
   {
     name: "Dana Kim",
     role: "builder",
-    intents: ["side_project"],
     summary: "Product designer: research, flows and Figma prototypes.",
     skills: ["ux-design", "ui-design", "user-research"],
     stack: ["figma"],
@@ -78,7 +72,6 @@ export const DEMO_PEOPLE: DemoPerson[] = [
   {
     name: "Elias Mendes",
     role: "builder",
-    intents: ["hackathon", "cofounder"],
     summary: "Backend engineer who likes APIs, data pipelines and Go.",
     skills: ["backend", "api-design", "data-engineering"],
     stack: ["go", "postgres", "docker", "aws"],
@@ -88,7 +81,6 @@ export const DEMO_PEOPLE: DemoPerson[] = [
   {
     name: "Fiona Walsh",
     role: "builder",
-    intents: ["hackathon"],
     summary: "Data scientist who turns messy data into clear charts.",
     skills: ["data-science", "data-visualization"],
     stack: ["python", "pandas", "tableau", "sql"],
@@ -98,7 +90,6 @@ export const DEMO_PEOPLE: DemoPerson[] = [
   {
     name: "Gabriel Osei",
     role: "builder",
-    intents: ["hackathon", "side_project"],
     summary: "Android and Flutter developer, first hackathon this fall.",
     skills: ["mobile", "android"],
     stack: ["kotlin", "flutter", "dart"],
@@ -108,7 +99,6 @@ export const DEMO_PEOPLE: DemoPerson[] = [
   {
     name: "Hana Sato",
     role: "builder",
-    intents: ["hackathon"],
     summary: "Hardware tinkerer: sensors, Arduino and Raspberry Pi.",
     skills: ["hardware", "embedded", "iot"],
     stack: ["arduino", "raspberry-pi", "cpp", "python"],
@@ -118,7 +108,6 @@ export const DEMO_PEOPLE: DemoPerson[] = [
   {
     name: "Ian Brooks",
     role: "builder",
-    intents: ["side_project", "cofounder"],
     summary: "Frontend engineer focused on accessible, fast interfaces.",
     skills: ["frontend", "ui-design"],
     stack: ["typescript", "react", "tailwind"],
@@ -128,7 +117,6 @@ export const DEMO_PEOPLE: DemoPerson[] = [
   {
     name: "Jade Nguyen",
     role: "builder",
-    intents: ["hackathon"],
     summary: "Computer vision researcher who builds quick demos.",
     skills: ["computer-vision", "ml", "research"],
     stack: ["python", "opencv", "pytorch"],
@@ -138,7 +126,6 @@ export const DEMO_PEOPLE: DemoPerson[] = [
   {
     name: "Kofi Mensah",
     role: "builder",
-    intents: ["hackathon", "side_project"],
     summary: "Cloud and DevOps engineer who keeps demos online.",
     skills: ["devops", "cloud", "security"],
     stack: ["kubernetes", "terraform", "gcp", "linux"],
@@ -148,7 +135,6 @@ export const DEMO_PEOPLE: DemoPerson[] = [
   {
     name: "Lena Fischer",
     role: "builder",
-    intents: ["hackathon"],
     summary: "Game developer working in Unity and three.js.",
     skills: ["game-dev", "3d-modeling"],
     stack: ["unity", "csharp", "three-js"],
@@ -159,7 +145,6 @@ export const DEMO_PEOPLE: DemoPerson[] = [
   {
     name: "Marcus Lee",
     role: "idea",
-    intents: ["hackathon", "cofounder"],
     summary: "MBA student who ran ops at a hospital.",
     skills: ["product-management", "operations"],
     stack: [],
@@ -177,7 +162,6 @@ export const DEMO_PEOPLE: DemoPerson[] = [
   {
     name: "Nadia Haddad",
     role: "idea",
-    intents: ["hackathon"],
     summary: "Policy student focused on housing and tenant rights.",
     skills: ["research", "content-writing"],
     stack: [],
@@ -193,7 +177,6 @@ export const DEMO_PEOPLE: DemoPerson[] = [
   {
     name: "Omar Siddiqui",
     role: "idea",
-    intents: ["side_project", "cofounder"],
     summary: "Former teacher building tools for classrooms.",
     skills: ["product-management", "user-research"],
     stack: [],
@@ -211,7 +194,6 @@ export const DEMO_PEOPLE: DemoPerson[] = [
   {
     name: "Priya Raman",
     role: "idea",
-    intents: ["hackathon"],
     summary: "Sustainability lead for a campus club.",
     skills: ["community-building", "marketing"],
     stack: [],
@@ -228,7 +210,6 @@ export const DEMO_PEOPLE: DemoPerson[] = [
   {
     name: "Quinn Taylor",
     role: "idea",
-    intents: ["cofounder"],
     summary: "Ex-consultant exploring small-business finance.",
     skills: ["finance", "business-development"],
     stack: [],
@@ -246,7 +227,6 @@ export const DEMO_PEOPLE: DemoPerson[] = [
   {
     name: "Rosa Alvarez",
     role: "idea",
-    intents: ["hackathon", "side_project"],
     summary: "Public health student who volunteers at clinics.",
     skills: ["research", "project-management"],
     stack: [],
@@ -262,7 +242,6 @@ export const DEMO_PEOPLE: DemoPerson[] = [
   {
     name: "Sam Okafor",
     role: "idea",
-    intents: ["hackathon"],
     summary: "Musician who wants better tools for bands.",
     skills: ["video-production", "marketing"],
     stack: [],
@@ -278,7 +257,6 @@ export const DEMO_PEOPLE: DemoPerson[] = [
   {
     name: "Tara Gupta",
     role: "idea",
-    intents: ["side_project"],
     summary: "Biotech PhD student tired of messy lab notebooks.",
     skills: ["research"],
     stack: [],
@@ -296,7 +274,6 @@ export const DEMO_PEOPLE: DemoPerson[] = [
   {
     name: "Uma Patel",
     role: "idea",
-    intents: ["hackathon", "cofounder"],
     summary: "Organizes rides home for students over breaks.",
     skills: ["operations", "community-building"],
     stack: [],
@@ -312,7 +289,6 @@ export const DEMO_PEOPLE: DemoPerson[] = [
   {
     name: "Victor Chen",
     role: "idea",
-    intents: ["hackathon"],
     summary: "Accessibility advocate and screen-reader user.",
     skills: ["user-research", "testing"],
     stack: [],
@@ -330,7 +306,6 @@ export const DEMO_PEOPLE: DemoPerson[] = [
   {
     name: "Wren Adams",
     role: "both",
-    intents: ["hackathon", "side_project"],
     summary: "Designer who also codes the front end.",
     skills: ["ux-design", "frontend"],
     stack: ["figma", "react", "typescript"],
@@ -346,7 +321,6 @@ export const DEMO_PEOPLE: DemoPerson[] = [
   {
     name: "Xavier Diaz",
     role: "both",
-    intents: ["hackathon", "cofounder"],
     summary: "Backend engineer with a fintech idea.",
     skills: ["backend", "api-design"],
     stack: ["python", "fastapi", "postgres"],
@@ -362,7 +336,6 @@ export const DEMO_PEOPLE: DemoPerson[] = [
   {
     name: "Yara Haddad",
     role: "both",
-    intents: ["hackathon"],
     summary: "Data engineer who wants to fix food waste.",
     skills: ["data-engineering", "data-analysis"],
     stack: ["python", "sql", "spark"],
@@ -378,7 +351,6 @@ export const DEMO_PEOPLE: DemoPerson[] = [
   {
     name: "Zane Morgan",
     role: "both",
-    intents: ["side_project"],
     summary: "AR developer with a campus tour idea.",
     skills: ["ar-vr", "mobile"],
     stack: ["unity", "swift"],
@@ -394,7 +366,6 @@ export const DEMO_PEOPLE: DemoPerson[] = [
   {
     name: "Ava Thompson",
     role: "both",
-    intents: ["hackathon", "side_project"],
     summary: "ML student with an idea for study groups.",
     skills: ["ml", "backend"],
     stack: ["python", "scikit-learn", "django"],
@@ -410,7 +381,6 @@ export const DEMO_PEOPLE: DemoPerson[] = [
   {
     name: "Ben Carter",
     role: "both",
-    intents: ["hackathon", "cofounder"],
     summary: "Security engineer with a privacy idea.",
     skills: ["security", "backend"],
     stack: ["rust", "go"],
@@ -426,7 +396,6 @@ export const DEMO_PEOPLE: DemoPerson[] = [
   {
     name: "Chloe Martin",
     role: "both",
-    intents: ["hackathon"],
     summary: "Climate researcher who builds sensors.",
     skills: ["hardware", "data-science"],
     stack: ["arduino", "python"],
@@ -443,7 +412,6 @@ export const DEMO_PEOPLE: DemoPerson[] = [
   {
     name: "Diego Ramos",
     role: "both",
-    intents: ["side_project"],
     summary: "Full-stack developer and amateur chef.",
     skills: ["fullstack"],
     stack: ["nextjs", "supabase", "stripe"],

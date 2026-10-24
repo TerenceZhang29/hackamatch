@@ -9,7 +9,8 @@ import type { Tables } from "@/types/db";
  * have authorized the user first.
  */
 
-type UserFields = Pick<Tables<"users">, "role" | "intents" | "raw_bio">;
+// No role or goals since P1-24.
+type UserFields = Pick<Tables<"users">, "raw_bio">;
 type ProfileFields = Pick<Tables<"profiles">, "skills" | "stack" | "domains">;
 type IdeaFields = Pick<Tables<"ideas">, "raw_text" | "domain" | "skills_needed">;
 
@@ -29,8 +30,6 @@ export function profileEmbeddingText(
   githubSummary?: string | null,
 ): string {
   return sections([
-    ["Role", user.role],
-    ["Intents", user.intents.join(", ")],
     ["Skills", profile.skills.join(", ")],
     ["Stack", profile.stack.join(", ")],
     ["Domains", profile.domains.join(", ")],
@@ -63,7 +62,7 @@ export async function embedProfile(
 ): Promise<void> {
   const supabase = createServiceClient();
   const [user, profile] = await Promise.all([
-    supabase.from("users").select("role, intents, raw_bio").eq("id", userId).single(),
+    supabase.from("users").select("raw_bio").eq("id", userId).single(),
     supabase
       .from("profiles")
       .select("skills, stack, domains, github_summary")

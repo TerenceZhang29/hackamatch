@@ -34,8 +34,6 @@ export default async function AdminUsers({
           <thead>
             <tr>
               <th className={th}>User</th>
-              <th className={th}>Role</th>
-              <th className={th}>Intents</th>
               <th className={th}>Joined</th>
               <th className={th}>Last active</th>
               <th className={th}>Matches</th>
@@ -55,8 +53,6 @@ export default async function AdminUsers({
                     {user.isAdmin ? <span className="ml-1 text-xs">(admin)</span> : null}
                     {user.isDemo ? <span className="ml-1 text-xs">(demo)</span> : null}
                   </td>
-                  <td className={td}>{user.role ?? "–"}</td>
-                  <td className={td}>{user.intents.join(", ") || "–"}</td>
                   <td className={td}>{shortDate(user.onboardedAt)}</td>
                   <td className={td}>{shortDate(user.lastActiveAt)}</td>
                   <td className={td}>
