@@ -5,7 +5,7 @@
  */
 
 /** Routes that require a signed-in user. Enforced in src/middleware.ts. */
-const PROTECTED_PREFIXES = ["/me", "/matches", "/ideas/new", "/organizer", "/admin"] as const;
+const PROTECTED_PREFIXES = ["/me", "/matches", "/organizer", "/admin"] as const;
 
 export function isProtectedPath(pathname: string): boolean {
   return PROTECTED_PREFIXES.some(

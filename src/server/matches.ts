@@ -151,16 +151,6 @@ async function loadPeople(ids: string[]): Promise<Map<string, Person>> {
   );
 }
 
-async function ideaPitch(ideaId: string | null): Promise<string | null> {
-  if (!ideaId) return null;
-  const { data } = await createServiceClient()
-    .from("ideas")
-    .select("pitch")
-    .eq("id", ideaId)
-    .maybeSingle();
-  return data?.pitch ?? null;
-}
-
 /** Whether a user is a demo profile. */
 async function isDemoUser(userId: string): Promise<boolean> {
   const { data, error } = await createServiceClient()
@@ -188,7 +178,8 @@ async function sendMutualEmails(match: Match) {
   // No email (and no AI-written message) for anything involving a demo profile.
   if (await involvesDemo(match)) return;
   const people = await loadPeople([match.user_a, match.user_b]);
-  const pitch = await ideaPitch(match.idea_id);
+  // Ideas are gone from the app (P1-24): emails never name one.
+  const pitch = null;
   const matchUrl = new URL(`/matches/${match.id}`, getConfig().APP_URL).toString();
 
   for (const [recipientId, otherId] of [
@@ -237,20 +228,12 @@ export async function sendInboundInterest(
   const other = people.get(otherId);
   if (!other) return "failed" as const;
 
-  // Only show the idea pitch when the idea is the recipient's own.
-  const { data: idea } = match.idea_id
-    ? await createServiceClient()
-        .from("ideas")
-        .select("pitch, owner_id")
-        .eq("id", match.idea_id)
-        .maybeSingle()
-    : { data: null };
-
   const props: InboundInterestProps = {
     variant,
     otherName: other.name,
     otherSummary: other.summary,
-    ideaPitch: idea && idea.owner_id === recipientId ? idea.pitch : null,
+    // Ideas are gone from the app (P1-24): emails never name one.
+    ideaPitch: null,
     reason,
     interestedUrl: responseUrl(match.id, recipientId, "interested"),
     passUrl: responseUrl(match.id, recipientId, "pass"),

@@ -150,6 +150,15 @@ insert into public.events (
    'Last semester''s startup sprint.', current_date - 30, current_date - 29, 2, 4,
    '00000000-0000-4000-a000-000000000001');
 
+-- Event page details (P1-24).
+update public.events
+set time_label = '10:00 AM – 10:00 AM next day', venue = 'Cornell Tech, Roosevelt Island',
+    host = 'Cornell Tech', domains = '{ai-tools,nonprofit,campus-life}'
+where slug = 'cornell-tech-fall-hack';
+update public.events
+set venue = 'New York', host = 'Weill Cornell Medicine', domains = '{health,ai-tools}'
+where slug = 'health-ai-buildathon';
+
 insert into public.event_interests (user_id, event_id) values
   ('00000000-0000-4000-a000-000000000101', '00000000-0000-4000-b000-000000000001'),
   ('00000000-0000-4000-a000-000000000101', '00000000-0000-4000-b000-000000000002'),

@@ -74,12 +74,19 @@ export type EventDetail = Pick<
   | "end_date"
   | "team_size_min"
   | "team_size_max"
+  | "time_label"
+  | "venue"
+  | "host"
+  | "domains"
 >;
+
+const DETAIL_COLUMNS =
+  "id, slug, name, description, url, start_date, end_date, team_size_min, team_size_max, time_label, venue, host, domains";
 
 export async function getEventById(id: string): Promise<EventDetail | null> {
   const { data, error } = await createServiceClient()
     .from("events")
-    .select("id, slug, name, description, url, start_date, end_date, team_size_min, team_size_max")
+    .select(DETAIL_COLUMNS)
     .eq("id", id)
     .maybeSingle();
   if (error) throw new Error(`getEventById: ${error.message}`);
@@ -89,7 +96,7 @@ export async function getEventById(id: string): Promise<EventDetail | null> {
 export async function getEventBySlug(slug: string): Promise<EventDetail | null> {
   const { data, error } = await createServiceClient()
     .from("events")
-    .select("id, slug, name, description, url, start_date, end_date, team_size_min, team_size_max")
+    .select(DETAIL_COLUMNS)
     .eq("slug", slug)
     .maybeSingle();
   if (error) throw new Error(`getEventBySlug: ${error.message}`);

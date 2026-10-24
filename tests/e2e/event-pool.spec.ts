@@ -91,22 +91,19 @@ test("a match for an event asks once whether to keep matching; leaving and rejoi
   // A visitor sees both people going; after "I have my team", only Maya.
   const visitor = await browser.newContext();
   const visitorPage = await visitor.newPage();
-  const going = visitorPage.getByRole("region", { name: "People going" });
   try {
     await visitorPage.goto(`/e/${slug}`);
-    await expect(going.getByRole("article")).toHaveCount(2);
+    await expect(visitorPage.getByText("2 people going")).toBeVisible();
 
     await page.getByRole("button", { name: "I have my team" }).click();
-    await expect(page.getByText("Have a team", { exact: true })).toBeVisible();
+    await expect(page.getByRole("status")).toContainText("You have your team");
     await visitorPage.reload();
-    await expect(going.getByRole("article")).toHaveCount(1);
-    await expect(going.getByRole("article", { name: "Maya P." })).toBeVisible();
-    await expect(visitorPage.getByText("1 looking", { exact: true })).toBeVisible();
+    await expect(visitorPage.getByText("1 person going")).toBeVisible();
 
     await page.getByRole("button", { name: "I'm looking again" }).click();
-    await expect(page.getByText("Looking", { exact: true })).toBeVisible();
+    await expect(page.getByRole("status")).toContainText("You're in the pool");
     await visitorPage.reload();
-    await expect(going.getByRole("article")).toHaveCount(2);
+    await expect(visitorPage.getByText("2 people going")).toBeVisible();
   } finally {
     await visitor.close();
   }
@@ -117,7 +114,7 @@ test("a match for an event asks once whether to keep matching; leaving and rejoi
   await page.goto(`/e/${slug}`);
   await expect(page.getByText(/Matched:\s*Maya, Omar$/)).toBeVisible();
   await prompt.getByRole("button", { name: "I have my team" }).click();
-  await expect(page.getByText("Have a team", { exact: true })).toBeVisible();
+  await expect(page.getByRole("status")).toContainText("You have your team");
   await expect(prompt).toHaveCount(0);
   const [row] = await query<{ left: boolean; prompted: number }>(
     `select left_pool_at is not null as left, prompted_matches as prompted
@@ -127,23 +124,24 @@ test("a match for an event asks once whether to keep matching; leaving and rejoi
   expect(row).toEqual({ left: true, prompted: 2 });
 });
 
-test("'I'm no longer going' with a match asks first, and keeps the match", async ({ page }) => {
+test("'Not going?' with a match asks first, and keeps the match", async ({ page }) => {
   const { slug, eventId, viewerId } = await memberGoing(page);
   const matchId = await matchFor(viewerId, eventId, "Maya Pool");
   await voteForEvent(matchId, viewerId, eventId);
   const confirm = page.getByRole("group", { name: "Not going?" });
 
   await page.goto(`/e/${slug}`);
-  await expect(page.getByRole("button", { name: "I'm not going after all" })).toHaveCount(0);
-  await page.getByRole("link", { name: "I'm no longer going" }).click();
+  // With a match, "Not going?" is a link to the confirmation, not an instant leave.
+  await expect(page.getByRole("button", { name: "Not going?" })).toHaveCount(0);
+  await page.getByRole("link", { name: "Not going?" }).click();
   await expect(confirm).toContainText("Tell Maya you're not going?");
   await confirm.getByRole("link", { name: "Cancel" }).click();
   await expect(page).toHaveURL(`/e/${slug}`);
   await expect(confirm).toHaveCount(0);
 
-  await page.getByRole("link", { name: "I'm no longer going" }).click();
+  await page.getByRole("link", { name: "Not going?" }).click();
   await confirm.getByRole("button", { name: "Yes, I'm not going" }).click();
-  await expect(page.getByRole("button", { name: "I'm going" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "I'm going!" })).toBeVisible();
   const interests = await query(
     `select 1 from public.event_interests where user_id = $1 and event_id = $2`,
     [viewerId, eventId],

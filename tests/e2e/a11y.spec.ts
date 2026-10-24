@@ -56,8 +56,8 @@ test("public pages", async ({ page }) => {
   for (const [path, label] of [
     ["/", "landing"],
     ["/?view=list", "board"],
-    ["/?tab=people", "builders"],
     ["/login", "login"],
+    ["/signup", "sign-up step 1"],
     ["/e/cornell-tech-fall-hack", "event"],
     ["/events", "events"],
     ["/people/00000000-0000-4000-a000-000000000201", "person"],
@@ -65,36 +65,29 @@ test("public pages", async ({ page }) => {
     await page.goto(path);
     await expectAccessible(page, label);
   }
-  const [idea] = await query<{ id: string }>(
-    `select id from public.ideas where pitch = 'Let nurses swap shifts in minutes instead of days.'`,
-  );
-  await page.goto(`/ideas/${idea!.id}`);
-  await expectAccessible(page, "idea (public)");
 });
 
-test("onboarding, every step", async ({ page }) => {
-  await signIn(page, newEmail());
-  await expectAccessible(page, "onboarding step 1");
-  await page.getByRole("button", { name: "I have an idea" }).click();
-  await page.getByLabel("First name").fill("Test");
+test("sign-up, every step", async ({ page }) => {
+  await page.goto("/signup");
+  await page.getByRole("button", { name: /Cornell Tech Fall Hack/ }).click();
+  await page.getByLabel("Something else?").fill("health");
+  await expectAccessible(page, "sign-up step 1 (search)");
   await page.getByRole("button", { name: "Continue" }).click();
-  await expectAccessible(page, "onboarding step 2");
-  await page.getByRole("textbox").first().fill("A shift swap app");
+  await page.getByRole("button", { name: "Climate", exact: true }).click();
+  await page.getByLabel("Something special? Search all areas").fill("space");
+  await expectAccessible(page, "sign-up step 2");
   await page.getByRole("button", { name: "Continue" }).click();
-  await expect(page.getByRole("heading", { name: "Here's what we got" })).toBeVisible();
-  // Scan once the step has settled: the button is disabled (and faded) while it loads.
-  await expect(page.getByRole("button", { name: "Join the pool" })).toBeEnabled();
-  await expectAccessible(page, "onboarding step 3");
+  await expectAccessible(page, "sign-up step 3 (nothing picked)");
+  await page.getByRole("button", { name: "Machine learning", exact: true }).click();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expectAccessible(page, "sign-up step 4");
 });
 
 test("member pages", async ({ page }) => {
   const email = newEmail();
   await signIn(page, email);
-  await onboard(page, {
-    role: "I have an idea",
-    sentence: "A mobile app that helps nurses swap shifts with a backend",
-  });
-  await expect(page).toHaveURL("/matches?welcome=1");
+  await onboard(page);
+  await expect(page).toHaveURL("/");
   const [me] = await query<{ id: string }>(`select id from public.users where cornell_email = $1`, [
     email,
   ]);
@@ -124,13 +117,12 @@ test("member pages", async ({ page }) => {
 
   await page.goto("/me");
   await expectAccessible(page, "profile");
-  await page.goto("/ideas/new");
-  await expectAccessible(page, "new idea");
-  const [idea] = await query<{ id: string }>(`select id from public.ideas where owner_id = $1`, [
-    me!.id,
-  ]);
-  await page.goto(`/ideas/${idea!.id}`);
-  await expectAccessible(page, "idea (owner)");
+  await page.goto("/events");
+  await expectAccessible(page, "events (member)");
+  await page.goto("/e/cornell-tech-fall-hack");
+  await page.getByRole("button", { name: "I'm going!" }).click();
+  await expect(page.getByRole("status")).toContainText("You're going!");
+  await expectAccessible(page, "event (going)");
 
   // One-click link pages.
   await page.goto(
@@ -147,19 +139,10 @@ test("member pages", async ({ page }) => {
 test("admin pages", async ({ page }) => {
   const email = newEmail();
   await signIn(page, email);
-  await onboard(page, {
-    role: "I want to find an idea to build",
-    sentence: "I run HackaMatch and build backends",
-  });
-  await expect(page).toHaveURL("/matches?welcome=1");
+  await onboard(page);
+  await expect(page).toHaveURL("/");
   await query(`update public.users set is_admin = true where cornell_email = $1`, [email]);
-  for (const path of [
-    "/admin",
-    "/admin/users",
-    "/admin/ideas",
-    "/admin/events",
-    "/admin/matches",
-  ]) {
+  for (const path of ["/admin", "/admin/users", "/admin/events", "/admin/matches"]) {
     await page.goto(path);
     await expectAccessible(page, path);
   }

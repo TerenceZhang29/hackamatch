@@ -1,20 +1,28 @@
 "use client";
 
+import { CalendarDays } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useState } from "react";
-import type { NycHackathon } from "@/lib/nyc-hackathons";
-import { formatDateRange } from "@/lib/time";
+import { formatEventDates } from "@/lib/time";
 
 /** How long each hackathon stays up, in ms. */
 const HOLD = 3000;
 
+export interface TickerEvent {
+  slug: string;
+  name: string;
+  start_date: string;
+  end_date: string;
+}
+
 /**
- * Upcoming hackathons, one at a time, rolling up every 3 seconds. Every link
- * stays in the list for screen readers and the tab order; hover or focus
- * pauses it, and focusing a link brings it into view. A copy of the first
- * one at the end lets the roll loop without sliding back. Without
- * JavaScript the first one shows.
+ * Upcoming hackathons on the landing page (P1-24): one at a time, sliding
+ * sideways every 3 seconds, with dots showing which is up. Each links to its
+ * event page. Every link stays in the tab order; hover or focus pauses it,
+ * and focusing a link brings it into view. A copy of the first one at the
+ * end lets it loop without sliding back. Without JavaScript the first shows.
  */
-export function HackathonTicker({ hackathons }: { hackathons: readonly NycHackathon[] }) {
+export function HackathonTicker({ hackathons }: { hackathons: readonly TickerEvent[] }) {
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const [snap, setSnap] = useState(false);
@@ -32,41 +40,40 @@ export function HackathonTicker({ hackathons }: { hackathons: readonly NycHackat
   }, [paused, count]);
 
   if (count === 0) return null;
-  const slide = (hackathon: NycHackathon, key: string, copy = false) => (
-    <li key={key} className="flex h-28 flex-col justify-center" aria-hidden={copy || undefined}>
-      <a
-        href={hackathon.url}
-        target="_blank"
-        rel="noopener noreferrer"
+  const current = index % count;
+  const slide = (event: TickerEvent, key: string, copy = false) => (
+    <li
+      key={key}
+      className="flex w-full shrink-0 flex-col items-center justify-center gap-3 px-1"
+      aria-hidden={copy || undefined}
+    >
+      <Link
+        href={`/e/${event.slug}`}
         tabIndex={copy ? -1 : undefined}
-        onFocus={() => setIndex(hackathons.indexOf(hackathon))}
-        className="group flex flex-col gap-1"
+        onFocus={() => setIndex(hackathons.indexOf(event))}
+        className="text-[34px] leading-[1.1] font-extrabold tracking-[-0.03em] text-accent hover:underline sm:text-[40px]"
       >
-        <span className="line-clamp-2 text-2xl leading-tight font-bold tracking-tight group-hover:underline sm:text-4xl">
-          {hackathon.name}
-        </span>
-        <span className="text-sm text-muted sm:text-base">
-          {formatDateRange(hackathon.start, hackathon.end)} · {hackathon.place}
-        </span>
-      </a>
+        {event.name}
+      </Link>
+      <span className="inline-flex h-8 items-center gap-1.5 rounded-full bg-accent px-3.5 text-[15px] font-bold text-accent-ink">
+        <CalendarDays aria-hidden="true" className="size-4" />
+        {formatEventDates(event.start_date, event.end_date)}
+      </span>
     </li>
   );
   return (
-    <section
-      aria-labelledby="ticker-heading"
-      className="flex flex-col gap-2 border-l-4 border-accent pl-4"
+    <div
+      className="flex w-full flex-col items-center gap-2 rounded-3xl bg-accent-soft px-4 pt-3.5 pb-[18px]"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onFocus={() => setPaused(true)}
       onBlur={() => setPaused(false)}
     >
-      <h2 id="ticker-heading" className="text-sm font-medium text-muted">
-        Upcoming in NYC
-      </h2>
-      <div className="h-28 overflow-hidden">
+      <div className="w-full overflow-hidden">
         <ul
-          className={snap ? "" : "transition-transform duration-500 ease-out"}
-          style={{ transform: `translateY(-${index * 7}rem)` }}
+          aria-label="Upcoming hackathons"
+          className={`flex h-[140px] ${snap ? "" : "transition-transform duration-500 ease-out"}`}
+          style={{ transform: `translateX(-${index * 100}%)` }}
           onTransitionEnd={() => {
             if (index === count) {
               setSnap(true);
@@ -74,10 +81,22 @@ export function HackathonTicker({ hackathons }: { hackathons: readonly NycHackat
             }
           }}
         >
-          {hackathons.map((hackathon, i) => slide(hackathon, String(i)))}
+          {hackathons.map((event, i) => slide(event, String(i)))}
           {count > 1 ? slide(hackathons[0]!, "loop", true) : null}
         </ul>
       </div>
-    </section>
+      {count > 1 ? (
+        <div aria-hidden="true" className="flex gap-1.5">
+          {hackathons.map((event, i) => (
+            <span
+              key={event.slug}
+              className={`h-1.5 rounded-full transition-all ${
+                i === current ? "w-5 bg-accent" : "w-1.5 bg-accent/30"
+              }`}
+            />
+          ))}
+        </div>
+      ) : null}
+    </div>
   );
 }

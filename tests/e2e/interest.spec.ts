@@ -15,50 +15,31 @@ test.afterEach(async () => {
 
 async function member(
   browser: Browser,
-  answers: Parameters<typeof onboard>[1],
-): Promise<{ page: Page; email: string; close: () => Promise<void> }> {
+  answers: Parameters<typeof onboard>[1] = {},
+): Promise<{ page: Page; email: string; id: string; close: () => Promise<void> }> {
   const context = await browser.newContext();
   const page = await context.newPage();
   const email = newEmail();
   await signIn(page, email);
   await onboard(page, answers);
-  await expect(page).toHaveURL("/matches?welcome=1");
-  return { page, email, close: () => context.close() };
+  await expect(page).toHaveURL("/");
+  const [row] = await query<{ id: string }>(
+    `select id from public.users where cornell_email = $1`,
+    [email],
+  );
+  return { page, email, id: row!.id, close: () => context.close() };
 }
 
-const ideaPitchOf = async (email: string) =>
-  (
-    await query<{ id: string; pitch: string }>(
-      `select i.id, i.pitch from public.ideas i join public.users u on u.id = i.owner_id
-       where u.cornell_email = $1`,
-      [email],
-    )
-  )[0]!;
-
-test("A says Interested on B's idea, B gets an email, B says Interested, both are revealed", async ({
+test("A says Interested on B's card, B gets an email, B says Interested, both are revealed", async ({
   browser,
 }) => {
-  const owner = await member(browser, {
-    role: "I have an idea",
-    sentence: "A mobile app that helps nurses swap shifts with a backend for hospitals",
-  });
-  const builder = await member(browser, {
-    role: "I want to find an idea to build",
-    sentence: "I build React apps for health",
-  });
+  const owner = await member(browser, { firstName: "Bea" });
+  const builder = await member(browser, { firstName: "Abe" });
   try {
-    const idea = await ideaPitchOf(owner.email);
-
-    // The builder finds the idea on the board's list and says Interested.
-    await builder.page.goto("/?view=list");
-    // By its link, not its pitch: the same test on the other device makes an identical idea.
-    const card = () =>
-      builder.page
-        .getByRole("article")
-        .filter({ has: builder.page.locator(`a[href="/ideas/${idea.id}"]`) });
-    await card().getByRole("button", { name: "Interested" }).click();
+    // The builder opens B's card and says Interested.
+    await builder.page.goto(`/people/${owner.id}`);
+    await builder.page.getByRole("button", { name: "Interested" }).click();
     await expect(builder.page.getByText("Sent", { exact: true })).toBeVisible();
-    await expect(card()).toHaveCount(0);
 
     // The owner gets one email with one-click links, and no contact details.
     const inbound = await eventually(
@@ -78,7 +59,6 @@ test("A says Interested on B's idea, B gets an email, B says Interested, both ar
     const waiting = owner.page.getByRole("region", { name: /Waiting on you/ });
     await expect(waiting.getByRole("article")).toHaveCount(1);
     await expect(waiting.getByText("New")).toBeVisible();
-    await expect(waiting.getByText(`Your idea: ${idea.pitch}`)).toBeVisible();
     await waiting.getByRole("button", { name: "Interested" }).click();
     await expect(owner.page.getByText("It's a match!")).toBeVisible();
     await expect(
@@ -107,10 +87,7 @@ test("A says Interested on B's idea, B gets an email, B says Interested, both ar
 });
 
 test("Pass hides that card and sends nothing", async ({ browser }) => {
-  const viewer = await member(browser, {
-    role: "I want to find an idea to build",
-    sentence: "I build Go backends",
-  });
+  const viewer = await member(browser);
   try {
     const target = newEmail();
     // A unique first name: the same test on the other device makes its own target at once.
@@ -123,7 +100,7 @@ test("Pass hides that card and sends nothing", async ({ browser }) => {
     expect(
       await query(`select 1 from public.matches where $1 in (user_a, user_b)`, [targetId]),
     ).toEqual([]);
-    await viewer.page.goto("/?tab=people");
+    await viewer.page.goto("/?view=list");
     await expect(viewer.page.getByRole("article", { name: `${first} T.` })).toHaveCount(0);
     expect(await readOutbox(target)).toEqual([]);
   } finally {
@@ -132,10 +109,7 @@ test("Pass hides that card and sends nothing", async ({ browser }) => {
 });
 
 test("the 16th Interested in a day is refused", async ({ browser }) => {
-  const viewer = await member(browser, {
-    role: "I want to find an idea to build",
-    sentence: "I build Go backends",
-  });
+  const viewer = await member(browser);
   try {
     const [{ id }] = (await query<{ id: string }>(
       `select id from public.users where cornell_email = $1`,
@@ -162,10 +136,7 @@ test("the 16th Interested in a day is refused", async ({ browser }) => {
 test("after 3 interest emails in a day, more interest waits on /matches without email", async ({
   browser,
 }) => {
-  const viewer = await member(browser, {
-    role: "I want to find an idea to build",
-    sentence: "I build Go backends",
-  });
+  const viewer = await member(browser);
   try {
     const target = newEmail();
     const targetId = await createUser(target, { name: "Popular Person" });
@@ -193,10 +164,7 @@ test("after 3 interest emails in a day, more interest waits on /matches without 
 });
 
 test("the board's Interested works without JavaScript", async ({ browser }) => {
-  const viewer = await member(browser, {
-    role: "I want to find an idea to build",
-    sentence: "I build Go backends",
-  });
+  const viewer = await member(browser);
   const target = newEmail();
   const targetId = await createUser(target, { name: "No Script" });
   const cookies = await viewer.page.context().cookies();

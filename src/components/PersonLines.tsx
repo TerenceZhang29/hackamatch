@@ -1,147 +1,130 @@
-import { CalendarDays, Code, Lightbulb } from "lucide-react";
-import Link from "next/link";
-import { Chip, TagList } from "@/components/ui/Chip";
-import {
-  lookingFor,
-  ROLE_TAG_LABELS,
-  roleTags,
-  shortDate,
-  topSkills,
-  type Intent,
-  type PoolEvent,
-  type Role,
-} from "@/lib/person-card";
-import { tagLabel } from "@/lib/taxonomy/labels";
+import { Check } from "lucide-react";
+import { dateTile, topSkills, type PoolEvent } from "@/lib/person-card";
+import { displayLabel } from "@/lib/taxonomy/labels";
 
-/** Hackathons as whole chips that wrap onto new lines ("Name · Nov 9"). */
-export function HackathonChips({ events, label }: { events: readonly PoolEvent[]; label: string }) {
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <ul className="flex flex-wrap gap-1.5" aria-label={label}>
-      {events.map((event) => (
-        <li key={event.id} className="whitespace-nowrap">
-          <Chip tone="accent">
-            <CalendarDays aria-hidden="true" className="size-3" />
-            {event.name} · {shortDate(event.startDate)}
-          </Chip>
-        </li>
-      ))}
-    </ul>
+    <section className="flex flex-col gap-2">
+      <h3 className="text-xs font-semibold tracking-wide text-muted uppercase">{title}</h3>
+      {children}
+    </section>
   );
 }
 
-/** Builds / Ideas as two colored tags. */
-export function RoleTags({ role }: { role: Role }) {
-  return (
-    <ul className="flex flex-wrap gap-1.5" aria-label="Role">
-      {roleTags(role).map((tag) => (
-        <li key={tag}>
-          <Chip tone={tag}>
-            {tag === "build" ? (
-              <Code aria-hidden="true" className="size-3" />
-            ) : (
-              <Lightbulb aria-hidden="true" className="size-3" />
-            )}
-            {ROLE_TAG_LABELS[tag]}
-          </Chip>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function Line({
-  label,
-  clamp = false,
-  children,
+/** A small calendar tile: "NOV" over "11". */
+export function DateTile({
+  isoDate,
+  shared = false,
+  large = false,
 }: {
-  label: string;
-  /** At most two lines, with "…" (the full text is on the opened card). */
-  clamp?: boolean;
-  children: React.ReactNode;
+  isoDate: string;
+  /** The viewer is going too: green. */
+  shared?: boolean;
+  /** The event page's tile, on a white card. */
+  large?: boolean;
 }) {
+  const { month, day } = dateTile(isoDate);
+  const tone = large
+    ? shared
+      ? "bg-success-soft text-success-ink"
+      : "bg-accent-soft text-ink"
+    : shared
+      ? "bg-bg text-success-ink"
+      : "bg-bg text-ink";
   return (
-    <p className={`text-sm ${clamp ? "line-clamp-2" : ""}`}>
-      <span className="font-semibold">{label}:</span> {children}
-    </p>
+    <span
+      aria-hidden="true"
+      className={`flex shrink-0 flex-col items-center justify-center gap-0.5 leading-none ${
+        large ? "h-[62px] w-14 rounded-[14px]" : "h-[46px] w-11 rounded-[10px]"
+      } ${tone}`}
+    >
+      <span
+        className={`font-bold tracking-[0.06em] ${large ? "text-[11px]" : "text-[10px]"} ${
+          shared ? "" : "text-accent"
+        }`}
+      >
+        {month}
+      </span>
+      <span className={`font-extrabold ${large ? "text-2xl" : "text-lg"}`}>{day}</span>
+    </span>
   );
 }
 
 /**
- * The body of a person card: role tags, Looking for (the nearest 3
- * hackathons they still want teammates for), Builds (top 3 skills), Ideas (how
- * many; the pitches live on idea cards, P1-23), You both (shared hackathons,
- * then areas) and Area.
+ * The hackathons someone is going to, as date tiles. The ones the viewer is
+ * going to as well come first, in green, with "You're going too" (P1-24).
+ */
+export function GoingTo({ events }: { events: readonly (PoolEvent & { shared?: boolean })[] }) {
+  return (
+    <ul className="flex flex-col gap-2" aria-label="Going to">
+      {events.map((event) => (
+        <li
+          key={event.id}
+          className={`flex items-center gap-3 rounded-[14px] ${
+            event.shared ? "border-2 border-green-500 bg-success-soft p-1.5" : "bg-surface p-2"
+          }`}
+        >
+          <DateTile isoDate={event.startDate} shared={event.shared} />
+          <span className="flex min-w-0 flex-col">
+            <span className="text-[15px] font-semibold">{event.name}</span>
+            {event.shared ? (
+              <span className="flex items-center gap-1 text-[13px] font-semibold text-success-ink">
+                <Check aria-hidden="true" className="size-3" strokeWidth={3} />
+                You&apos;re going too
+              </span>
+            ) : null}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/**
+ * The body of a person card (P1-24): Going to (members only), Interest areas
+ * and Top skills. No roles, goals or ideas.
  */
 export function PersonLines({
   person,
-  ideaCount = 0,
-  ideasHref,
-  lookingEvents,
-  youBoth,
+  goingTo,
 }: {
-  person: {
-    role: Role;
-    intents: readonly Intent[];
-    stack: readonly string[];
-    skills: readonly string[];
-    domains: readonly string[];
-  };
-  /** How many open ideas they have; nothing shows for none. */
-  ideaCount?: number;
-  /** Where the count links: their profile, which lists the ideas. */
-  ideasHref?: string;
-  /**
-   * Nearest hackathons they're going to and still looking at (nearestPoolEvents).
-   * Members only; without them the line says what they want in general.
-   */
-  lookingEvents?: readonly PoolEvent[];
-  /** Shared hackathon names, then shared areas; left out where the viewer isn't known. */
-  youBoth?: string[];
+  person: { stack: readonly string[]; skills: readonly string[]; domains: readonly string[] };
+  /** Their upcoming hackathons, shared ones first; left out for visitors. */
+  goingTo?: readonly (PoolEvent & { shared?: boolean })[];
 }) {
-  const builds = person.role !== "idea" ? topSkills(person) : [];
+  const skills = topSkills(person);
   return (
     <>
-      <RoleTags role={person.role} />
-      {lookingEvents?.length ? (
-        <div className="flex flex-col gap-1.5">
-          <p className="text-sm font-semibold">Looking for:</p>
-          {/* Each hackathon stays whole; ones that don't fit move to the next line. */}
-          <HackathonChips events={lookingEvents} label="Looking for teammates at" />
-        </div>
-      ) : (
-        <Line label="Looking for">{lookingFor(person.role, person.intents)}</Line>
-      )}
-      {builds.length ? <Line label="Builds">{builds.map(tagLabel).join(", ")}</Line> : null}
-      {ideaCount > 0 ? (
-        <Line label="Ideas">
-          {ideasHref ? (
-            <Link href={ideasHref} className="underline">
-              {ideaCount === 1 ? "1 idea" : `${ideaCount} ideas`}
-            </Link>
-          ) : ideaCount === 1 ? (
-            "1 idea"
-          ) : (
-            `${ideaCount} ideas`
-          )}
-        </Line>
+      {goingTo?.length ? (
+        <Section title="Going to">
+          <GoingTo events={goingTo} />
+        </Section>
       ) : null}
-      {youBoth?.length ? (
-        <div className="flex flex-col gap-1.5">
-          <p className="text-sm font-semibold text-success-ink">You both</p>
-          <ul className="flex flex-wrap gap-1.5" aria-label="You both">
-            {youBoth.map((item) => (
-              <li key={item}>
-                <Chip tone="success">{item}</Chip>
+      {person.domains.length ? (
+        <Section title="Interest areas">
+          <ul className="flex flex-wrap gap-1.5" aria-label="Interest areas">
+            {person.domains.map((slug) => (
+              <li key={slug}>
+                <span className="inline-flex h-[30px] items-center rounded-full bg-surface px-3 text-sm font-medium">
+                  {displayLabel(slug)}
+                </span>
               </li>
             ))}
           </ul>
-        </div>
+        </Section>
       ) : null}
-      {person.domains.length ? (
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-sm font-semibold">Area:</span>
-          <TagList tags={person.domains} label="Area" />
-        </div>
+      {skills.length ? (
+        <Section title="Top skills">
+          <ul className="flex flex-wrap gap-1.5" aria-label="Top skills">
+            {skills.map((slug) => (
+              <li key={slug}>
+                <span className="inline-flex h-[30px] items-center rounded-full bg-accent-soft px-3 text-sm font-semibold text-accent-soft-ink">
+                  {displayLabel(slug)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </Section>
       ) : null}
     </>
   );

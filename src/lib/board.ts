@@ -1,31 +1,25 @@
 import { slugsOf } from "@/lib/taxonomy/skills";
 
-/** Parsing and building the public board's URL state (tab, filters, page size). */
-
-export const BOARD_TABS = ["ideas", "people"] as const;
-export type BoardTab = (typeof BOARD_TABS)[number];
-
-export const BOARD_INTENTS = ["hackathon", "side_project", "cofounder"] as const;
-export type BoardIntent = (typeof BOARD_INTENTS)[number];
+/** Parsing and building the public board's URL state (filters, page size). People only (P1-24). */
 
 export const PAGE_SIZE = 20;
 /** The URL parameters the board reads. */
-export const BOARD_PARAM_KEYS = ["tab", "event", "domain", "skill", "intent", "n", "view"] as const;
+export const BOARD_PARAM_KEYS = ["event", "domain", "skill", "n", "view"] as const;
 export const MAX_SHOWN = 100;
 /** Cards per list on an event page; "Show more" adds this many. */
 export const EVENT_PAGE_SIZE = 12;
 /** Cards per event list a visitor sees (signed out or not onboarded) before a sign-in prompt. */
 export const VISITOR_LIMIT = 3;
+/** How many upcoming hackathons roll on the signed-out landing page (owner, 2026-10-22). */
+export const LANDING_EVENTS = 5;
 
 export interface BoardFilters {
   event: string | null;
   domain: string | null;
   skill: string | null;
-  intent: BoardIntent | null;
 }
 
 export interface BoardState {
-  tab: BoardTab;
   filters: BoardFilters;
   /** How many cards to show; "Load more" adds a page. */
   shown: number;
@@ -52,22 +46,16 @@ export function parseShown(value: string | string[] | undefined, pageSize: numbe
 
 /** Reads the board state from URL search params; anything unknown is ignored. */
 export function parseBoardParams(params: Params): BoardState {
-  const tab = first(params.tab) === "people" ? "people" : "ideas";
   const event = first(params.event);
   const domain = first(params.domain);
   const skill = first(params.skill);
-  const intent = first(params.intent);
   const shown = parseShown(params.n, PAGE_SIZE);
 
   return {
-    tab,
     filters: {
       event: event && SLUG.test(event) && event.length <= 80 ? event : null,
       domain: domain && DOMAINS.has(domain) ? domain : null,
       skill: skill && SKILLS.has(skill) ? skill : null,
-      intent: (BOARD_INTENTS as readonly string[]).includes(intent ?? "")
-        ? (intent as BoardIntent)
-        : null,
     },
     shown,
     view: first(params.view) === "list" ? "list" : null,
@@ -76,18 +64,17 @@ export function parseBoardParams(params: Params): BoardState {
 
 /**
  * Whether a member's visit to `/` is for the one-card deck: no list view asked
- * for and no list-only parameters (tabs, filters other than the event, paging),
+ * for and no list-only parameters (filters other than the event, paging),
  * so shared board links still open the list.
  */
 export function wantsDeck(params: Params): boolean {
   if (first(params.view) === "list") return false;
-  return !(["tab", "domain", "skill", "intent", "n"] as const).some((key) => first(params[key]));
+  return !(["domain", "skill", "n"] as const).some((key) => first(params[key]));
 }
 
 /** The board URL for a state; defaults are left out so URLs stay short and shareable. */
 export function boardHref(state: BoardState): string {
   const params = new URLSearchParams();
-  if (state.tab !== "ideas") params.set("tab", state.tab);
   for (const [key, value] of Object.entries(state.filters)) {
     if (value) params.set(key, value);
   }

@@ -9,7 +9,6 @@ import { passedCards } from "./card-passes";
 
 /** Public board reads, through the security-definer SQL functions that expose only safe columns. */
 
-export type BoardIdea = Database["public"]["Functions"]["public_board_ideas"]["Returns"][number];
 export type BoardPerson = Database["public"]["Functions"]["public_board_people"]["Returns"][number];
 
 /**
@@ -28,53 +27,29 @@ export async function excludedUserIds(viewerId: string | null): Promise<string[]
 
 /**
  * What a signed-in viewer's lists leave out: people they already have a
- * match with (excludedUserIds), and the cards they passed (P1-23). Nothing
+ * match with (excludedUserIds), and the people they passed (P1-23). Nothing
  * for visitors.
  */
 export async function boardExclusions(
   viewerId: string | null,
-): Promise<{ users: string[]; ideas: string[]; people: string[] }> {
-  if (!viewerId) return { users: [], ideas: [], people: [] };
+): Promise<{ users: string[]; people: string[] }> {
+  if (!viewerId) return { users: [], people: [] };
   const [users, passed] = await Promise.all([excludedUserIds(viewerId), passedCards(viewerId)]);
-  return { users, ideas: passed.ideas, people: [...users, ...passed.people] };
+  return { users, people: [...users, ...passed.people] };
 }
 
-/** One more row than asked for, so callers know whether "Load more" has anything to load. */
-export async function listBoardIdeas(
-  filters: BoardFilters,
-  limit: number,
-  exclude: string[],
-  excludeIdeas: string[] = [],
-): Promise<{ rows: BoardIdea[]; hasMore: boolean }> {
-  const { data, error } = await createServiceClient().rpc("public_board_ideas", {
-    p_limit: limit + 1,
-    p_offset: 0,
-    p_event_slug: filters.event ?? undefined,
-    p_domain: filters.domain ?? undefined,
-    p_skill: filters.skill ?? undefined,
-    p_intent: filters.intent ?? undefined,
-    p_exclude_user_ids: exclude,
-    p_exclude_idea_ids: excludeIdeas,
-  });
-  if (error) throw new Error(`listBoardIdeas: ${error.message}`);
-  return { rows: data.slice(0, limit), hasMore: data.length > limit };
-}
-
-/** Builders (and "both") by default; `role: null` lists every role, as event pages do. */
+/** Everyone in the pool (P1-24: no roles), one more row than asked for so callers know whether there's more. */
 export async function listBoardPeople(
   filters: BoardFilters,
   limit: number,
   exclude: string[],
-  role: "builder" | null = "builder",
 ): Promise<{ rows: BoardPerson[]; hasMore: boolean }> {
   const { data, error } = await createServiceClient().rpc("public_board_people", {
     p_limit: limit + 1,
     p_offset: 0,
-    p_role: role ?? undefined,
     p_event_slug: filters.event ?? undefined,
     p_domain: filters.domain ?? undefined,
     p_skill: filters.skill ?? undefined,
-    p_intent: filters.intent ?? undefined,
     p_exclude_user_ids: exclude,
   });
   if (error) throw new Error(`listBoardPeople: ${error.message}`);
@@ -86,36 +61,6 @@ export async function getPublicPerson(userId: string): Promise<BoardPerson | nul
   const { data, error } = await createServiceClient().rpc("public_person", { p_id: userId });
   if (error) throw new Error(`getPublicPerson: ${error.message}`);
   return data[0] ?? null;
-}
-
-/** How many open ideas each person has, for the count on person cards (P1-23). */
-export async function ideaCounts(userIds: readonly string[]): Promise<Map<string, number>> {
-  if (userIds.length === 0) return new Map();
-  const { data, error } = await createServiceClient()
-    .from("ideas")
-    .select("owner_id")
-    .in("owner_id", [...userIds])
-    .eq("status", "open");
-  if (error) throw new Error(`ideaCounts: ${error.message}`);
-  const counts = new Map<string, number>();
-  for (const row of data) counts.set(row.owner_id, (counts.get(row.owner_id) ?? 0) + 1);
-  return counts;
-}
-
-/**
- * A person's open ideas, newest first, for their profile page. Pitches are
- * already public on the board; full idea text never leaves here.
- */
-export async function openIdeasOf(userId: string): Promise<{ id: string; pitch: string }[]> {
-  const { data, error } = await createServiceClient()
-    .from("ideas")
-    .select("id, pitch")
-    .eq("owner_id", userId)
-    .eq("status", "open")
-    .not("pitch", "is", null)
-    .order("created_at", { ascending: false });
-  if (error) throw new Error(`openIdeasOf: ${error.message}`);
-  return data.map((row) => ({ id: row.id, pitch: row.pitch! }));
 }
 
 /**
@@ -142,35 +87,14 @@ export async function poolEventsFor(userIds: readonly string[]): Promise<Map<str
   return byUser;
 }
 
-/**
- * Which of these people, and ideas by owner, are demo profiles, so cards can
- * say "Demo" (docs/plans/demo-profiles.md).
- */
-export async function demoIds(
-  userIds: readonly string[],
-  ideaIds: readonly string[] = [],
-): Promise<{ users: Set<string>; ideas: Set<string> }> {
-  const supabase = createServiceClient();
-  const [users, ideas] = await Promise.all([
-    userIds.length
-      ? supabase
-          .from("users")
-          .select("id")
-          .in("id", [...userIds])
-          .eq("is_demo", true)
-      : Promise.resolve({ data: [] as { id: string }[], error: null }),
-    ideaIds.length
-      ? supabase
-          .from("ideas")
-          .select("id, users!inner(is_demo)")
-          .in("id", [...ideaIds])
-          .eq("users.is_demo", true)
-      : Promise.resolve({ data: [] as { id: string }[], error: null }),
-  ]);
-  if (users.error) throw new Error(`demoIds: ${users.error.message}`);
-  if (ideas.error) throw new Error(`demoIds: ${ideas.error.message}`);
-  return {
-    users: new Set(users.data.map((u) => u.id)),
-    ideas: new Set(ideas.data.map((i) => i.id)),
-  };
+/** Which of these people are demo profiles, so cards can say "Demo" (docs/plans/demo-profiles.md). */
+export async function demoUserIds(userIds: readonly string[]): Promise<Set<string>> {
+  if (userIds.length === 0) return new Set();
+  const { data, error } = await createServiceClient()
+    .from("users")
+    .select("id")
+    .in("id", [...userIds])
+    .eq("is_demo", true);
+  if (error) throw new Error(`demoUserIds: ${error.message}`);
+  return new Set(data.map((u) => u.id));
 }

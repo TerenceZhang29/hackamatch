@@ -12,10 +12,10 @@ import { Notice } from "@/components/ui/Notice";
 import { Section } from "@/components/ui/Section";
 import { requireOnboarded } from "@/lib/auth";
 import { formatDateRange } from "@/lib/time";
-import { demoIds } from "@/server/board";
+import { demoUserIds } from "@/server/board";
 import { getEventPool } from "@/server/events";
 import { getPairPage } from "@/server/teams";
-import { addMemberAction, markIdeaFilled, teamUpAction, toggleVote } from "./actions";
+import { addMemberAction, teamUpAction, toggleVote } from "./actions";
 import { CopyButton } from "./CopyButton";
 
 export const metadata: Metadata = { title: "Your match · HackaMatch" };
@@ -68,7 +68,7 @@ export default async function PairPage({
     ).filter((id): id is string => id !== null),
   );
   const other = pair.other;
-  const otherIsDemo = (await demoIds([other.id])).users.has(other.id);
+  const otherIsDemo = (await demoUserIds([other.id])).has(other.id);
 
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-6 px-4 py-6">
@@ -122,24 +122,6 @@ export default async function PairPage({
           ) : null}
         </ul>
       </article>
-
-      {pair.idea ? (
-        <Section id="idea" title="The idea">
-          <div className="flex flex-col gap-2 rounded-2xl bg-surface p-5">
-            {pair.idea.pitch ? <p className="font-semibold">{pair.idea.pitch}</p> : null}
-            <p className="text-sm whitespace-pre-line">{pair.idea.rawText}</p>
-            {pair.idea.mine && pair.idea.status === "open" && pair.teams.length > 0 ? (
-              <form action={markIdeaFilled}>
-                <input type="hidden" name="matchId" value={pair.matchId} />
-                <input type="hidden" name="ideaId" value={pair.idea.id} />
-                <button type="submit" className="text-sm text-muted underline">
-                  Team is set? Mark this idea as filled
-                </button>
-              </form>
-            ) : null}
-          </div>
-        </Section>
-      ) : null}
 
       <Section id="message" title="Say hi">
         <div className="flex flex-col gap-3 rounded-2xl bg-accent-soft p-5">

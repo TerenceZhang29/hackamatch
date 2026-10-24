@@ -1,5 +1,4 @@
 import { LogOut } from "lucide-react";
-import Link from "next/link";
 import { Avatar } from "@/components/ui/Avatar";
 import { buttonClass } from "@/components/ui/Button";
 import type { Metadata } from "next";
@@ -8,17 +7,13 @@ import { getConfig } from "@/lib/config";
 import { describePause, isPaused } from "@/lib/pause";
 import { slugsOf } from "@/lib/taxonomy/skills";
 import { listEventInterestIds, listUpcomingEvents } from "@/server/events";
-import { listOwnIdeas } from "@/server/ideas";
 import { getOwnProfile } from "@/server/profiles";
 import {
   DeleteSection,
   EventsSection,
-  IdeasSection,
   NameSection,
   PauseSection,
-  RoleSection,
   Section,
-  SentenceSection,
   TagsSection,
 } from "./sections";
 
@@ -26,9 +21,8 @@ export const metadata: Metadata = { title: "Your profile · HackaMatch" };
 
 export default async function MePage() {
   const user = await requireOnboarded("/me");
-  const [profile, ideas, events, interestIds] = await Promise.all([
+  const [profile, events, interestIds] = await Promise.all([
     getOwnProfile(user.id),
-    listOwnIdeas(user.id),
     listUpcomingEvents(),
     listEventInterestIds(user.id),
   ]);
@@ -57,11 +51,7 @@ export default async function MePage() {
         <NameSection name={user.name ?? ""} />
       </Section>
 
-      <Section title="Your sentence">
-        <SentenceSection sentence={user.raw_bio ?? ""} />
-      </Section>
-
-      <Section title="Your tags">
+      <Section title="Your areas and skills">
         <TagsSection
           tags={{ skills: profile.skills, stack: profile.stack, domains: profile.domains }}
           suggestions={{
@@ -72,33 +62,8 @@ export default async function MePage() {
         />
       </Section>
 
-      <Section title="Role and what you're looking for">
-        <RoleSection role={user.role!} intents={user.intents} />
-      </Section>
-
       <Section title="Hackathons">
         <EventsSection events={events} selected={interestIds} />
-      </Section>
-
-      <Section title="Your ideas">
-        {ideas.length ? (
-          <IdeasSection
-            ideas={ideas.map(({ id, pitch, raw_text, status }) => ({
-              id,
-              pitch,
-              raw_text,
-              status,
-            }))}
-          />
-        ) : (
-          <p className="text-sm text-muted">
-            No ideas yet.{" "}
-            <Link href="/ideas/new" className="underline">
-              Post one
-            </Link>
-            .
-          </p>
-        )}
       </Section>
 
       <Section title="Notifications" description={`Emails go to ${user.cornell_email}.`}>

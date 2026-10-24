@@ -174,7 +174,8 @@ test("a match for an event you never tagged: 'I'm going', and teaming up tags it
   try {
     const visitorPage = await visitor.newPage();
     await visitorPage.goto(`/e/${teamed.slug}`);
-    await expect(visitorPage.getByText("No one has tagged this event yet.")).toBeVisible();
+    // Both have their team, so neither counts as going-and-looking.
+    await expect(visitorPage.getByText("0 people going")).toBeVisible();
   } finally {
     await visitor.close();
   }

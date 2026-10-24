@@ -176,7 +176,9 @@ export type Database = {
         Row: {
           created_at: string;
           description: string | null;
+          domains: string[];
           end_date: string;
+          host: string | null;
           id: string;
           name: string;
           nudge_sent_at: string | null;
@@ -186,13 +188,17 @@ export type Database = {
           start_date: string;
           team_size_max: number;
           team_size_min: number;
+          time_label: string | null;
           url: string | null;
+          venue: string | null;
         };
         ComputedFields: never;
         Insert: {
           created_at?: string;
           description?: string | null;
+          domains?: string[];
           end_date: string;
+          host?: string | null;
           id?: string;
           name: string;
           nudge_sent_at?: string | null;
@@ -202,12 +208,16 @@ export type Database = {
           start_date: string;
           team_size_max?: number;
           team_size_min?: number;
+          time_label?: string | null;
           url?: string | null;
+          venue?: string | null;
         };
         Update: {
           created_at?: string;
           description?: string | null;
+          domains?: string[];
           end_date?: string;
+          host?: string | null;
           id?: string;
           name?: string;
           nudge_sent_at?: string | null;
@@ -217,7 +227,9 @@ export type Database = {
           start_date?: string;
           team_size_max?: number;
           team_size_min?: number;
+          time_label?: string | null;
           url?: string | null;
+          venue?: string | null;
         };
         Relationships: [
           {
@@ -563,6 +575,28 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      pending_signups: {
+        Row: {
+          answers: NonNullable<Json>;
+          created_at: string;
+          email: string;
+          expires_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          answers: NonNullable<Json>;
+          created_at?: string;
+          email: string;
+          expires_at?: string;
+        };
+        Update: {
+          answers?: NonNullable<Json>;
+          created_at?: string;
+          email?: string;
+          expires_at?: string;
+        };
+        Relationships: [];
       };
       pilot_access: {
         Row: {

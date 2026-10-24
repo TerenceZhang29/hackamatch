@@ -27,12 +27,14 @@ function colorFor(name: string) {
 }
 
 /** An initials circle. Decorative: the name is always next to it. */
-export function Avatar({ name, size = 40 }: { name: string; size?: 32 | 40 | 56 | 72 }) {
+export function Avatar({ name, size = 40 }: { name: string; size?: 32 | 40 | 56 | 64 | 72 | 80 }) {
   const dims = {
     32: "size-8 text-xs",
     40: "size-10 text-sm",
     56: "size-14 text-lg",
+    64: "size-16 text-xl",
     72: "size-18 text-xl",
+    80: "size-20 text-2xl",
   }[size];
   return (
     <span

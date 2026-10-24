@@ -1,8 +1,8 @@
 import {
   CalendarDays,
+  Check,
   Handshake,
   LayoutGrid,
-  Lightbulb,
   PartyPopper,
   RotateCcw,
   Sparkles,
@@ -14,33 +14,32 @@ import { Outcome } from "@/components/Outcome";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { deckHref, leftLabel, parseDeckKind, parsePassToken, type DeckKind } from "@/lib/deck";
-import type { DeckCard, DeckDetails } from "@/server/deck";
+import { deckHref, leftLabel, parsePassToken } from "@/lib/deck";
+import type { BoardPerson } from "@/server/board";
+import type { DeckDetails } from "@/server/deck";
 import { DeckCardView } from "./DeckCardView";
 import { Swipe } from "./Swipe";
 
 type Params = Record<string, string | string[] | undefined>;
 
-const round =
-  "inline-flex size-16 items-center justify-center rounded-full shadow-sm transition active:scale-95";
+const round = "inline-flex items-center justify-center rounded-full transition active:scale-95";
 
 /**
  * ✕ / ♥ for the card on top, as one plain form that comes back to the deck.
  * Undo (the last Pass only) sits beside them when there's one to take back.
  */
 function AnswerBar({
-  card,
+  person,
   returnTo,
   undoable,
 }: {
-  card: DeckCard;
+  person: BoardPerson;
   returnTo: string;
   undoable: string | null;
 }) {
-  const targetId = card.kind === "idea" ? card.idea.id : card.person.user_id;
   return (
     // Above the bottom tab bar on phones.
-    <div className="sticky bottom-16 z-10 flex items-center justify-center gap-6 bg-bg/90 py-3 backdrop-blur sm:bottom-0">
+    <div className="sticky bottom-16 z-10 flex items-center justify-center gap-7 bg-surface/90 py-3 backdrop-blur sm:bottom-0">
       {undoable ? (
         <form action={undoPassAction}>
           <input type="hidden" name="passed" value={undoable} />
@@ -55,9 +54,9 @@ function AnswerBar({
           </button>
         </form>
       ) : null}
-      <form action={answerCard} className="flex items-center gap-6">
-        <input type="hidden" name="kind" value={card.kind} />
-        <input type="hidden" name="targetId" value={targetId} />
+      <form action={answerCard} className="flex items-center gap-7">
+        <input type="hidden" name="kind" value="person" />
+        <input type="hidden" name="targetId" value={person.user_id} />
         <input type="hidden" name="returnTo" value={returnTo} />
         <button
           id="deck-pass"
@@ -66,9 +65,9 @@ function AnswerBar({
           value="pass"
           aria-label="Pass"
           title="Pass"
-          className={`${round} bg-surface text-ink`}
+          className={`${round} size-16 bg-bg text-ink shadow-[0_6px_16px_rgba(22,22,26,0.12)]`}
         >
-          <X aria-hidden="true" className="size-7" strokeWidth={2.4} />
+          <X aria-hidden="true" className="size-7" strokeWidth={2.25} />
         </button>
         <button
           id="deck-interested"
@@ -77,9 +76,9 @@ function AnswerBar({
           value="interested"
           aria-label="Interested"
           title="Interested"
-          className={`${round} bg-accent text-accent-ink`}
+          className={`${round} size-[76px] bg-accent text-accent-ink shadow-[0_10px_22px_rgba(79,70,229,0.35)]`}
         >
-          <Handshake aria-hidden="true" className="size-7" strokeWidth={2.4} />
+          <Handshake aria-hidden="true" className="size-[34px]" strokeWidth={2} />
         </button>
       </form>
     </div>
@@ -115,47 +114,56 @@ function Matched({ name, matchId, next }: { name: string; matchId: string; next:
   );
 }
 
-/** Narrow the deck to one event's pool: only events the viewer is going to. */
-function EventChips({
+/**
+ * The hackathon filter (P1-24): "All hackathons" pinned at the left, then the
+ * upcoming hackathons (the selected one, then the viewer's own, then the
+ * rest), which scroll sideways. Plain links, so it works without JavaScript.
+ */
+function HackathonFilter({
   events,
   current,
-  kind,
   left,
 }: {
   events: { slug: string; name: string }[];
   current: string | null;
-  /** The deck named in the URL, kept when switching events; null for the default. */
-  kind: DeckKind | null;
   left: string | null;
 }) {
-  // Whole chips that wrap onto new lines, never shrunk or cut.
   const chip = (on: boolean) =>
-    `whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium ${
-      on ? "bg-ink text-bg" : "bg-surface text-muted hover:text-ink"
+    `inline-flex h-[34px] shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 text-sm font-medium ${
+      on ? "bg-ink text-bg" : "bg-bg text-ink ring-1 ring-line hover:bg-surface"
     }`;
   return (
-    <div className="flex flex-col gap-2">
-      {events.length ? (
-        <nav aria-label="Whose cards" className="flex flex-wrap gap-2">
-          <Link
-            href={deckHref(null, kind)}
-            aria-current={current === null ? "page" : undefined}
-            className={chip(current === null)}
-          >
-            Everyone
-          </Link>
-          {events.map((event) => (
-            <Link
-              key={event.slug}
-              href={deckHref(event.slug, kind)}
-              aria-current={current === event.slug ? "page" : undefined}
-              className={chip(current === event.slug)}
-            >
-              {event.name}
-            </Link>
-          ))}
-        </nav>
-      ) : null}
+    // A white strip across the top of the grey Discover page (the mockup's filter bar).
+    <div className="-mx-4 -mt-6 flex flex-col gap-2 border-b border-line bg-bg px-4 pt-2.5 pb-2 sm:mx-0 sm:mt-0 sm:rounded-2xl sm:border">
+      <nav aria-label="Filter by hackathon" className="flex items-center gap-2">
+        <Link
+          href={deckHref(null)}
+          aria-current={current === null ? "page" : undefined}
+          className={chip(current === null)}
+        >
+          All hackathons
+        </Link>
+        {events.length ? (
+          <>
+            <span aria-hidden="true" className="h-6 w-px shrink-0 bg-line" />
+            <div className="flex min-w-0 flex-1 gap-2 overflow-x-auto pr-6 [mask-image:linear-gradient(to_right,#000_85%,transparent)] [scrollbar-width:none]">
+              {events.map((event) => (
+                <Link
+                  key={event.slug}
+                  href={deckHref(event.slug)}
+                  aria-current={current === event.slug ? "page" : undefined}
+                  className={chip(current === event.slug)}
+                >
+                  {current === event.slug ? (
+                    <Check aria-hidden="true" className="size-3.5" strokeWidth={3} />
+                  ) : null}
+                  {event.name}
+                </Link>
+              ))}
+            </div>
+          </>
+        ) : null}
+      </nav>
       <div className="flex items-center justify-between gap-3 text-xs text-muted">
         <span>{left ?? ""}</span>
         <Link href="/?view=list" className="flex items-center gap-1 font-medium hover:text-ink">
@@ -167,128 +175,92 @@ function EventChips({
   );
 }
 
-/** Ideas | Builders: which deck to swipe through (P1-23). Plain links, so it works without JavaScript. */
-function DeckToggle({ kind, eventSlug }: { kind: DeckKind; eventSlug: string | null }) {
-  return (
-    <nav aria-label="Swipe through" className="grid grid-cols-2 gap-1 rounded-xl bg-surface p-1">
-      {(["ideas", "builders"] as const).map((option) => (
-        <Link
-          key={option}
-          href={deckHref(eventSlug, option)}
-          aria-current={kind === option ? "page" : undefined}
-          className={`rounded-lg px-4 py-2 text-center text-sm font-medium ${
-            kind === option ? "bg-bg text-ink shadow-sm" : "text-muted"
-          }`}
-        >
-          {option === "ideas" ? "Ideas" : "Builders"}
-        </Link>
-      ))}
-    </nav>
-  );
-}
-
 /**
  * One card at a time for members (docs/plans/card-deck.md). Answering posts
  * the card's form and comes back here, where the next card is on top.
  */
 export function DeckView({
-  kind,
   cards,
   more,
   details,
   expanded,
   eventSlug,
-  eventNames,
-  myEvents,
+  filterEvents,
   params,
   matched,
 }: {
-  /** Which deck: ideas or builders (P1-23). */
-  kind: DeckKind;
-  cards: DeckCard[];
+  cards: BoardPerson[];
   more: boolean;
   /** Extra details for the card on top (null when the deck is empty). */
   details: DeckDetails | null;
   /** `?more=1`: the card on top shows its full profile. */
   expanded: boolean;
   eventSlug: string | null;
-  eventNames: Map<string, string>;
-  /** Upcoming events the viewer is going to, for the chips. */
-  myEvents: { slug: string; name: string }[];
+  /** Upcoming events for the filter, in order (orderFilterEvents). */
+  filterEvents: { slug: string; name: string }[];
   params: Params;
   /** Set right after a mutual match: show the celebration before the next card. */
   matched: { name: string; matchId: string } | null;
 }) {
-  // The URL names the deck only when the viewer picked one; otherwise it's their role's default.
-  const chosen = parseDeckKind(params.deck);
-  const here = deckHref(eventSlug, chosen);
-  const other: DeckKind = kind === "ideas" ? "builders" : "ideas";
-  const card = cards[0];
+  const here = deckHref(eventSlug);
+  const person = cards[0];
   const passed = typeof params.passed === "string" ? params.passed : null;
   const undoable = parsePassToken(passed) ? passed : null;
   const eventName =
-    myEvents.find((e) => e.slug === eventSlug)?.name ?? (eventSlug ? "this event" : null);
+    filterEvents.find((e) => e.slug === eventSlug)?.name ?? (eventSlug ? "this event" : null);
   return (
     <div className="mx-auto flex w-full max-w-md flex-col gap-4">
       <h1 className="sr-only">Discover</h1>
-      <DeckToggle kind={kind} eventSlug={eventSlug} />
-      <EventChips
-        events={myEvents}
+      <HackathonFilter
+        events={filterEvents}
         current={eventSlug}
-        kind={chosen}
-        left={card && !matched ? leftLabel(cards.length, more) : null}
+        left={person && !matched ? leftLabel(cards.length, more) : null}
       />
       {matched ? null : <Outcome params={params} />}
       {matched ? (
         <Matched name={matched.name} matchId={matched.matchId} next={here} />
-      ) : card ? (
+      ) : person ? (
         <>
-          <Swipe
-            key={card.kind === "idea" ? card.idea.id : card.person.user_id}
-            moreHref={withMore(here)}
-            expanded={expanded}
-          >
-            <DeckCardView
-              card={card}
-              details={details!}
-              eventNames={eventNames}
-              expanded={expanded}
-              moreHref={withMore(here)}
-              lessHref={here}
-            />
+          <Swipe key={person.user_id} moreHref={withMore(here)} expanded={expanded}>
+            <div className="relative pb-3">
+              {/* The next card, peeking out behind this one. */}
+              {cards.length > 1 ? (
+                <div
+                  aria-hidden="true"
+                  className="absolute inset-x-[18px] top-3.5 bottom-0 rounded-[28px] bg-line"
+                />
+              ) : null}
+              <div className="relative">
+                <DeckCardView
+                  person={person}
+                  details={details!}
+                  expanded={expanded}
+                  moreHref={withMore(here)}
+                  lessHref={here}
+                />
+              </div>
+            </div>
           </Swipe>
-          <AnswerBar card={card} returnTo={here} undoable={undoable} />
+          <AnswerBar person={person} returnTo={here} undoable={undoable} />
         </>
       ) : (
         <>
           <EmptyState
             icon={Sparkles}
             title={
-              kind === "ideas"
-                ? eventName
-                  ? `No more ideas for ${eventName}`
-                  : "No more ideas for now"
-                : eventName
-                  ? `You've seen every builder going to ${eventName}`
-                  : "You've seen every builder for now"
+              eventName
+                ? `You've seen everyone going to ${eventName}`
+                : "You've seen everyone for now"
             }
           >
-            <Button href={deckHref(eventSlug, other)} variant="primary">
-              {other === "ideas" ? "Swipe ideas" : "Find builders"}
-            </Button>
             {eventName ? (
-              <Button href={deckHref(null, chosen)} variant="outline">
-                Everyone
+              <Button href={deckHref(null)} variant="primary">
+                All hackathons
               </Button>
             ) : (
-              <>
-                <Button href="/events" variant="outline">
-                  <CalendarDays aria-hidden="true" className="size-4" /> Events
-                </Button>
-                <Button href="/ideas/new" variant="outline">
-                  <Lightbulb aria-hidden="true" className="size-4" /> Post an idea
-                </Button>
-              </>
+              <Button href="/events" variant="primary">
+                <CalendarDays aria-hidden="true" className="size-4" /> Events
+              </Button>
             )}
           </EmptyState>
           {undoable ? (

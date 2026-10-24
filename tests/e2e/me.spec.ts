@@ -13,15 +13,12 @@ test.afterEach(async () => {
   for (const email of created.splice(0)) await deleteUser(email);
 });
 
-async function newOnboardedUser(
-  page: Page,
-  role: "I have an idea" | "I want to find an idea to build",
-  sentence: string,
-) {
+async function newOnboardedUser(page: Page) {
   const email = newEmail();
   await signIn(page, email);
-  await onboard(page, { role, sentence });
-  await expect(page).toHaveURL("/matches?welcome=1");
+  // Sign-up picks: Climate and React (P1-24).
+  await onboard(page, { skill: "Full stack" });
+  await expect(page).toHaveURL("/");
   return email;
 }
 
@@ -34,34 +31,24 @@ const profileOf = async (email: string) =>
     )
   )[0]!;
 
-test("edited tags survive a later sentence change", async ({ page }) => {
-  const email = await newOnboardedUser(
-    page,
-    "I want to find an idea to build",
-    "I build React apps for health",
-  );
+test("areas and skills can be edited; there's no sentence, role or ideas section (P1-24)", async ({
+  page,
+}) => {
+  const email = await newOnboardedUser(page);
   await page.goto("/me");
   await expect(page.getByRole("heading", { name: "Your profile" })).toBeVisible();
+  await expect(page.getByLabel("Edit your sentence")).toHaveCount(0);
+  await expect(page.getByText("Role and what you're looking for")).toHaveCount(0);
+  await expect(page.getByText("Your ideas")).toHaveCount(0);
 
-  await page.getByRole("button", { name: "Remove react" }).click();
   await page.getByLabel("Add to tools and languages").fill("swift");
   await page.getByLabel("Add to tools and languages").press("Enter");
   await page.getByRole("button", { name: "Save tags" }).click();
   await expect(page.getByText("Saved").first()).toBeVisible();
 
-  let profile = await profileOf(email);
+  const profile = await profileOf(email);
   expect(profile.stack).toEqual(["swift"]);
-  expect(profile.user_edited).toBe(true);
-
-  await page.getByLabel("Edit your sentence").fill("I build Python data pipelines for climate");
-  await page.getByRole("button", { name: "Save sentence" }).click();
-
-  // The summary is still re-inferred from the new sentence; the edited tags stay.
-  profile = await eventually(
-    () => profileOf(email),
-    (p) => /climate/.test(p.summary),
-  );
-  expect(profile.stack).toEqual(["swift"]);
+  expect(profile.skills).toEqual(["fullstack"]);
 
   await page.reload();
   await expect(page.getByRole("list", { name: "Tools and languages" })).toContainText("swift");
@@ -70,11 +57,7 @@ test("edited tags survive a later sentence change", async ({ page }) => {
 test("the name is shown and can be changed; the first name is required, the last optional", async ({
   page,
 }) => {
-  const email = await newOnboardedUser(
-    page,
-    "I want to find an idea to build",
-    "I build Rust command-line tools",
-  );
+  const email = await newOnboardedUser(page);
   const nameOf = async () =>
     (
       await query<{ name: string | null; shown: string }>(
@@ -113,11 +96,7 @@ test("the name is shown and can be changed; the first name is required, the last
 test("pausing takes the user off the board and out of the pool, and resuming brings them back", async ({
   page,
 }) => {
-  const email = await newOnboardedUser(
-    page,
-    "I want to find an idea to build",
-    "I build Go backends",
-  );
+  const email = await newOnboardedUser(page);
   const inPool = async () =>
     (
       await query<{ pool: boolean; board: boolean }>(
@@ -147,56 +126,27 @@ test("pausing takes the user off the board and out of the pool, and resuming bri
   expect(await inPool()).toEqual({ pool: true, board: true });
 });
 
-test("role, events and idea status can be changed", async ({ page }) => {
-  const email = await newOnboardedUser(
-    page,
-    "I have an idea",
-    "A mobile app that helps nurses swap shifts at hospitals",
-  );
+test("hackathons can be changed", async ({ page }) => {
+  const email = await newOnboardedUser(page);
   await page.goto("/me");
-
-  await page.getByRole("group", { name: "Role" }).getByRole("button", { name: "Both" }).click();
-  await page.getByRole("button", { name: "Side project" }).click();
-  await page.getByRole("button", { name: "Save", exact: true }).click();
-  await expect(page.getByRole("status").filter({ hasText: "Saved" })).toBeVisible();
-
   await page.getByRole("button", { name: /Cornell Tech Fall Hack/ }).click();
   await expect(page.getByRole("button", { name: /Cornell Tech Fall Hack/ })).toHaveAttribute(
     "aria-pressed",
     "true",
   );
-
-  await page
-    .getByRole("group", { name: "Idea status" })
-    .getByRole("button", { name: "Filled" })
-    .click();
-
   await eventually(
     () =>
-      query<{ role: string; intents: string[]; events: number; status: string }>(
-        `select u.role::text, u.intents::text[],
-                (select count(*)::int from public.event_interests ei where ei.user_id = u.id) as events,
-                (select i.status::text from public.ideas i where i.owner_id = u.id limit 1) as status
+      query<{ events: number }>(
+        `select (select count(*)::int from public.event_interests ei where ei.user_id = u.id) as events
          from public.users u where u.cornell_email = $1`,
         [email],
       ),
-    (rows) => rows[0]?.status === "filled" && rows[0].events === 1,
-  ).then(([row]) =>
-    expect(row).toEqual({
-      role: "both",
-      intents: ["hackathon", "side_project"],
-      events: 1,
-      status: "filled",
-    }),
+    (rows) => rows[0]?.events === 1,
   );
 });
 
 test("deleting the account removes every row and signs out", async ({ page }) => {
-  const email = await newOnboardedUser(
-    page,
-    "I have an idea",
-    "A mobile app that helps nurses swap shifts at hospitals",
-  );
+  const email = await newOnboardedUser(page);
   const [{ id }] = (await query<{ id: string }>(
     `select id from public.users where cornell_email = $1`,
     [email],
@@ -222,7 +172,7 @@ test("deleting the account removes every row and signs out", async ({ page }) =>
 });
 
 test("/me has no horizontal scroll", async ({ page }) => {
-  await newOnboardedUser(page, "I want to find an idea to build", "I build iOS apps in Swift");
+  await newOnboardedUser(page);
   await page.goto("/me");
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,

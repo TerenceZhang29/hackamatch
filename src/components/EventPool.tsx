@@ -2,7 +2,6 @@ import { Check } from "lucide-react";
 import Link from "next/link";
 import { eventPoolAction } from "@/app/actions/event-pool";
 import { buttonClass } from "@/components/ui/Button";
-import { Chip } from "@/components/ui/Chip";
 import { joinNames } from "@/lib/my-events";
 import type { EventPool } from "@/server/events";
 
@@ -96,9 +95,9 @@ export function EventPoolPanel({
         eventId={eventId}
         choice="going"
         returnTo={here}
-        className={buttonClass("primary", "md", "self-start")}
+        className="flex h-[52px] w-full items-center justify-center rounded-[14px] bg-bg text-[17px] font-bold text-success-ink ring-2 ring-green-600 transition ring-inset hover:bg-success-soft"
       >
-        I&apos;m going
+        I&apos;m going!
       </Choice>
     );
   }
@@ -106,24 +105,53 @@ export function EventPoolPanel({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <Chip tone="success">
-          <Check aria-hidden="true" className="size-3" strokeWidth={3} /> Going
-        </Chip>
-        <Chip tone={pool.leftPool ? "neutral" : "accent"}>
-          {pool.leftPool ? "Have a team" : "Looking"}
-        </Chip>
-        {pool.leftPool ? (
+      <div
+        role="status"
+        className="flex items-center gap-3 rounded-2xl bg-success-soft px-4 py-3.5"
+      >
+        <span
+          aria-hidden="true"
+          className="flex size-9 shrink-0 items-center justify-center rounded-full bg-green-600 text-white"
+        >
+          <Check className="size-5" strokeWidth={3} />
+        </span>
+        <span className="flex flex-1 flex-col">
+          <span className="font-bold text-success-ink">You&apos;re going!</span>
+          <span className="text-[13px] text-success-ink">
+            {pool.leftPool
+              ? "You have your team for this hackathon."
+              : "You're in the pool for this hackathon."}
+          </span>
+        </span>
+        {confirmNotGoing && matched ? null : matched ? (
+          <Link
+            href={`${here}?confirm=not-going`}
+            className="text-sm font-semibold text-success-ink underline"
+          >
+            Not going?
+          </Link>
+        ) : (
           <Choice
             eventId={eventId}
-            choice="looking-again"
+            choice="not-going"
             returnTo={here}
-            className={buttonClass("ghost", "sm")}
+            className="text-sm font-semibold text-success-ink underline"
           >
-            I&apos;m looking again
+            Not going?
           </Choice>
-        ) : null}
+        )}
       </div>
+
+      {pool.leftPool ? (
+        <Choice
+          eventId={eventId}
+          choice="looking-again"
+          returnTo={here}
+          className={buttonClass("ghost", "sm", "self-start")}
+        >
+          I&apos;m looking again
+        </Choice>
+      ) : null}
 
       {matched ? (
         <p className="text-sm">
@@ -167,24 +195,16 @@ export function EventPoolPanel({
             </Link>
           </div>
         </div>
-      ) : (
-        <div className="flex flex-wrap items-center gap-4 text-sm text-muted">
-          {matched && !pool.leftPool && !pool.askToKeepMatching ? (
-            <Choice eventId={eventId} choice="have-team" returnTo={here} className="underline">
-              I have my team
-            </Choice>
-          ) : null}
-          {matched ? (
-            <Link href={`${here}?confirm=not-going`} className="underline">
-              I&apos;m no longer going
-            </Link>
-          ) : (
-            <Choice eventId={eventId} choice="not-going" returnTo={here} className="underline">
-              I&apos;m not going after all
-            </Choice>
-          )}
-        </div>
-      )}
+      ) : matched && !pool.leftPool && !pool.askToKeepMatching ? (
+        <Choice
+          eventId={eventId}
+          choice="have-team"
+          returnTo={here}
+          className="self-start text-sm text-muted underline"
+        >
+          I have my team
+        </Choice>
+      ) : null}
     </div>
   );
 }

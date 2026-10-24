@@ -1,20 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  ideaHackathons,
-  lookingFor,
-  nearestPoolEvents,
-  roleTags,
-  shortDate,
-  topSkills,
-} from "@/lib/person-card";
-
-describe("roleTags", () => {
-  it("is Builds, Ideas or both", () => {
-    expect(roleTags("builder")).toEqual(["build"]);
-    expect(roleTags("idea")).toEqual(["idea"]);
-    expect(roleTags("both")).toEqual(["build", "idea"]);
-  });
-});
+import { dateTile, nearestPoolEvents, shortDate, topSkills } from "@/lib/person-card";
 
 describe("topSkills", () => {
   it("takes stack then skills, without repeats", () => {
@@ -24,17 +9,6 @@ describe("topSkills", () => {
       "frontend",
     ]);
     expect(topSkills({ stack: [], skills: ["ml"] })).toEqual(["ml"]);
-  });
-});
-
-describe("lookingFor", () => {
-  it("names what they want, then who", () => {
-    expect(lookingFor("idea", ["hackathon"])).toBe("Hackathon partner · a builder");
-    expect(lookingFor("builder", ["hackathon", "side_project"])).toBe(
-      "Hackathon partner, Project partner · an idea",
-    );
-    expect(lookingFor("both", ["cofounder"])).toBe("Co-founder · a builder or an idea");
-    expect(lookingFor("builder", [])).toBe("an idea");
   });
 });
 
@@ -58,25 +32,8 @@ describe("shortDate", () => {
   });
 });
 
-describe("ideaHackathons", () => {
-  const ev = (id: string, startDate: string) => ({ id, name: id, startDate });
-  it("puts the idea's own event first, then the owner's nearest, up to 3, without repeats", () => {
-    const own = [
-      ev("c", "2026-12-01"),
-      ev("a", "2026-11-01"),
-      ev("tagged", "2026-11-20"),
-      ev("b", "2026-11-10"),
-    ];
-    expect(ideaHackathons(ev("tagged", "2026-11-20"), own).map((e) => e.id)).toEqual([
-      "tagged",
-      "a",
-      "b",
-    ]);
-  });
-
-  it("is the owner's nearest when the idea has no event", () => {
-    expect(
-      ideaHackathons(null, [ev("b", "2026-11-10"), ev("a", "2026-11-01")]).map((e) => e.id),
-    ).toEqual(["a", "b"]);
+describe("dateTile", () => {
+  it("is the month and day of the start date, in any time zone", () => {
+    expect(dateTile("2026-11-09")).toEqual({ month: "NOV", day: "9" });
   });
 });

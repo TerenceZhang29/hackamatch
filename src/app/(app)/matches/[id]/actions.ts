@@ -4,7 +4,6 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireOnboarded } from "@/lib/auth";
-import { setIdeaStatus } from "@/server/ideas";
 import { addTeamMember, setEventVote, teamUp } from "@/server/teams";
 
 const form = (data: FormData) => Object.fromEntries(data);
@@ -58,16 +57,4 @@ export async function addMemberAction(data: FormData) {
   const result = await addTeamMember(teamId, user.id, email);
   revalidatePath(page(matchId));
   redirect(page(matchId, result.ok ? "?added=1" : `?error=${encodeURIComponent(result.error)}`));
-}
-
-const filledSchema = z.object({ matchId: z.guid(), ideaId: z.guid() });
-
-/** Lets the idea owner close their idea once the team is set. */
-export async function markIdeaFilled(data: FormData) {
-  const user = await requireOnboarded();
-  const parsed = filledSchema.safeParse(form(data));
-  if (!parsed.success) redirect("/matches");
-  await setIdeaStatus(user.id, parsed.data.ideaId, "filled");
-  revalidatePath(page(parsed.data.matchId));
-  redirect(page(parsed.data.matchId, "?filled=1"));
 }

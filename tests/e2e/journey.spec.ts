@@ -23,33 +23,23 @@ test("two students go from sign-up to a team", async ({ browser }) => {
   const sofia = await browser.newContext();
 
   try {
-    // Maya has an idea; Sofia can build.
+    // Both sign up (P1-24); Maya builds hardware, Sofia does UX.
+    // Unique names: the desktop and mobile projects run this test at the same time.
+    const mayaName = `Maya${mayaEmail.slice(4, 10)}`;
     const mayaPage = await maya.newPage();
     await signIn(mayaPage, mayaEmail);
-    await onboard(mayaPage, {
-      role: "I have an idea",
-      // Unique per run: the desktop and mobile projects run this test at the same time.
-      sentence: `A mobile app that helps nurses on ward ${mayaEmail.slice(4, 12)} swap shifts, with a backend`,
-    });
-    await expect(mayaPage).toHaveURL("/matches?welcome=1");
-    const [idea] = await query<{ pitch: string }>(
-      `select i.pitch from public.ideas i join public.users u on u.id = i.owner_id
-       where u.cornell_email = $1`,
-      [mayaEmail],
-    );
+    await onboard(mayaPage, { firstName: mayaName, area: "Health", skill: "Hardware" });
+    await expect(mayaPage).toHaveURL("/");
 
     const sofiaPage = await sofia.newPage();
     await signIn(sofiaPage, sofiaEmail);
-    await onboard(sofiaPage, {
-      role: "I want to find an idea to build",
-      sentence: "I build React apps for health",
-    });
-    await expect(sofiaPage).toHaveURL("/matches?welcome=1");
+    await onboard(sofiaPage, { firstName: "Sofia", area: "Health", skill: "UX design" });
+    await expect(sofiaPage).toHaveURL("/");
 
-    // Sofia finds Maya's idea on the board, filtered to her skill.
-    await sofiaPage.goto("/?skill=mobile");
+    // Sofia finds Maya on the board, filtered to her skill.
+    await sofiaPage.goto("/?skill=hardware&view=list");
     await sofiaPage
-      .getByRole("article", { name: idea!.pitch })
+      .getByRole("article", { name: mayaName })
       .getByRole("button", { name: "Interested" })
       .click();
     await expect(sofiaPage.getByText("Sent", { exact: true })).toBeVisible();
@@ -60,7 +50,9 @@ test("two students go from sign-up to a team", async ({ browser }) => {
       (emails) => emails.length === 1,
     );
     const interestedLink = [...inbound!.html.matchAll(/href="([^"]*\/r\/[^"]+)"/g)][0]![1]!;
-    await mayaPage.goto(interestedLink.replaceAll("&amp;", "&"));
+    // Just the path: the email names APP_URL, and the test server may run on another port.
+    const url = new URL(interestedLink.replaceAll("&amp;", "&"));
+    await mayaPage.goto(`${url.pathname}${url.search}`);
     await mayaPage.getByRole("button", { name: "Yes, I'm interested" }).click();
     await expect(mayaPage.getByRole("heading", { name: "It's a match!" })).toBeVisible();
 
@@ -94,20 +86,17 @@ test("two students go from sign-up to a team", async ({ browser }) => {
 
     await mayaPage.reload();
     await expect(mayaPage.getByLabel("Team for Cornell Tech Fall Hack")).toBeVisible();
-    await mayaPage.getByRole("button", { name: "Team is set? Mark this idea as filled" }).click();
-    await expect(mayaPage.getByText("Idea marked as filled.")).toBeVisible();
 
-    const [result] = await query<{ teams: number; event: string; status: string }>(
-      `select count(t.id)::int as teams, max(e.slug) as event, max(i.status::text) as status
+    const [result] = await query<{ teams: number; event: string }>(
+      `select count(t.id)::int as teams, max(e.slug) as event
        from public.users u
        join public.team_members tm on tm.user_id = u.id
        join public.teams t on t.id = tm.team_id
        left join public.events e on e.id = t.event_id
-       left join public.ideas i on i.id = t.idea_id
        where u.cornell_email = $1`,
       [mayaEmail],
     );
-    expect(result).toEqual({ teams: 1, event: "cornell-tech-fall-hack", status: "filled" });
+    expect(result).toEqual({ teams: 1, event: "cornell-tech-fall-hack" });
   } finally {
     await maya.close();
     await sofia.close();

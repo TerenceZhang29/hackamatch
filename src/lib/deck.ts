@@ -1,24 +1,8 @@
 /** Pure helpers for the one-card deck (docs/plans/card-deck.md). */
 
-/** The two decks (P1-23): swipe through ideas, or through builders. */
-export type DeckKind = "ideas" | "builders";
-
-export function parseDeckKind(value: unknown): DeckKind | null {
-  return value === "ideas" || value === "builders" ? value : null;
-}
-
-/** Idea people start on Builders; builders and "both" start on Ideas. */
-export function defaultDeckKind(role: "idea" | "builder" | "both" | null): DeckKind {
-  return role === "idea" ? "builders" : "ideas";
-}
-
-/** The deck's URL: which deck (`?deck=`), optionally narrowed to one event's pool. */
-export function deckHref(eventSlug: string | null, kind: DeckKind | null = null): string {
-  const params = new URLSearchParams();
-  if (kind) params.set("deck", kind);
-  if (eventSlug) params.set("event", eventSlug);
-  const query = params.toString();
-  return query ? `/?${query}` : "/";
+/** The deck's URL, optionally narrowed to one event's pool (P1-24: one deck, people only). */
+export function deckHref(eventSlug: string | null): string {
+  return eventSlug ? `/?${new URLSearchParams({ event: eventSlug })}` : "/";
 }
 
 /**
@@ -47,18 +31,6 @@ export function leftLabel(count: number, more: boolean): string {
   return more ? `${count}+ left` : `${count} left`;
 }
 
-export const INTENT_LABELS = {
-  hackathon: "Hackathon partner",
-  side_project: "Side project",
-  cofounder: "Co-founder",
-} as const;
-
-export const EXPERIENCE_LABELS = {
-  beginner: "Beginner",
-  intermediate: "Intermediate",
-  advanced: "Advanced",
-} as const;
-
 /**
  * What the viewer and a card have in common: shared tags (skills, stack and
  * areas, in the card's order) and shared events. Plain tag matching, no AI.
@@ -75,11 +47,28 @@ export function inCommon(
   };
 }
 
-/** An idea's needed skills, each marked when the viewer has it. */
-export function markNeeds(
-  needs: readonly string[],
-  viewerTags: readonly string[],
-): { tag: string; have: boolean }[] {
-  const mine = new Set(viewerTags);
-  return needs.map((tag) => ({ tag, have: mine.has(tag) }));
+/**
+ * The hackathon filter above the deck (P1-24): the selected event first, then
+ * the viewer's own, then the rest, each group soonest first as given.
+ */
+export function orderFilterEvents<T extends { slug: string; id: string }>(
+  upcoming: readonly T[],
+  myEventIds: readonly string[],
+  selected: string | null,
+): T[] {
+  const mine = new Set(myEventIds);
+  const rank = (event: T) => (event.slug === selected ? 0 : mine.has(event.id) ? 1 : 2);
+  return [...upcoming].sort((a, b) => rank(a) - rank(b));
+}
+
+/** A person's hackathons with the ones the viewer shares first (P1-24), each group soonest first. */
+export function sharedFirst<T extends { id: string; startDate: string }>(
+  events: readonly T[],
+  viewerEventIds: readonly string[],
+): (T & { shared: boolean })[] {
+  const mine = new Set(viewerEventIds);
+  return [...events]
+    .sort((a, b) => a.startDate.localeCompare(b.startDate))
+    .map((event) => ({ ...event, shared: mine.has(event.id) }))
+    .sort((a, b) => Number(b.shared) - Number(a.shared));
 }

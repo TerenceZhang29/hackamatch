@@ -21,23 +21,19 @@ test.afterEach(async () => {
 async function signInAsNewAdmin(page: Page) {
   const email = newEmail();
   await signIn(page, email);
-  await onboard(page, {
-    role: "I want to find an idea to build",
-    sentence: "I run HackaMatch and build backends",
-  });
-  await expect(page).toHaveURL("/matches?welcome=1");
+  await onboard(page);
+  await expect(page).toHaveURL("/");
   await query(`update public.users set is_admin = true where cornell_email = $1`, [email]);
   return email;
 }
 
 test("every admin page is a 404 for a member who is not an admin", async ({ page }) => {
   await signIn(page, newEmail());
-  await onboard(page, { role: "I want to find an idea to build", sentence: "I build Go backends" });
-  await expect(page).toHaveURL("/matches?welcome=1");
+  await onboard(page);
+  await expect(page).toHaveURL("/");
   for (const path of [
     "/admin",
     "/admin/users",
-    "/admin/ideas",
     "/admin/events",
     "/admin/matches",
     "/admin/pilot",
@@ -75,6 +71,12 @@ test("an admin creates an event, and edits it without changing its link", async 
   await page.getByLabel("Max team size").fill("5");
   // The organizer doesn't need a HackaMatch account.
   await page.getByLabel(/Organizer email/).fill("organizer@example.org");
+  // The event page's details (P1-24).
+  await page.getByLabel("Time (optional)").fill("9:00 AM – 5:00 PM");
+  await page.getByLabel("Venue (optional)").fill("Bloomberg Center");
+  await page.getByLabel("Host (optional)").fill("E2E Org");
+  await page.getByLabel("Climate", { exact: true }).check();
+  await page.getByLabel("AI tools", { exact: true }).check();
   await page.getByRole("button", { name: "Create event" }).click();
   const slug = name.toLowerCase().replaceAll(" ", "-");
   await expect(page.getByRole("status")).toHaveText(`Saved (${slug})`);
@@ -89,10 +91,22 @@ test("an admin creates an event, and edits it without changing its link", async 
     team_size_max: number;
     organizer_email: string | null;
     organizer_id: string | null;
-  }>(`select team_size_max, organizer_email, organizer_id from public.events where slug = $1`, [
-    slug,
-  ]);
+    time_label: string;
+    venue: string;
+    host: string;
+    domains: string[];
+  }>(
+    `select team_size_max, organizer_email, organizer_id, time_label, venue, host, domains
+     from public.events where slug = $1`,
+    [slug],
+  );
   expect(row!.team_size_max).toBe(5);
+  expect(row).toMatchObject({
+    time_label: "9:00 AM – 5:00 PM",
+    venue: "Bloomberg Center",
+    host: "E2E Org",
+    domains: ["climate", "ai-tools"],
+  });
   expect(row!.organizer_email).toBe("organizer@example.org");
   expect(row!.organizer_id).toBeNull();
 });
@@ -135,8 +149,13 @@ test("a manual match emails both people, and each can answer from the email", as
   const visitor = await browser.newContext();
   try {
     // The email's links are, in order: Interested, Pass, then the pause footer.
-    const link = (html: string) =>
-      [...html.matchAll(/href="([^"]*\/r\/[^"]+)"/g)][0]![1]!.replaceAll("&amp;", "&");
+    // Just the path: the email names APP_URL, and the test server may run on another port.
+    const link = (html: string) => {
+      const url = new URL(
+        [...html.matchAll(/href="([^"]*\/r\/[^"]+)"/g)][0]![1]!.replaceAll("&amp;", "&"),
+      );
+      return `${url.pathname}${url.search}`;
+    };
     const pageA = await visitor.newPage();
     await pageA.goto(link(toMaya!.html));
     await pageA.getByRole("button", { name: "Yes, I'm interested" }).click();
@@ -149,21 +168,10 @@ test("a manual match emails both people, and each can answer from the email", as
   }
 });
 
-test("an admin features an idea and makes someone an organizer", async ({ page }) => {
+test("an admin makes someone an organizer", async ({ page }) => {
   await signInAsNewAdmin(page);
   const owner = newEmail();
-  const ownerId = await createUser(owner, { name: "Feature Me", role: "idea" });
-  const pitch = `E2E feature ${randomUUID().slice(0, 6)}`;
-  await query(`insert into public.ideas (owner_id, raw_text, pitch) values ($1, 'Text', $2)`, [
-    ownerId,
-    pitch,
-  ]);
-
-  await page.goto("/admin/ideas");
-  await page.getByRole("row", { name: pitch }).getByRole("button", { name: "Feature" }).click();
-  await expect(
-    page.getByRole("row", { name: pitch }).getByRole("button", { name: "Unfeature" }),
-  ).toBeVisible();
+  await createUser(owner, { name: "Organize Me" });
 
   await page.goto(`/admin/users?q=${encodeURIComponent(owner)}`);
   await page
@@ -174,10 +182,9 @@ test("an admin features an idea and makes someone an organizer", async ({ page }
     page.getByRole("row", { name: owner }).getByRole("button", { name: "Remove organizer" }),
   ).toBeVisible();
 
-  const [row] = await query<{ featured: boolean; organizer: boolean }>(
-    `select i.featured, u.is_organizer as organizer from public.ideas i
-     join public.users u on u.id = i.owner_id where i.pitch = $1`,
-    [pitch],
+  const [row] = await query<{ organizer: boolean }>(
+    `select is_organizer as organizer from public.users where cornell_email = $1`,
+    [owner],
   );
-  expect(row).toEqual({ featured: true, organizer: true });
+  expect(row).toEqual({ organizer: true });
 });

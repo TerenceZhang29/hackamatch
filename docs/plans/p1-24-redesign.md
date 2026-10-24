@@ -1,6 +1,6 @@
 # P1-24: redesign of the landing page, sign-up, cards and events
 
-Requested by the owner on 2026-10-22. Status: **planned**; the owner answered every open question on 2026-10-22 and reviewed the remaining screens on the canvas on 2026-10-23 (see Decisions). Checked against the canvas on 2026-10-23: no differences left.
+Requested by the owner on 2026-10-22. Status: **in progress (2026-10-23), on branch `p1-24-redesign`**, see "Built so far" below; the owner answered every open question on 2026-10-22 and reviewed the remaining screens on the canvas on 2026-10-23 (see Decisions). Checked against the canvas on 2026-10-23: no differences left.
 
 The design was worked out in a clickable mockup, reviewed through about 40 comments on it: [HackaMatch Sign-up Flow](https://claude.ai/artifact/HZn2BMBxNwiwDMg1J1j9HP) (private to the owner). Its four rows:
 - **Landing:** the signed-out page.
@@ -263,3 +263,28 @@ There is only one kind of card, the person card, so **ideas are removed** from t
 - **Supersedes most of P1-23:** idea cards, the two decks and the role-based default go. The person card is redesigned. Per-card Pass stays, for people.
 - **Supersedes P1-09** (post an idea) and the idea parts of P1-10, P1-11 and P1-17.
 - P1-21's rule ("no idea and no skill → blocked") is met by requiring at least one skill at step 3 (owner, 2026-10-23).
+
+## Built so far (2026-10-23, local only)
+- **Done, with tests:**
+  - order of work steps 1 to 6 (except the `/me` imports);
+  - match emails and the pair page no longer name an idea.
+- **First migration:** `20261024000000_signup_and_event_details.sql`. Applied locally, and on production on 2026-10-24 (owner approved; backup taken first).
+- **NYC events on production** (2026-10-24, owner approved): Spacefast Build and Hack Night, NYC Environmental Agent-a-thon, Fashion and Finance Hackathon and Innodata Hackathon 2026, with venue, host, areas and link. No time or description yet; add them in `/admin/events`.
+- **Deviations from the plan:**
+  - The event time is one free-text field, `time_label` (for example "9:00 AM – 5:00 PM"), not separate start and end times.
+  - New members get `role = 'both'`, hidden, until the second migration drops the board functions' role check.
+  - `/me` lost its sentence section too, since no AI runs at sign-up.
+  - Tests can run next to `pnpm dev`: `NEXT_DIST_DIR=.next-e2e E2E_PORT=3100 pnpm test:e2e`. Magic and email links open on the server under test.
+- **Matched to the mockup (2026-10-23):** sizes, weights, spacing and colors on the landing page, all four sign-up steps, the person card and Discover (grey page, white filter strip, peeking card, round buttons), the Events list and the event page.
+  - The Events rows no longer show an "N going" count, as in the mockup.
+  - The event page keeps one small line the mockup doesn't have: team size and the event site link.
+- **Left to do:**
+  - GitHub and LinkedIn import on `/me`. It was only ever in onboarding, so it needs building.
+  - Removing now-unused code: `server/ideas.ts`, the idea and profile extraction prompts, `lib/onboarding.ts`, the leftover onboarding schemas, and the demo seed's ideas.
+  - The second migration, after deploy.
+  - Docs: `design.md` sections and the P1-22 and P1-23 plans.
+- **Tests:**
+  - 283 unit tests pass.
+  - Browser tests: 165 of 166 pass on desktop and mobile with `--workers=3`. The one failure, a sign-in rate-limit test this change doesn't touch, passes alone. With the default worker count, a few tests time out on the dev server.
+  - Database tests: 74 of 77 pass. The 3 failures come from an extra local account (`dev-901`), not from this change.
+

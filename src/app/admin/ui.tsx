@@ -19,9 +19,6 @@ export function AdminShell({ title, children }: { title: string; children: React
         <Link href="/admin/users" className="underline">
           Users
         </Link>
-        <Link href="/admin/ideas" className="underline">
-          Ideas
-        </Link>
         <Link href="/admin/events" className="underline">
           Events
         </Link>

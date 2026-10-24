@@ -1,18 +1,9 @@
 import "server-only";
 import { getConfig } from "@/lib/config";
-import type { DeckKind } from "@/lib/deck";
 import { createServiceClient } from "@/lib/supabase/service";
 import { localDateString } from "@/lib/time";
-import {
-  getPublicPerson,
-  listBoardIdeas,
-  listBoardPeople,
-  type BoardIdea,
-  type BoardPerson,
-} from "./board";
+import { listBoardPeople, type BoardPerson } from "./board";
 import { passedCards } from "./card-passes";
-
-export type DeckCard = { kind: "idea"; idea: BoardIdea } | { kind: "person"; person: BoardPerson };
 
 /** How many cards to look ahead; also the most the "N left" count shows before "+". */
 export const DECK_LOOKAHEAD = 100;
@@ -36,35 +27,24 @@ export async function deckExcludedUserIds(viewerId: string): Promise<string[]> {
 }
 
 /**
- * One deck at a time (P1-23): ideas (open ideas from anyone) or builders
- * (people who build, "both" included). Cards the viewer passed stay out of
- * their deck only; passing a person's card still shows their ideas.
+ * The deck (P1-24): one kind of card, people. Everyone in the pool, minus the
+ * viewer, people they've answered, revealed matches and cards they passed;
+ * optionally only people going to one event.
  *
- * The order is the board's for now (featured, then newest). Phase 2's ranking
+ * The order is the board's for now (newest first). Phase 2's ranking
  * replaces this function.
  */
 export async function nextDeckCards(
   viewer: { id: string },
   eventSlug: string | null,
-  kind: DeckKind,
-): Promise<{ cards: DeckCard[]; more: boolean }> {
+): Promise<{ cards: BoardPerson[]; more: boolean }> {
   const [exclude, passed] = await Promise.all([
     deckExcludedUserIds(viewer.id),
     passedCards(viewer.id),
   ]);
-  const filters = { event: eventSlug, domain: null, skill: null, intent: null };
-  if (kind === "ideas") {
-    const ideas = await listBoardIdeas(filters, DECK_LOOKAHEAD, exclude, passed.ideas);
-    return {
-      cards: ideas.rows.map((idea): DeckCard => ({ kind: "idea", idea })),
-      more: ideas.hasMore,
-    };
-  }
+  const filters = { event: eventSlug, domain: null, skill: null };
   const people = await listBoardPeople(filters, DECK_LOOKAHEAD, [...exclude, ...passed.people]);
-  return {
-    cards: people.rows.map((person): DeckCard => ({ kind: "person", person })),
-    more: people.hasMore,
-  };
+  return { cards: people.rows, more: people.hasMore };
 }
 
 export interface DeckEvent {
@@ -75,28 +55,19 @@ export interface DeckEvent {
 }
 
 export interface DeckDetails {
-  /** The viewer's tags and upcoming events, for "You both" and highlighted needs. */
-  viewer: { tags: string[]; eventIds: string[] };
-  /**
-   * The person on the card, or the idea's owner: upcoming events they're in
-   * the pool for, and their open ideas' pitches (person cards show the count).
-   */
+  /** The viewer's upcoming events, so shared hackathons come first and green. */
+  viewerEventIds: string[];
+  /** The person's upcoming events where they're still in the pool, soonest first. */
   personEvents: DeckEvent[];
-  personIdeas: string[];
-  /** Idea card: the owner's public card (null if they're not in the pool). */
-  owner: BoardPerson | null;
-  /** Idea card: the event the idea is tagged with, if it hasn't ended. */
-  ideaEvent: DeckEvent | null;
-  /** The person, or the idea's owner, is a demo profile. */
+  /** The person is a demo profile. */
   isDemo: boolean;
 }
 
 /**
  * The extra details for the card on top: only fields members can already see
- * on the board, event pages and person pages. Never contact details or an
- * idea's full text.
+ * on event and person pages. Never contact details.
  */
-export async function deckDetails(viewerId: string, card: DeckCard): Promise<DeckDetails> {
+export async function deckDetails(viewerId: string, person: BoardPerson): Promise<DeckDetails> {
   const supabase = createServiceClient();
   const today = localDateString(getConfig().APP_TIMEZONE);
   const upcomingEventsOf = async (userId: string, inPoolOnly: boolean) => {
@@ -117,62 +88,14 @@ export async function deckDetails(viewerId: string, card: DeckCard): Promise<Dec
       }))
       .sort((a, b) => a.startDate.localeCompare(b.startDate));
   };
-
-  const ownerId = card.kind === "idea" ? card.idea.owner_id : null;
-  // Idea cards show the owner's hackathons; person cards the person's.
-  const personId = card.kind === "person" ? card.person.user_id : ownerId;
-  const ideaEventId = card.kind === "idea" ? card.idea.event_id : null;
-  const [profile, viewerEvents, personEvents, personIdeas, owner, ideaEvent] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select("skills, stack, domains")
-      .eq("user_id", viewerId)
-      .maybeSingle(),
+  const [viewerEvents, personEvents, demo] = await Promise.all([
     upcomingEventsOf(viewerId, false),
-    personId ? upcomingEventsOf(personId, true) : Promise.resolve([]),
-    personId
-      ? supabase
-          .from("ideas")
-          .select("pitch")
-          .eq("owner_id", personId)
-          .eq("status", "open")
-          .not("pitch", "is", null)
-          .order("created_at", { ascending: false })
-      : Promise.resolve({ data: [] as { pitch: string | null }[], error: null }),
-    ownerId ? getPublicPerson(ownerId) : Promise.resolve(null),
-    ideaEventId
-      ? supabase
-          .from("events")
-          .select("id, slug, name, start_date")
-          .eq("id", ideaEventId)
-          .gte("end_date", today)
-          .maybeSingle()
-      : Promise.resolve({ data: null, error: null }),
+    upcomingEventsOf(person.user_id, true),
+    supabase.from("users").select("is_demo").eq("id", person.user_id).maybeSingle(),
   ]);
-  if (ideaEvent.error) throw new Error(`deckDetails: ${ideaEvent.error.message}`);
-  if (profile.error) throw new Error(`deckDetails: ${profile.error.message}`);
-  if (personIdeas.error) throw new Error(`deckDetails: ${personIdeas.error.message}`);
-  const p = profile.data;
-  const subject = personId;
-  const { data: demo } = subject
-    ? await supabase.from("users").select("is_demo").eq("id", subject).maybeSingle()
-    : { data: null };
   return {
-    viewer: {
-      tags: [...(p?.skills ?? []), ...(p?.stack ?? []), ...(p?.domains ?? [])],
-      eventIds: viewerEvents.map((e) => e.id),
-    },
+    viewerEventIds: viewerEvents.map((e) => e.id),
     personEvents,
-    personIdeas: personIdeas.data.map((i) => i.pitch!).filter(Boolean),
-    owner,
-    ideaEvent: ideaEvent.data
-      ? {
-          id: ideaEvent.data.id,
-          slug: ideaEvent.data.slug,
-          name: ideaEvent.data.name,
-          startDate: ideaEvent.data.start_date,
-        }
-      : null,
-    isDemo: demo?.is_demo ?? false,
+    isDemo: demo.data?.is_demo ?? false,
   };
 }

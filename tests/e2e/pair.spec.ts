@@ -42,7 +42,7 @@ async function revealedMatch(page: Page) {
   return { viewerId: viewer!.id, otherId: other, otherEmail, matchId, ideaId: idea!.id };
 }
 
-test("the pair page shows contact details, the full idea and a message to copy", async ({
+test("the pair page shows contact details and a message to copy, not the idea (P1-24)", async ({
   page,
 }) => {
   const { matchId, otherEmail } = await revealedMatch(page);
@@ -54,7 +54,8 @@ test("the pair page shows contact details, the full idea and a message to copy",
     `mailto:${otherEmail}`,
   );
   await expect(other.getByRole("link", { name: "GitHub" })).toBeVisible();
-  await expect(page.getByText("The full idea text, only for the match")).toBeVisible();
+  // Ideas are gone from the app (P1-24): an old match's idea stays hidden.
+  await expect(page.getByText("The full idea text, only for the match")).toHaveCount(0);
   await expect(page.getByText(/15-minute coffee at Cornell Tech/)).toBeVisible();
 });
 
@@ -132,9 +133,7 @@ test("'We teamed up' twice for the same event makes one team", async ({ page }) 
   await expect(page.getByLabel("Team for Cornell Tech Fall Hack")).toBeVisible();
 });
 
-test("only a mutual match can be added to a team, and the idea owner can mark it filled", async ({
-  page,
-}) => {
+test("only a mutual match can be added to a team", async ({ page }) => {
   const { matchId, viewerId } = await revealedMatch(page);
   await page.goto(`/matches/${matchId}`);
   await page.getByLabel("For which event?").selectOption("none");

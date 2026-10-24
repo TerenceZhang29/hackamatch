@@ -8,11 +8,10 @@ export default async function AdminHome() {
   const counts = await adminCounts();
   return (
     <AdminShell title="Admin">
-      <dl className="grid grid-cols-2 gap-4 sm:grid-cols-6">
+      <dl className="grid grid-cols-2 gap-4 sm:grid-cols-5">
         {(
           [
             ["Users", counts.users, "/admin/users"],
-            ["Ideas", counts.ideas, "/admin/ideas"],
             ["Events", counts.events, "/admin/events"],
             ["Matches", counts.matches, "/admin/matches"],
             ["Teams", counts.teams, "/admin/matches"],

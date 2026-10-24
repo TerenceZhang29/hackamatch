@@ -1,15 +1,22 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { SignupFlow } from "@/components/signup/SignupFlow";
 import { requireUser } from "@/lib/auth";
 import { sanitizeNext } from "@/lib/auth-helpers";
-import { slugsOf } from "@/lib/taxonomy/skills";
+import { splitName } from "@/lib/display-name";
 import { eventFromJoinPath, listUpcomingEvents } from "@/server/events";
-import { OnboardingFlow } from "./OnboardingFlow";
+import { getPendingSignup } from "@/server/signup";
+import { submitOnboarding } from "../signup/actions";
 
 export const metadata: Metadata = { title: "Join · HackaMatch" };
 
 const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value);
 
+/**
+ * For someone signed in who hasn't joined yet (P1-24): the sign-up steps
+ * without the email. If they gave their answers on `/signup`, those are shown
+ * on `/signup/finish` instead.
+ */
 export default async function OnboardingPage({
   searchParams,
 }: {
@@ -19,27 +26,19 @@ export default async function OnboardingPage({
   const user = await requireUser(
     next ? `/onboarding?next=${encodeURIComponent(next)}` : "/onboarding",
   );
-  if (user.onboarded_at) redirect(next ?? "/matches");
+  if (user.onboarded_at) redirect(next ?? "/");
+  if (await getPendingSignup(user.cornell_email)) redirect("/signup/finish");
 
   const [events, joinEventId] = await Promise.all([listUpcomingEvents(), eventFromJoinPath(next)]);
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-lg flex-col justify-center px-4 py-12">
-      <OnboardingFlow
-        initial={{
-          name: user.name ?? "",
-          role: user.role,
-          intents: user.intents,
-          sentence: user.raw_bio ?? "",
-        }}
+    <main className="mx-auto flex w-full max-w-lg flex-col px-4 pt-2 pb-12">
+      <SignupFlow
         events={events}
         initialEventIds={joinEventId ? [joinEventId] : []}
-        next={next}
-        suggestions={{
-          skills: slugsOf("skills"),
-          stack: slugsOf("stack"),
-          domains: slugsOf("domains"),
-        }}
+        initialName={splitName(user.name)}
+        askEmail={false}
+        submit={submitOnboarding}
       />
       <form action="/logout" method="post" className="mt-10 text-center text-sm text-muted">
         Signed in as <span className="break-all">{user.cornell_email}</span> ·{" "}

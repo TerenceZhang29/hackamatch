@@ -22,3 +22,14 @@ export function formatDateRange(start: string, end: string): string {
     );
   return start === end ? format(start) : `${format(start)} – ${format(end)}`;
 }
+
+/** "Sat, Nov 7" for a one-day event, "Nov 11 – Nov 12" for longer ones (P1-24 date pills). */
+export function formatEventDates(start: string, end: string): string {
+  if (start !== end) return formatDateRange(start, end);
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(`${start}T00:00:00Z`));
+}

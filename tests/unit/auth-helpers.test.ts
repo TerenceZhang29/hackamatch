@@ -95,7 +95,7 @@ describe("normalizeEmail", () => {
 });
 
 describe("isProtectedPath", () => {
-  it.each(["/me", "/matches", "/matches/abc", "/ideas/new", "/organizer/events", "/admin"])(
+  it.each(["/me", "/matches", "/matches/abc", "/organizer/events", "/admin"])(
     "protects %s",
     (path) => {
       expect(isProtectedPath(path)).toBe(true);

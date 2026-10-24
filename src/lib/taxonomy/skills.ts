@@ -205,3 +205,84 @@ export const TAXONOMY: Readonly<Record<TaxonomyGroup, readonly Entry[]>> = {
 export function slugsOf(group: TaxonomyGroup): string[] {
   return TAXONOMY[group].map(([slug]) => slug);
 }
+
+/**
+ * Skills and stack split for sign-up (P1-24): design, product and go-to-market
+ * skills are "business"; everything else, stack included, is "technical".
+ */
+const BUSINESS_SKILLS: ReadonlySet<string> = new Set([
+  "ux-design",
+  "ui-design",
+  "graphic-design",
+  "user-research",
+  "product-management",
+  "project-management",
+  "pitching",
+  "business-development",
+  "marketing",
+  "growth",
+  "sales",
+  "finance",
+  "fundraising",
+  "operations",
+  "legal",
+  "content-writing",
+  "video-production",
+  "community-building",
+]);
+
+export type SkillGroup = "technical" | "business";
+
+export function skillGroup(slug: string): SkillGroup {
+  return BUSINESS_SKILLS.has(slug) ? "business" : "technical";
+}
+
+/**
+ * Areas that go together, for the sign-up area search (P1-24): typing
+ * "space" also offers manufacturing and energy. Hand-written so no AI is
+ * needed; every area has an entry (checked by a unit test).
+ */
+export const RELATED_DOMAINS: Readonly<Record<string, readonly string[]>> = {
+  health: ["mental-health", "fitness", "biotech", "elder-care"],
+  "mental-health": ["health", "fitness", "social"],
+  fitness: ["health", "sports", "mental-health"],
+  biotech: ["health", "agriculture"],
+  fintech: ["insurance", "enterprise-saas", "ecommerce"],
+  insurance: ["fintech", "health"],
+  climate: ["energy", "agriculture", "transportation"],
+  energy: ["climate", "smart-home", "manufacturing"],
+  agriculture: ["climate", "food", "biotech"],
+  edtech: ["campus-life", "productivity", "parenting"],
+  "campus-life": ["edtech", "social", "food"],
+  civic: ["nonprofit", "accessibility", "transportation"],
+  nonprofit: ["civic", "accessibility", "climate"],
+  accessibility: ["civic", "health", "elder-care"],
+  devtools: ["ai-tools", "productivity", "security-privacy"],
+  "ai-tools": ["devtools", "productivity", "creator-tools"],
+  productivity: ["ai-tools", "enterprise-saas", "devtools"],
+  "enterprise-saas": ["productivity", "hr-recruiting", "fintech"],
+  "hr-recruiting": ["enterprise-saas", "campus-life"],
+  "legal-tech": ["enterprise-saas", "civic", "security-privacy"],
+  "security-privacy": ["devtools", "legal-tech", "fintech"],
+  social: ["dating", "creator-tools", "campus-life"],
+  dating: ["social"],
+  "creator-tools": ["media", "music", "social"],
+  media: ["creator-tools", "music", "social"],
+  music: ["media", "creator-tools", "gaming"],
+  gaming: ["music", "sports", "social"],
+  sports: ["fitness", "gaming"],
+  fashion: ["ecommerce", "creator-tools"],
+  ecommerce: ["marketplace", "fashion", "logistics"],
+  marketplace: ["ecommerce", "real-estate", "food"],
+  food: ["agriculture", "marketplace", "campus-life"],
+  travel: ["transportation", "marketplace"],
+  transportation: ["logistics", "travel", "climate"],
+  logistics: ["transportation", "ecommerce", "manufacturing"],
+  "real-estate": ["smart-home", "marketplace"],
+  "smart-home": ["energy", "real-estate", "elder-care"],
+  pets: ["marketplace", "health"],
+  parenting: ["edtech", "elder-care", "health"],
+  "elder-care": ["health", "parenting", "accessibility"],
+  space: ["manufacturing", "energy"],
+  manufacturing: ["logistics", "energy", "space"],
+};

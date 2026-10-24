@@ -1,4 +1,3 @@
-import { Plus } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Tabs } from "./Nav";
@@ -27,12 +26,7 @@ export function Shell({
             Hacka<span className="text-accent">Match</span>
           </Link>
           {member ? <Tabs waiting={waiting} placement="top" /> : null}
-          {member ? (
-            <Button href="/ideas/new" size="sm" aria-label="Post an idea" title="Post an idea">
-              <Plus aria-hidden="true" className="size-4" />
-              <span className="hidden sm:inline">Idea</span>
-            </Button>
-          ) : viewer === "not-onboarded" ? (
+          {member ? null : viewer === "not-onboarded" ? (
             <Button href="/onboarding" size="sm">
               Finish joining
             </Button>

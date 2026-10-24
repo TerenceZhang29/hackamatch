@@ -8,9 +8,11 @@ import { Outcome } from "@/components/Outcome";
 import { PairStatus } from "@/components/PairStatus";
 import { PersonCard } from "@/components/PersonCard";
 import { getUser } from "@/lib/auth";
-import { demoIds, getPublicPerson, openIdeasOf, poolEventsFor } from "@/server/board";
+import { sharedFirst } from "@/lib/deck";
+import { demoUserIds, getPublicPerson, poolEventsFor } from "@/server/board";
+import { listEventInterestIds } from "@/server/events";
 
-export const metadata: Metadata = { title: "Builder · HackaMatch" };
+export const metadata: Metadata = { title: "Person · HackaMatch" };
 
 export default async function PersonPage({
   params,
@@ -27,14 +29,19 @@ export default async function PersonPage({
 
   const person = await getPublicPerson(id);
   if (!person) notFound();
-  const ideas = await openIdeasOf(id);
   const viewer: Viewer = !user ? "anon" : user.onboarded_at ? "onboarded" : "not-onboarded";
+  // Where someone is going is for members only.
+  const [going, myEventIds, demo] = await Promise.all([
+    viewer === "onboarded" ? poolEventsFor([id]) : Promise.resolve(new Map()),
+    viewer === "onboarded" ? listEventInterestIds(user!.id) : Promise.resolve([]),
+    demoUserIds([id]),
+  ]);
 
   return (
     <main className="mx-auto flex max-w-xl flex-col gap-4 px-4 py-6">
       <Link
-        href="/?tab=people"
-        aria-label="All builders"
+        href="/?view=list"
+        aria-label="Everyone"
         className="-ml-2 self-start rounded-full p-2 text-muted"
       >
         <ArrowLeft aria-hidden="true" className="size-5" />
@@ -43,10 +50,10 @@ export default async function PersonPage({
       <Outcome params={outcome} />
       <PersonCard
         person={person}
-        ideaCount={ideas.length}
-        lookingEvents={viewer === "onboarded" ? (await poolEventsFor([id])).get(id) : undefined}
-        isDemo={(await demoIds([id])).users.has(id)}
+        goingTo={viewer === "onboarded" ? sharedFirst(going.get(id) ?? [], myEventIds) : undefined}
+        isDemo={demo.has(id)}
         headingLevel={2}
+        linkName={false}
         actions={
           <CardActions
             viewer={viewer}
@@ -65,25 +72,6 @@ export default async function PersonPage({
           />
         }
       />
-      {ideas.length ? (
-        <section id="ideas" aria-labelledby="ideas-heading" className="flex flex-col gap-2">
-          <h2 id="ideas-heading" className="text-lg font-semibold">
-            {person.display_name}&apos;s ideas
-          </h2>
-          <ul className="flex flex-col gap-2">
-            {ideas.map((idea) => (
-              <li key={idea.id}>
-                <Link
-                  href={`/ideas/${idea.id}`}
-                  className="block rounded-2xl bg-surface px-4 py-3 font-medium hover:underline"
-                >
-                  {idea.pitch}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
     </main>
   );
 }

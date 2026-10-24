@@ -2,18 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { EVENT_NAME_MAX } from "@/lib/event-name";
+import { normalizeTags } from "@/lib/taxonomy/normalize";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
 import { pausedUntilFor } from "@/lib/pause";
-import {
-  createAdminMatch,
-  findUserIdByEmail,
-  saveEvent,
-  setIdeaFeatured,
-  setIdeaStatusAsAdmin,
-  setOrganizer,
-} from "@/server/admin";
+import { createAdminMatch, findUserIdByEmail, saveEvent, setOrganizer } from "@/server/admin";
 import { parseNetIds } from "@/lib/pilot";
 import { addPilotNetIds, removePilotNetId, setPilotOnly } from "@/server/pilot";
 import { setPausedUntil } from "@/server/profiles";
@@ -42,26 +36,6 @@ export async function setUserPause(data: FormData) {
     .parse(form(data));
   await setPausedUntil(userId, pausedUntilFor(choice));
   revalidatePath("/admin/users");
-}
-
-export async function toggleFeatured(data: FormData) {
-  await requireAdmin();
-  const { ideaId, value } = z
-    .object({ ideaId: z.guid(), value: z.enum(["true", "false"]) })
-    .parse(form(data));
-  await setIdeaFeatured(ideaId, value === "true");
-  revalidatePath("/admin/ideas");
-  revalidatePath("/");
-}
-
-export async function changeIdeaStatusAsAdmin(data: FormData) {
-  await requireAdmin();
-  const { ideaId, status } = z
-    .object({ ideaId: z.guid(), status: z.enum(["open", "filled", "archived"]) })
-    .parse(form(data));
-  await setIdeaStatusAsAdmin(ideaId, status);
-  revalidatePath("/admin/ideas");
-  revalidatePath("/");
 }
 
 const eventSchema = z
@@ -94,6 +68,11 @@ const eventSchema = z
         .transform((e) => e.toLowerCase())
         .nullable(),
     ),
+    timeLabel: optional.pipe(z.string().max(60, "Keep the time under 60 characters").nullable()),
+    venue: optional.pipe(z.string().max(120, "Keep the venue under 120 characters").nullable()),
+    host: optional.pipe(z.string().max(120, "Keep the host under 120 characters").nullable()),
+    // Area tags (P1-24): the same areas people pick at sign-up.
+    domains: z.array(z.string()).transform((tags) => normalizeTags("domains", tags)),
   })
   .refine((e) => e.endDate >= e.startDate, { message: "The end date is before the start date" })
   .refine((e) => e.teamSizeMax >= e.teamSizeMin, {
@@ -103,7 +82,7 @@ const eventSchema = z
 /** Creates or updates an event. Errors come back in the URL, so the form needs no JavaScript. */
 export async function saveEventAction(data: FormData) {
   await requireAdmin();
-  const parsed = eventSchema.safeParse(form(data));
+  const parsed = eventSchema.safeParse({ ...form(data), domains: data.getAll("domains") });
   const back =
     typeof data.get("eventId") === "string" && data.get("eventId")
       ? `/admin/events/${data.get("eventId")}`

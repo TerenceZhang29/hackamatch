@@ -34,7 +34,7 @@ test("a demo profile is labeled, answers Interested, and nobody gets an email", 
   created.push(email);
   await signInOnboarded(page, email);
   const [viewer] = await query<{ id: string }>(
-    `update public.users set role = 'builder' where cornell_email = $1 returning id`,
+    `select id from public.users where cornell_email = $1`,
     [email],
   );
   const demo = await createDemoUser("Dana Demo", {
@@ -44,7 +44,7 @@ test("a demo profile is labeled, answers Interested, and nobody gets an email", 
   demos.push(demo);
 
   await page.goto(`/?event=${event.slug}`);
-  const card = page.getByRole("article", { name: "A demo idea for the pilot." });
+  const card = page.getByRole("article", { name: "Dana D." });
   await expect(card.getByText("Demo", { exact: true })).toBeVisible();
 
   // The demo profile says Interested back at once: the match is revealed in the app.
@@ -67,25 +67,16 @@ test("a demo profile is labeled, answers Interested, and nobody gets an email", 
   expect(pool).toHaveLength(0);
 });
 
-test("list cards label demo people and their ideas, for visitors too", async ({ browser }) => {
+test("list cards label demo people, for visitors too", async ({ browser }) => {
   const event = await privateEvent();
-  const demo = await createDemoUser("Eli Demo", {
-    role: "both",
-    eventId: event.id,
-    pitch: "Another demo idea.",
-  });
+  const demo = await createDemoUser("Eli Demo", { role: "both", eventId: event.id });
   demos.push(demo);
   const visitor = await browser.newContext();
   try {
     const page = await visitor.newPage();
-    await page.goto(`/e/${event.slug}`);
-    const going = page.getByRole("region", { name: "People going" });
+    await page.goto(`/?event=${event.slug}`);
     await expect(
-      going.getByRole("article", { name: "Eli D." }).getByText("Demo", { exact: true }),
-    ).toBeVisible();
-    const ideas = page.getByRole("region", { name: "Ideas for this event" });
-    await expect(
-      ideas.getByRole("article", { name: "Another demo idea." }).getByText("Demo", { exact: true }),
+      page.getByRole("article", { name: "Eli D." }).getByText("Demo", { exact: true }),
     ).toBeVisible();
   } finally {
     await visitor.close();

@@ -59,6 +59,8 @@ export async function confirmSignIn(formData: FormData): Promise<void> {
     .maybeSingle();
 
   if (!user?.onboarded_at) {
+    // Sign-up (P1-24) asked everything before the email: show it back to confirm.
+    if (next?.startsWith("/signup/finish")) redirect(next);
     // Carry `next` so onboarding can return the user to the card they came from.
     redirect(next ? `/onboarding?next=${encodeURIComponent(next)}` : "/onboarding");
   }

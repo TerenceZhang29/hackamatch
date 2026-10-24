@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   deckHref,
-  defaultDeckKind,
   leftLabel,
-  parseDeckKind,
+  orderFilterEvents,
   parsePassToken,
   passToken,
+  sharedFirst,
 } from "@/lib/deck";
 
 describe("deckHref", () => {
@@ -13,26 +13,29 @@ describe("deckHref", () => {
     expect(deckHref(null)).toBe("/");
     expect(deckHref("cornell-tech-fall-hack")).toBe("/?event=cornell-tech-fall-hack");
   });
+});
 
-  it("names the deck when given (P1-23)", () => {
-    expect(deckHref(null, "builders")).toBe("/?deck=builders");
-    expect(deckHref("fall-hack", "ideas")).toBe("/?deck=ideas&event=fall-hack");
+describe("the hackathon filter (P1-24)", () => {
+  const ev = (id: string) => ({ id, slug: `s-${id}`, name: id });
+  it("puts the selected event first, then the viewer's own, then the rest", () => {
+    const events = [ev("a"), ev("b"), ev("c"), ev("d")];
+    expect(orderFilterEvents(events, ["c"], null).map((e) => e.id)).toEqual(["c", "a", "b", "d"]);
+    expect(orderFilterEvents(events, ["c"], "s-d").map((e) => e.id)).toEqual(["d", "c", "a", "b"]);
   });
 });
 
-describe("the two decks", () => {
-  it("idea people start on Builders; builders and 'both' on Ideas", () => {
-    expect(defaultDeckKind("idea")).toBe("builders");
-    expect(defaultDeckKind("builder")).toBe("ideas");
-    expect(defaultDeckKind("both")).toBe("ideas");
-    expect(defaultDeckKind(null)).toBe("ideas");
-  });
-
-  it("reads ?deck= and ignores anything else", () => {
-    expect(parseDeckKind("ideas")).toBe("ideas");
-    expect(parseDeckKind("builders")).toBe("builders");
-    expect(parseDeckKind("list")).toBeNull();
-    expect(parseDeckKind(["ideas"])).toBeNull();
+describe("sharedFirst", () => {
+  it("lists hackathons the viewer shares first, each group soonest first", () => {
+    const events = [
+      { id: "late", startDate: "2026-12-01" },
+      { id: "shared", startDate: "2026-11-20" },
+      { id: "soon", startDate: "2026-11-01" },
+    ];
+    expect(sharedFirst(events, ["shared"]).map((e) => [e.id, e.shared])).toEqual([
+      ["shared", true],
+      ["soon", false],
+      ["late", false],
+    ]);
   });
 });
 

@@ -172,7 +172,7 @@ test("a link without a valid token returns to login and drops an absolute next",
 });
 
 test("protected routes redirect to login when signed out", async ({ page }) => {
-  for (const path of ["/me", "/matches/abc", "/ideas/new", "/organizer/events", "/admin"]) {
+  for (const path of ["/me", "/matches/abc", "/organizer/events", "/admin"]) {
     await page.goto(path);
     await expect(page).toHaveURL(`/login?next=${encodeURIComponent(path)}`);
   }

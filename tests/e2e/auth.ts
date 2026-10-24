@@ -18,7 +18,9 @@ export async function signIn(page: Page, email: string, loginUrl = "/login") {
 
 /** Opens a magic link and presses the button that completes the sign-in. */
 export async function openMagicLink(page: Page, link: string) {
-  await page.goto(link);
+  // The link names APP_URL; open its path on the server under test, whatever its port.
+  const url = new URL(link);
+  await page.goto(`${url.pathname}${url.search}`);
   await page.getByRole("button", { name: "Continue to HackaMatch" }).click();
   // Wait for the sign-in to finish (or fail), so callers start from a settled page.
   await page.waitForURL((url) => !url.pathname.startsWith("/auth/confirm"));
@@ -40,16 +42,23 @@ export async function signInOnboarded(page: Page, email: string) {
   await markOnboarded(email);
 }
 
-/** Goes through onboarding in the UI with the given answers. */
+/**
+ * Goes through the four sign-up steps in the UI (P1-24), signed in already
+ * (so no email step), and joins the pool.
+ */
 export async function onboard(
   page: Page,
-  answers: { role: "I have an idea" | "I want to find an idea to build"; sentence: string },
+  answers: { firstName?: string; area?: string; skill?: string } = {},
 ) {
-  await page.getByRole("button", { name: answers.role }).click();
-  await page.getByLabel("First name").fill("Test");
+  await page.getByRole("button", { name: "Undecided yet" }).click();
   await page.getByRole("button", { name: "Continue" }).click();
-  await page.getByRole("textbox").first().fill(answers.sentence);
+  await page.getByRole("button", { name: answers.area ?? "Climate", exact: true }).click();
   await page.getByRole("button", { name: "Continue" }).click();
-  await expect(page.getByRole("heading", { name: "Here's what we got" })).toBeVisible();
-  await page.getByRole("button", { name: "Join the pool" }).click();
+  await page
+    .getByRole("button", { name: answers.skill ?? "Machine learning", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.getByLabel("First name").fill(answers.firstName ?? "Test");
+  await page.getByRole("button", { name: "Join HackaMatch" }).click();
+  await page.waitForURL((url) => !url.pathname.startsWith("/onboarding"));
 }

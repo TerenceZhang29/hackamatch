@@ -106,16 +106,6 @@ export async function listIdeas(): Promise<AdminIdeaRow[]> {
   }));
 }
 
-export async function setIdeaFeatured(ideaId: string, featured: boolean) {
-  const { error } = await createServiceClient().from("ideas").update({ featured }).eq("id", ideaId);
-  if (error) throw new Error(`setIdeaFeatured: ${error.message}`);
-}
-
-export async function setIdeaStatusAsAdmin(ideaId: string, status: Enums<"idea_status">) {
-  const { error } = await createServiceClient().from("ideas").update({ status }).eq("id", ideaId);
-  if (error) throw new Error(`setIdeaStatusAsAdmin: ${error.message}`);
-}
-
 export type AdminEvent = Tables<"events">;
 
 export async function listEvents(): Promise<AdminEvent[]> {
@@ -161,6 +151,11 @@ export interface EventInput {
   organizerEmail: string | null;
   /** Their account, when one with that email exists. */
   organizerId: string | null;
+  /** Shown on the event page (P1-24). */
+  timeLabel: string | null;
+  venue: string | null;
+  host: string | null;
+  domains: string[];
 }
 
 /** Creates an event, or updates one when `eventId` is given. Returns its id and slug. */
@@ -179,6 +174,10 @@ export async function saveEvent(
     team_size_max: input.teamSizeMax,
     organizer_email: input.organizerEmail,
     organizer_id: input.organizerId,
+    time_label: input.timeLabel,
+    venue: input.venue,
+    host: input.host,
+    domains: input.domains,
   };
   if (eventId) {
     // The slug is the shareable link, so renaming an event keeps it.

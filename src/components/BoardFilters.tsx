@@ -1,14 +1,8 @@
 import { Select } from "@/components/ui/Field";
 import { SlidersHorizontal } from "lucide-react";
 import { buttonClass } from "@/components/ui/Button";
-import { BOARD_INTENTS, hasFilters, type BoardState } from "@/lib/board";
-import { tagLabel } from "@/lib/taxonomy/labels";
-
-const INTENT_LABELS = {
-  hackathon: "Hackathon partner",
-  side_project: "Side project",
-  cofounder: "Co-founder",
-} as const;
+import { hasFilters, type BoardState } from "@/lib/board";
+import { displayLabel } from "@/lib/taxonomy/labels";
 
 /**
  * Filters as a plain GET form, so they work without JavaScript and the
@@ -45,7 +39,6 @@ export function BoardFilters({
         aria-label="Filters"
         className="mt-2 flex flex-wrap items-end gap-2 rounded-2xl bg-surface p-3"
       >
-        {state.tab !== "ideas" ? <input type="hidden" name="tab" value={state.tab} /> : null}
         {state.view ? <input type="hidden" name="view" value={state.view} /> : null}
         <div className="flex flex-col gap-1">
           <label htmlFor="filter-event" className="text-xs text-muted">
@@ -68,7 +61,7 @@ export function BoardFilters({
             <option value="">Any</option>
             {domains.map((slug) => (
               <option key={slug} value={slug}>
-                {tagLabel(slug)}
+                {displayLabel(slug)}
               </option>
             ))}
           </Select>
@@ -81,20 +74,7 @@ export function BoardFilters({
             <option value="">Any</option>
             {skills.map((slug) => (
               <option key={slug} value={slug}>
-                {tagLabel(slug)}
-              </option>
-            ))}
-          </Select>
-        </div>
-        <div className="flex flex-col gap-1">
-          <label htmlFor="filter-intent" className="text-xs text-muted">
-            Looking for
-          </label>
-          <Select id="filter-intent" name="intent" defaultValue={filters.intent ?? ""} size="sm">
-            <option value="">Anything</option>
-            {BOARD_INTENTS.map((intent) => (
-              <option key={intent} value={intent}>
-                {INTENT_LABELS[intent]}
+                {displayLabel(slug)}
               </option>
             ))}
           </Select>

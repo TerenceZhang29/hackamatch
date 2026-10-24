@@ -1,22 +1,13 @@
 "use server";
 
 import { z } from "zod";
-import { track } from "@/lib/analytics";
-import { isAllowedEmailDomain, normalizeEmail, sanitizeNext } from "@/lib/auth-helpers";
-import { getConfig } from "@/lib/config";
-import { PILOT_DENIED } from "@/lib/pilot";
-import { clientIp, LIMITS } from "@/lib/rate-limit";
-import { pilotCanSignIn } from "@/server/pilot";
-import { allow } from "@/server/rate-limit";
-import { headers } from "next/headers";
-import { createClient } from "@/lib/supabase/server";
+import { normalizeEmail, sanitizeNext } from "@/lib/auth-helpers";
+import { DOMAIN_ERROR, sendMagicLink } from "@/server/magic-link";
 
 export type LoginState =
   | { status: "idle" }
   | { status: "sent"; email: string }
   | { status: "error"; message: string; email: string };
-
-const DOMAIN_ERROR = "Use your @cornell.edu email";
 
 const inputSchema = z.object({
   email: z.string().transform(normalizeEmail).pipe(z.email().max(254)),
@@ -41,60 +32,8 @@ export async function requestMagicLink(
   const { email } = parsed.data;
   const next = sanitizeNext(parsed.data.next);
 
-  const config = getConfig();
-  const supabase = await createClient();
-
-  // The database is authoritative for allowed domains; the env var is only a
-  // fallback if the settings row can't be read.
-  const { data: settings } = await supabase
-    .from("app_settings")
-    .select("allowed_email_domains")
-    .maybeSingle();
-  const allowedDomains = settings?.allowed_email_domains ?? config.ALLOWED_EMAIL_DOMAINS;
-
-  // Reject before any email is sent.
-  if (!isAllowedEmailDomain(email, allowedDomains)) {
-    return { status: "error", message: DOMAIN_ERROR, email: typedEmail };
-  }
-
-  // Checked after the domain, so bad addresses don't use up anyone's allowance.
-  const ip = clientIp(await headers());
-  const [emailOk, ipOk] = await Promise.all([
-    allow(LIMITS.loginEmail, email),
-    allow(LIMITS.loginIp, ip, config.LOGIN_RATE_LIMIT_PER_IP),
-  ]);
-  if (!emailOk || !ipOk) {
-    return {
-      status: "error",
-      message: "Too many sign-in emails. Wait a while and try again.",
-      email: typedEmail,
-    };
-  }
-
-  // During the pilot, only listed netIDs may create an account. Checked after
-  // the rate limit, so the list can't be probed quickly.
-  if (!(await pilotCanSignIn(email))) {
-    return { status: "error", message: PILOT_DENIED, email: typedEmail };
-  }
-
-  // `next` is always present, even when empty: the email templates append
-  // `&token_hash=…` to this URL (see supabase/templates).
-  const confirm = new URL("/auth/confirm", config.APP_URL);
-  confirm.searchParams.set("next", next ?? "");
-
-  const { error } = await supabase.auth.signInWithOtp({
-    email,
-    options: { emailRedirectTo: confirm.toString() },
-  });
-  if (error) {
-    console.error("signInWithOtp failed", error.status, error.code, error.message);
-    const message =
-      error.status === 429
-        ? "Too many sign-in emails just now. Wait a minute and try again."
-        : "We couldn't send your sign-in link. Try again.";
-    return { status: "error", message, email: typedEmail };
-  }
-
-  await track("magic_link_requested", { has_next: next !== null });
-  return { status: "sent", email };
+  const sent = await sendMagicLink(email, next);
+  return sent.ok
+    ? { status: "sent", email }
+    : { status: "error", message: sent.message, email: typedEmail };
 }
