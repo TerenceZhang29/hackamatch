@@ -264,7 +264,7 @@ There is only one kind of card, the person card, so **ideas are removed** from t
 - **Supersedes P1-09** (post an idea) and the idea parts of P1-10, P1-11 and P1-17.
 - P1-21's rule ("no idea and no skill → blocked") is met by requiring at least one skill at step 3 (owner, 2026-10-23).
 
-## Built so far (2026-10-23, local only)
+## Built so far (live on production since 2026-10-24)
 - **Done, with tests:**
   - order of work steps 1 to 6 (except the `/me` imports);
   - match emails and the pair page no longer name an idea.
@@ -273,19 +273,28 @@ There is only one kind of card, the person card, so **ideas are removed** from t
 - **Second migration:** `20261025000000_drop_goals_and_idea_fns.sql` drops `users.intents` and its type, the idea board and idea page functions, and the role check and the role and goal arguments of `public_board_people` and `public_person`. The `role` column stays. Code and tests stopped using them first, so it runs after that deploy (owner approved 2026-10-24).
 - **Deviations from the plan:**
   - The event time is one free-text field, `time_label` (for example "9:00 AM – 5:00 PM"), not separate start and end times.
-  - New members get `role = 'both'`, hidden, until the second migration drops the board functions' role check.
+  - New members got `role = 'both'`, hidden, while the board functions still checked roles. The second migration removed that check, so the write in `completeSignup` can go.
   - `/me` lost its sentence section too, since no AI runs at sign-up.
   - Tests can run next to `pnpm dev`: `NEXT_DIST_DIR=.next-e2e E2E_PORT=3100 pnpm test:e2e`. Magic and email links open on the server under test.
 - **Matched to the mockup (2026-10-23):** sizes, weights, spacing and colors on the landing page, all four sign-up steps, the person card and Discover (grey page, white filter strip, peeking card, round buttons), the Events list and the event page.
   - The Events rows no longer show an "N going" count, as in the mockup.
   - The event page keeps one small line the mockup doesn't have: team size and the event site link.
-- **Left to do:**
+- **Deployed (2026-10-24, owner approved):** `main` at `4cdf007`, CI green. Both migrations are on production, each after a backup.
+- **Still open (as of 2026-10-26):**
   - GitHub and LinkedIn import on `/me`. It was only ever in onboarding, so it needs building.
-  - Removing now-unused code: `server/ideas.ts`, the idea and profile extraction prompts, `lib/onboarding.ts`, the leftover onboarding schemas, and the demo seed's ideas.
-  - The second migration, after deploy.
-  - Docs: `design.md` sections and the P1-22 and P1-23 plans.
+  - Removing now-unused code:
+    - `server/ideas.ts` (only the Phase 0 import still calls `createIdea`);
+    - the idea and profile extraction prompts (`lib/llm/extract-idea.ts`, `extract-profile.ts`) and `runProfileExtraction`, `getOnboardingExtraction`, `answerClarifyingQuestion`, `checkJoin`, `isExtracted`, `isOnboarded`, `setRole`, `updateSentence` in `server/profiles.ts`;
+    - `lib/onboarding.ts` and the leftover schemas in `(focus)/onboarding/schema.ts` (`ROLES`, `INTENTS`, `sentenceInputSchema`, `joinPoolInputSchema`), with their unit tests;
+    - the demo seed's ideas, and the `role = 'both'` write in `completeSignup`;
+    - the Phase 0 import still reads roles, goals and sentences and runs AI extraction: decide whether to keep it.
+  - Docs: `design.md` sections (cards, landing, sign-up), and notes in the P1-22 and P1-23 plans that parts are superseded.
+  - The four NYC events have no time or description yet (`/admin/events`).
+  - Local only: the extra `dev-901` account makes 2 database tests fail; resetting the local database (`pnpm db:reset`) clears it, and needs the owner's go-ahead.
+  - Browser tests time out under the default worker count against the dev server; run with `--workers=3` locally (CI is fine).
 - **Tests:**
   - 283 unit tests pass.
   - Browser tests: 165 of 166 pass on desktop and mobile with `--workers=3`. The one failure, a sign-in rate-limit test this change doesn't touch, passes alone. With the default worker count, a few tests time out on the dev server.
-  - Database tests: 74 of 77 pass. The 3 failures come from an extra local account (`dev-901`), not from this change.
+  - Database tests: 61 of 63 pass after the second migration. The 2 failures come from the extra local account (`dev-901`), not from this change.
+  - CI (fresh database): all green on `4cdf007`.
 
