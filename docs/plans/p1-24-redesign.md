@@ -290,11 +290,10 @@ There is only one kind of card, the person card, so **ideas are removed** from t
     - the Phase 0 import still reads roles, goals and sentences and runs AI extraction: decide whether to keep it.
   - Docs: `design.md` sections (cards, landing, sign-up), and notes in the P1-22 and P1-23 plans that parts are superseded.
   - The four NYC events have no time or description yet (`/admin/events`).
-  - Local only: the extra `dev-901` account makes 2 database tests fail; resetting the local database (`pnpm db:reset`) clears it, and needs the owner's go-ahead.
   - Browser tests time out under the default worker count against the dev server; run with `--workers=3` locally (CI is fine).
 - **Tests:**
   - 283 unit tests pass.
   - Browser tests: 165 of 166 pass on desktop and mobile with `--workers=3`. The one failure, a sign-in rate-limit test this change doesn't touch, passes alone. With the default worker count, a few tests time out on the dev server.
-  - Database tests: 61 of 63 pass after the second migration. The 2 failures come from the extra local account (`dev-901`), not from this change.
+  - Database tests: all 63 pass (2026-10-26, after the stray local `dev-901` account was deleted).
   - CI (fresh database): all green on `4cdf007`.
 
