@@ -210,6 +210,17 @@ export function SignupFlow({
       Continue
     </button>
   );
+  /** Continue, disabled with a hint until the step's required pick is made. */
+  const required = (missing: boolean, id: string, hint: string) => (
+    <div className="flex flex-col gap-2">
+      {continueButton(missing, missing ? id : undefined)}
+      {missing ? (
+        <p id={id} className="text-center text-sm text-muted">
+          {hint}
+        </p>
+      ) : null}
+    </div>
+  );
   const next = (to: 2 | 3 | 4) => (event: React.FormEvent) => {
     event.preventDefault();
     setError(null);
@@ -328,7 +339,11 @@ export function SignupFlow({
             </span>
           </button>
         </fieldset>
-        {continueButton()}
+        {required(
+          !undecided && eventIds.length === 0,
+          "hackathon-needed",
+          "Pick a hackathon or Undecided yet to continue",
+        )}
       </form>
     );
   }
@@ -411,7 +426,7 @@ export function SignupFlow({
             ) : null}
           </div>
         </div>
-        {continueButton()}
+        {required(domains.length === 0, "area-needed", "Pick at least one area to continue")}
       </form>
     );
   }
@@ -501,14 +516,7 @@ export function SignupFlow({
             )}
           </div>
         </div>
-        <div className="flex flex-col gap-2">
-          {continueButton(skills.length === 0, skills.length === 0 ? "skill-needed" : undefined)}
-          {skills.length === 0 ? (
-            <p id="skill-needed" className="text-center text-sm text-muted">
-              Pick at least one skill to continue
-            </p>
-          ) : null}
-        </div>
+        {required(skills.length === 0, "skill-needed", "Pick at least one skill to continue")}
       </form>
     );
   }

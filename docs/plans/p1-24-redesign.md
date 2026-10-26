@@ -201,6 +201,7 @@ There is only one kind of card, the person card, so **ideas are removed** from t
    - "Discover who's going".
 10. **Discover filter** (2026-10-23): the chips filter the people deck; "All hackathons" is pinned and the rest scroll.
 11. **At least one skill is required** at step 3 (2026-10-23), which keeps P1-21's rule now that ideas are gone. Continue stays disabled until one is picked.
+12. **Steps 1 and 2 need a pick too** (2026-10-26): at least one hackathon or "Undecided yet" at step 1, and at least one area at step 2. Continue stays disabled with a hint until then, and the server rejects answers without them.
 
 ## Order of work
 1. **Data:**

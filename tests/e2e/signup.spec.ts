@@ -117,12 +117,18 @@ test("signs up with the email last, and the answers survive the link in a fresh 
 
 test("searches only pick supported names, and the limits hold", async ({ page }) => {
   await page.goto("/signup");
+  // A hackathon or Undecided yet first (owner, 2026-10-26).
+  await expect(page.getByRole("button", { name: "Continue" })).toBeDisabled();
+  await expect(page.getByText("Pick a hackathon or Undecided yet to continue")).toBeVisible();
   await page.getByLabel("Something else?").fill("Rocket Hack 3000");
   await expect(page.getByText("No results")).toBeVisible();
   await page.getByLabel("Something else?").fill("");
   await page.getByRole("button", { name: "Undecided yet" }).click();
   await page.getByRole("button", { name: "Continue" }).click();
 
+  // At least one area (owner, 2026-10-26).
+  await expect(page.getByRole("button", { name: "Continue" })).toBeDisabled();
+  await expect(page.getByText("Pick at least one area to continue")).toBeVisible();
   for (const area of ["Health", "Climate", "Fintech", "Education", "Civic tech"]) {
     await page.getByRole("button", { name: area, exact: true }).click();
   }

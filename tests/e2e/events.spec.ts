@@ -71,6 +71,7 @@ test("a new user arriving from a join link finishes sign-up with the event selec
     "true",
   );
   await page.getByRole("button", { name: "Continue" }).click();
+  await page.getByRole("button", { name: "Health", exact: true }).click();
   await page.getByRole("button", { name: "Continue" }).click();
   await page.getByRole("button", { name: "Backend", exact: true }).click();
   await page.getByRole("button", { name: "Continue" }).click();

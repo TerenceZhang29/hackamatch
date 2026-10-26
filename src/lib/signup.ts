@@ -131,7 +131,7 @@ export function areaChips(picked: readonly string[]): string[] {
 
 const unique = <T>(values: T[]) => [...new Set(values)];
 
-/** Step 1: events (ids) or "undecided", never both. */
+/** Step 1: at least one event (ids) or "undecided", never both (owner, 2026-10-26). */
 export const hackathonsSchema = z
   .object({
     eventIds: z.array(z.uuid()).max(20).default([]).transform(unique),
@@ -140,15 +140,24 @@ export const hackathonsSchema = z
   .refine((value) => !(value.undecided && value.eventIds.length > 0), {
     message: "Pick hackathons or Undecided, not both",
     path: ["undecided"],
+  })
+  .refine((value) => value.undecided || value.eventIds.length > 0, {
+    message: "Pick a hackathon or Undecided yet",
+    path: ["eventIds"],
   });
 
-/** Step 2: up to 5 supported areas. */
+/** Step 2: 1 to 5 supported areas (owner, 2026-10-26: at least one is required). */
 export const areasSchema = z.object({
   domains: z
     .array(z.string().refine((slug) => AREA_SET.has(slug), "Unknown area"))
-    .max(MAX_AREAS, `Pick up to ${MAX_AREAS}`)
     .default([])
-    .transform(unique),
+    .transform(unique)
+    .pipe(
+      z
+        .array(z.string())
+        .min(1, "Pick at least one area")
+        .max(MAX_AREAS, `Pick up to ${MAX_AREAS}`),
+    ),
 });
 
 /** Step 3: 1 to 3 supported skills (owner, 2026-10-23: at least one is required). */

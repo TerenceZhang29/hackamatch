@@ -114,7 +114,9 @@ describe("answersSchema", () => {
     );
   });
 
-  it("allows at most five areas, all real", () => {
+  it("requires one to five areas, all real", () => {
+    expect(answersSchema.safeParse({ ...base, domains: [] }).success).toBe(false);
+    expect(answersSchema.safeParse({ ...base, domains: undefined }).success).toBe(false);
     const six = ["health", "climate", "fintech", "edtech", "civic", "media"];
     expect(answersSchema.safeParse({ ...base, domains: six }).success).toBe(false);
     expect(answersSchema.safeParse({ ...base, domains: ["rocketry"] }).success).toBe(false);
@@ -127,9 +129,13 @@ describe("answersSchema", () => {
     expect(answersSchema.safeParse({ ...base, eventIds: ["my-hackathon"] }).success).toBe(false);
   });
 
-  it("takes events or Undecided, not both", () => {
+  it("takes events or Undecided, not both and not neither", () => {
     expect(answersSchema.safeParse({ ...base, undecided: true }).success).toBe(false);
     expect(answersSchema.safeParse({ ...base, eventIds: [], undecided: true }).success).toBe(true);
+    expect(answersSchema.safeParse({ ...base, eventIds: [] }).success).toBe(false);
+    expect(answersSchema.safeParse({ ...base, eventIds: [], undecided: false }).success).toBe(
+      false,
+    );
   });
 
   it("requires a first name", () => {

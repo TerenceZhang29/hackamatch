@@ -69,10 +69,12 @@ test("public pages", async ({ page }) => {
 
 test("sign-up, every step", async ({ page }) => {
   await page.goto("/signup");
+  await expectAccessible(page, "sign-up step 1 (nothing picked)");
   await page.getByRole("button", { name: /Cornell Tech Fall Hack/ }).click();
   await page.getByLabel("Something else?").fill("health");
   await expectAccessible(page, "sign-up step 1 (search)");
   await page.getByRole("button", { name: "Continue" }).click();
+  await expectAccessible(page, "sign-up step 2 (nothing picked)");
   await page.getByRole("button", { name: "Climate", exact: true }).click();
   await page.getByLabel("Something special? Search all areas").fill("space");
   await expectAccessible(page, "sign-up step 2");
