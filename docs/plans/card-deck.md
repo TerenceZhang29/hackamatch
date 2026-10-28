@@ -49,9 +49,9 @@ Make browsing feel easier and less overwhelming. Members see **one card at a tim
 ## Design
 - **Layout:** one large card, with **Pass** and **Interested** buttons pinned at the bottom within thumb reach. A small "N left" count and the event chips sit at the top.
 - **Gestures:**
-  - Swipe right for Interested, left for Pass, and up for the full profile.
+  - Swipe up for the full profile. Swiping right or left no longer answers (owner, 2026-10-27): Pass and Interested are the buttons, or ← and →.
   - On a laptop, use → / ← and ↑.
-  - Each button is a plain form post (`answerCard`, with `returnTo` set to the deck URL) that loads the next card, so it works without JavaScript. The swipe layer is a small client component that animates the card and then submits the same form.
+  - Each button is a plain form post (`answerCard`, with `returnTo` set to the deck URL) that loads the next card, so it works without JavaScript. The gesture layer is a small client component; the arrow keys click the same buttons.
 - **A mutual match:** answering redirects with `?matched=<id>` (the existing outcome parameter). The deck then shows a "You matched with <name>!" screen, with "Say hi" (the pair page) and "Keep going" (the next card).
 - **After a Pass:** the redirect carries `?passed=<matchId>`, so the deck can offer "↶ Undo" for that one match (decision 4).
 - **End of the deck:** "You've seen everyone for now", with links to `/events`, "Post an idea" and `/matches`. With an event chip on, it says "You've seen everyone going to <event>", with a link back to Everyone.
@@ -91,7 +91,7 @@ $0. No AI calls ("You both" is plain tag matching) and no new services.
   - "Browse all" opens the list;
   - visitors still get the list;
   - it works without JavaScript.
-- **Swipe:** a Playwright touch-drag test on the mobile project for left, right and up.
+- **Swipe:** a Playwright drag test: up opens the full profile, and sideways does nothing.
 - **a11y:** the deck and the expanded card added to `tests/e2e/a11y.spec.ts`. The buttons stay the real controls, so swiping is never the only way.
 
 ## Order of work

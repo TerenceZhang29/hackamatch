@@ -320,7 +320,9 @@ test("the hackathon filter narrows the deck; the event page opens it", async ({ 
   await expect(page).toHaveURL(`/?event=${event.slug}`);
 });
 
-test("arrow keys and swipes answer the card; up opens the full profile", async ({ page }) => {
+test("arrow keys answer the card, sideways swipes don't; up opens the full profile", async ({
+  page,
+}) => {
   const event = await privateEvent();
   const viewer = await signInMember(page);
   for (const name of ["Fourth Swipe", "Third Swipe", "Second Swipe", "First Swipe"]) {
@@ -346,13 +348,16 @@ test("arrow keys and swipes answer the card; up opens the full profile", async (
   await page.keyboard.press("ArrowUp");
   await expect(page).toHaveURL(`/?event=${event.slug}&more=1`);
 
+  // Swiping sideways no longer answers (owner, 2026-10-27).
   await page.goto(`/?event=${event.slug}`);
   await swipe(220, 0);
-  await expect(page.getByRole("article", { name: "Third S." })).toBeVisible();
   await swipe(-220, 0);
-  await expect(page.getByRole("article", { name: "Fourth S." })).toBeVisible();
+  await expect(page).toHaveURL(`/?event=${event.slug}`);
+  await expect(page.getByRole("article", { name: "Second S." })).toBeVisible();
+  await page.keyboard.press("ArrowRight");
+  await expect(page.getByRole("article", { name: "Third S." })).toBeVisible();
   await swipe(0, -160);
-  await expect(page).toHaveURL(`/?event=${event.slug}&more=1`);
+  await expect(page).toHaveURL(/[?&]more=1/);
   expect(await answersOf(viewer)).toEqual(["interested"]);
-  expect(await passes(viewer)).toHaveLength(2);
+  expect(await passes(viewer)).toHaveLength(1);
 });
