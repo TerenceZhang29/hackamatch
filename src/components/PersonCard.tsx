@@ -53,19 +53,28 @@ export function PersonCard({
           : "rounded-2xl shadow-sm ring-1 ring-line"
       }`}
     >
-      <div aria-hidden="true" className={`bg-accent-soft ${deck ? "h-16" : "h-12"}`} />
+      {/* The deck card is smaller on phones, so it fits above the buttons (P1-24 fix). */}
+      <div aria-hidden="true" className={`bg-accent-soft ${deck ? "h-10 sm:h-16" : "h-12"}`} />
       {isDemo ? (
         <span className="absolute top-3 right-3">
           <DemoChip />
         </span>
       ) : null}
-      <div className={`flex flex-col items-center gap-2.5 px-5 ${deck ? "-mt-10" : "-mt-8"}`}>
-        <span className="rounded-full ring-4 ring-bg">
-          <Avatar name={person.display_name} size={deck ? 80 : 64} />
+      <div
+        className={`flex flex-col items-center px-5 ${
+          deck ? "-mt-[30px] gap-2 sm:-mt-10 sm:gap-2.5" : "-mt-8 gap-2.5"
+        }`}
+      >
+        <span className={`rounded-full ring-bg ${deck ? "ring-[3px] sm:ring-4" : "ring-4"}`}>
+          <Avatar
+            name={person.display_name}
+            size={deck ? 80 : 64}
+            className={deck ? "max-sm:size-[60px] max-sm:text-xl" : ""}
+          />
         </span>
         <Heading
           className={`text-center leading-tight font-extrabold tracking-[-0.03em] ${
-            deck ? "text-[30px]" : "text-xl"
+            deck ? "text-[26px] sm:text-[30px]" : "text-xl"
           }`}
         >
           {linkName ? (
@@ -78,9 +87,11 @@ export function PersonCard({
         </Heading>
       </div>
       <div
-        className={`flex flex-1 flex-col ${deck ? "gap-[18px] px-5 pt-5 pb-6" : "gap-4 p-4 pt-3"}`}
+        className={`flex flex-1 flex-col ${
+          deck ? "gap-3.5 px-4 pt-3.5 pb-5 sm:gap-[18px] sm:px-5 sm:pt-5 sm:pb-6" : "gap-4 p-4 pt-3"
+        }`}
       >
-        <PersonLines person={person} goingTo={goingTo} />
+        <PersonLines person={person} goingTo={goingTo} dense={deck} />
         {actions ? <div className="mt-auto">{actions}</div> : null}
         {children}
       </div>

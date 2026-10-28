@@ -27,6 +27,9 @@ const round = "inline-flex items-center justify-center rounded-full transition a
 /**
  * ✕ / ♥ for the card on top, as one plain form that comes back to the deck.
  * Undo (the last Pass only) sits beside them when there's one to take back.
+ * They float over a fade, not a solid strip, so the card shows through above
+ * them; the bar keeps its place after the card, so scrolling to the end shows
+ * the whole card clear of the buttons.
  */
 function AnswerBar({
   person,
@@ -39,7 +42,7 @@ function AnswerBar({
 }) {
   return (
     // Above the bottom tab bar on phones.
-    <div className="sticky bottom-16 z-10 flex items-center justify-center gap-7 bg-surface/90 py-3 backdrop-blur sm:bottom-0">
+    <div className="pointer-events-none sticky bottom-16 z-10 -mx-4 -mt-6 flex items-center justify-center gap-6 bg-[linear-gradient(to_bottom,transparent,var(--color-surface)_60%)] px-4 pt-9 pb-3 sm:bottom-0 sm:gap-7">
       {undoable ? (
         <form action={undoPassAction}>
           <input type="hidden" name="passed" value={undoable} />
@@ -48,13 +51,13 @@ function AnswerBar({
             type="submit"
             aria-label="Undo"
             title="Undo"
-            className="inline-flex size-11 items-center justify-center rounded-full bg-surface text-muted transition active:scale-95"
+            className="pointer-events-auto inline-flex size-11 items-center justify-center rounded-full bg-bg text-muted shadow-[0_4px_12px_rgba(22,22,26,0.1)] transition active:scale-95"
           >
             <RotateCcw aria-hidden="true" className="size-5" />
           </button>
         </form>
       ) : null}
-      <form action={answerCard} className="flex items-center gap-7">
+      <form action={answerCard} className="pointer-events-auto flex items-center gap-6 sm:gap-7">
         <input type="hidden" name="kind" value="person" />
         <input type="hidden" name="targetId" value={person.user_id} />
         <input type="hidden" name="returnTo" value={returnTo} />
@@ -65,9 +68,9 @@ function AnswerBar({
           value="pass"
           aria-label="Pass"
           title="Pass"
-          className={`${round} size-16 bg-bg text-ink shadow-[0_6px_16px_rgba(22,22,26,0.12)]`}
+          className={`${round} size-14 bg-bg text-ink shadow-[0_6px_16px_rgba(22,22,26,0.12)] sm:size-16`}
         >
-          <X aria-hidden="true" className="size-7" strokeWidth={2.25} />
+          <X aria-hidden="true" className="size-6 sm:size-7" strokeWidth={2.25} />
         </button>
         <button
           id="deck-interested"
@@ -76,9 +79,9 @@ function AnswerBar({
           value="interested"
           aria-label="Interested"
           title="Interested"
-          className={`${round} size-[76px] bg-accent text-accent-ink shadow-[0_10px_22px_rgba(79,70,229,0.35)]`}
+          className={`${round} size-16 bg-accent text-accent-ink shadow-[0_10px_22px_rgba(79,70,229,0.35)] sm:size-[76px]`}
         >
-          <Handshake aria-hidden="true" className="size-[34px]" strokeWidth={2} />
+          <Handshake aria-hidden="true" className="size-[30px] sm:size-[34px]" strokeWidth={2} />
         </button>
       </form>
     </div>
@@ -117,7 +120,9 @@ function Matched({ name, matchId, next }: { name: string; matchId: string; next:
 /**
  * The hackathon filter (P1-24): "All hackathons" pinned at the left, then the
  * upcoming hackathons (the selected one, then the viewer's own, then the
- * rest), which scroll sideways. Plain links, so it works without JavaScript.
+ * rest), which scroll sideways, then Browse all. One row, so the card gets
+ * the height (option 2 of the phone fix); the selected chip shows how many
+ * are left. Plain links, so it works without JavaScript.
  */
 function HackathonFilter({
   events,
@@ -132,16 +137,21 @@ function HackathonFilter({
     `inline-flex h-[34px] shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 text-sm font-medium ${
       on ? "bg-ink text-bg" : "bg-bg text-ink ring-1 ring-line hover:bg-surface"
     }`;
+  const count = left ? <span className="font-normal opacity-70">· {left}</span> : null;
   return (
     // A white strip across the top of the grey Discover page (the mockup's filter bar).
-    <div className="-mx-4 -mt-6 flex flex-col gap-2 border-b border-line bg-bg px-4 pt-2.5 pb-2 sm:mx-0 sm:mt-0 sm:rounded-2xl sm:border">
-      <nav aria-label="Filter by hackathon" className="flex items-center gap-2">
+    <div className="-mx-4 -mt-6 flex items-center gap-2 border-b border-line bg-bg px-4 py-2 sm:mx-0 sm:mt-0 sm:rounded-2xl sm:border">
+      <nav aria-label="Filter by hackathon" className="flex min-w-0 flex-1 items-center gap-2">
         <Link
           href={deckHref(null)}
           aria-current={current === null ? "page" : undefined}
           className={chip(current === null)}
         >
-          All hackathons
+          {/* "All" on phones; screen readers always hear "All hackathons". */}
+          <span>
+            All<span className="max-sm:sr-only"> hackathons</span>
+          </span>
+          {current === null ? count : null}
         </Link>
         {events.length ? (
           <>
@@ -158,19 +168,21 @@ function HackathonFilter({
                     <Check aria-hidden="true" className="size-3.5" strokeWidth={3} />
                   ) : null}
                   {event.name}
+                  {current === event.slug ? count : null}
                 </Link>
               ))}
             </div>
           </>
         ) : null}
       </nav>
-      <div className="flex items-center justify-between gap-3 text-xs text-muted">
-        <span>{left ?? ""}</span>
-        <Link href="/?view=list" className="flex items-center gap-1 font-medium hover:text-ink">
-          <LayoutGrid aria-hidden="true" className="size-3.5" />
-          Browse all
-        </Link>
-      </div>
+      <Link
+        href="/?view=list"
+        title="Browse all"
+        className="inline-flex size-[34px] shrink-0 items-center justify-center rounded-full bg-surface text-ink hover:bg-surface-2"
+      >
+        <LayoutGrid aria-hidden="true" className="size-4" />
+        <span className="sr-only">Browse all</span>
+      </Link>
     </div>
   );
 }

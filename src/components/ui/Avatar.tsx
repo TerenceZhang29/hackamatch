@@ -27,7 +27,16 @@ function colorFor(name: string) {
 }
 
 /** An initials circle. Decorative: the name is always next to it. */
-export function Avatar({ name, size = 40 }: { name: string; size?: 32 | 40 | 56 | 64 | 72 | 80 }) {
+export function Avatar({
+  name,
+  size = 40,
+  className = "",
+}: {
+  name: string;
+  size?: 32 | 40 | 56 | 64 | 72 | 80;
+  /** Extra classes, such as a smaller size on phones. */
+  className?: string;
+}) {
   const dims = {
     32: "size-8 text-xs",
     40: "size-10 text-sm",
@@ -39,7 +48,7 @@ export function Avatar({ name, size = 40 }: { name: string; size?: 32 | 40 | 56 
   return (
     <span
       aria-hidden="true"
-      className={`inline-flex shrink-0 items-center justify-center rounded-full font-semibold ${dims} ${colorFor(name)}`}
+      className={`inline-flex shrink-0 items-center justify-center rounded-full font-semibold ${dims} ${colorFor(name)} ${className}`}
     >
       {initials(name)}
     </span>

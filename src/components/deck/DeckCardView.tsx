@@ -56,7 +56,7 @@ export function DeckCardView({
         <>
           {allEvents.length > goingTo.length ? (
             <Extra title="All hackathons">
-              <GoingTo events={allEvents} />
+              <GoingTo events={allEvents} dense />
             </Extra>
           ) : null}
           {skills.length > 3 ? (
