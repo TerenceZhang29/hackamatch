@@ -2,8 +2,10 @@ import "server-only";
 import { getConfig } from "@/lib/config";
 import { createServiceClient } from "@/lib/supabase/service";
 import { localDateString } from "@/lib/time";
+import { parsePassToken } from "@/lib/deck";
 import { listBoardPeople, type BoardPerson } from "./board";
-import { passedCards } from "./card-passes";
+import { passedCards, removeCardPass } from "./card-passes";
+import { undoPass } from "./matches";
 
 /** How many cards to look ahead; also the most the "N left" count shows before "+". */
 export const DECK_LOOKAHEAD = 100;
@@ -64,38 +66,58 @@ export interface DeckDetails {
 }
 
 /**
- * The extra details for the card on top: only fields members can already see
- * on event and person pages. Never contact details.
+ * The extra details for the deck's next cards: only fields members can
+ * already see on event and person pages. Never contact details.
  */
-export async function deckDetails(viewerId: string, person: BoardPerson): Promise<DeckDetails> {
+export async function deckDetailsFor(
+  viewerId: string,
+  userIds: readonly string[],
+): Promise<Record<string, DeckDetails>> {
+  if (userIds.length === 0) return {};
   const supabase = createServiceClient();
   const today = localDateString(getConfig().APP_TIMEZONE);
-  const upcomingEventsOf = async (userId: string, inPoolOnly: boolean) => {
-    let request = supabase
-      .from("event_interests")
-      .select("left_pool_at, events!inner(id, slug, name, start_date, end_date)")
-      .eq("user_id", userId)
-      .gte("events.end_date", today);
-    if (inPoolOnly) request = request.is("left_pool_at", null);
-    const { data, error } = await request;
-    if (error) throw new Error(`deckDetails: ${error.message}`);
-    return data
-      .map(({ events }) => ({
-        id: events.id,
-        slug: events.slug,
-        name: events.name,
-        startDate: events.start_date,
-      }))
-      .sort((a, b) => a.startDate.localeCompare(b.startDate));
-  };
   const [viewerEvents, personEvents, demo] = await Promise.all([
-    upcomingEventsOf(viewerId, false),
-    upcomingEventsOf(person.user_id, true),
-    supabase.from("users").select("is_demo").eq("id", person.user_id).maybeSingle(),
+    supabase
+      .from("event_interests")
+      .select("events!inner(id)")
+      .eq("user_id", viewerId)
+      .gte("events.end_date", today),
+    supabase
+      .from("event_interests")
+      .select("user_id, events!inner(id, slug, name, start_date, end_date)")
+      .in("user_id", userIds)
+      .is("left_pool_at", null)
+      .gte("events.end_date", today),
+    supabase.from("users").select("id, is_demo").in("id", userIds),
   ]);
-  return {
-    viewerEventIds: viewerEvents.map((e) => e.id),
-    personEvents,
-    isDemo: demo.data?.is_demo ?? false,
-  };
+  for (const { error } of [viewerEvents, personEvents, demo]) {
+    if (error) throw new Error(`deckDetailsFor: ${error.message}`);
+  }
+  const viewerEventIds = viewerEvents.data!.map(({ events }) => events.id);
+  const isDemo = new Set(demo.data!.filter((u) => u.is_demo).map((u) => u.id));
+  const result: Record<string, DeckDetails> = {};
+  for (const id of userIds) {
+    result[id] = {
+      viewerEventIds,
+      personEvents: personEvents
+        .data!.filter((row) => row.user_id === id)
+        .map(({ events }) => ({
+          id: events.id,
+          slug: events.slug,
+          name: events.name,
+          startDate: events.start_date,
+        }))
+        .sort((a, b) => a.startDate.localeCompare(b.startDate)),
+      isDemo: isDemo.has(id),
+    };
+  }
+  return result;
+}
+
+/** The deck's Undo: takes back a Pass (a `passed=` token). False when there was nothing to undo. */
+export async function undoDeckPass(userId: string, token: string): Promise<boolean> {
+  const pass = parsePassToken(token);
+  if (pass && "matchId" in pass) return undoPass(pass.matchId, userId);
+  if (pass) return removeCardPass(userId, pass.kind, pass.targetId);
+  return false;
 }

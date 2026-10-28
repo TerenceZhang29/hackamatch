@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 const UP = 80; // px up for the full profile
@@ -15,14 +14,14 @@ const TAP = 10; // px of movement still counted as a tap
  */
 export function Swipe({
   children,
-  moreHref,
+  onOpen,
   expanded,
 }: {
   children: React.ReactNode;
-  moreHref: string;
+  /** Opens the full profile. */
+  onOpen: () => void;
   expanded: boolean;
 }) {
-  const router = useRouter();
   const [drag, setDrag] = useState<{ x: number; y: number } | null>(null);
   const start = useRef<{ x: number; y: number } | null>(null);
 
@@ -35,7 +34,7 @@ export function Swipe({
       if (target?.closest("input, textarea, select, [contenteditable]")) return;
       if (event.key === "ArrowRight") press("deck-interested");
       else if (event.key === "ArrowLeft") press("deck-pass");
-      else if (event.key === "ArrowUp" && !expanded) router.push(moreHref, { scroll: false });
+      else if (event.key === "ArrowUp" && !expanded) onOpen();
       else return;
       event.preventDefault();
     }
@@ -60,11 +59,10 @@ export function Swipe({
     setDrag(null);
     // A tap (not a drag) on the collapsed card opens the full profile.
     if (Math.abs(d.x) < TAP && Math.abs(d.y) < TAP) {
-      if (!expanded) router.push(moreHref, { scroll: false });
+      if (!expanded) onOpen();
       return;
     }
-    if (!expanded && d.y < -UP && Math.abs(d.y) > Math.abs(d.x))
-      router.push(moreHref, { scroll: false });
+    if (!expanded && d.y < -UP && Math.abs(d.y) > Math.abs(d.x)) onOpen();
   }
 
   // The card only follows the finger upwards.

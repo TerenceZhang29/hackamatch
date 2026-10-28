@@ -82,6 +82,6 @@ There are two kinds of card, one subject each. They're used on Discover, the boa
 5. Privacy notes stay, as one line ("Only the pitch is public", "Public GitHub repos only. LinkedIn is never fetched.").
 
 ## Rules that keep it working
-- **Everything works without JavaScript:** tabs and segmented controls are links, filters and "Your hackathons" use `<details>`, and every answer is a form post. Arrow keys, and swiping up or tapping a card for the full profile, are an enhancement on top (`deck/Swipe.tsx`); swiping sideways doesn't answer.
+- **Everything works without JavaScript:** tabs and segmented controls are links, filters and "Your hackathons" use `<details>`, and every answer is a form post (on Discover, the deck's script answers through `/api/deck` instead, so the next card shows at once). Arrow keys, and swiping up or tapping a card for the full profile, are an enhancement on top (`deck/Swipe.tsx`); swiping sideways doesn't answer.
 - **No colour as the only signal:** selected states also use `aria-pressed` or `aria-current`, and ✓ has text.
 - **Every page is scanned** by `tests/e2e/a11y.spec.ts` (axe, WCAG 2.1 AA, desktop and mobile). Don't lower opacity on text over `accent`; it fails contrast.

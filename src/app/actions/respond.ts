@@ -7,9 +7,9 @@ import { requireOnboarded } from "@/lib/auth";
 import { sanitizeNext } from "@/lib/auth-helpers";
 import { LIMITS } from "@/lib/rate-limit";
 import { allow } from "@/server/rate-limit";
-import { parsePassToken, passToken } from "@/lib/deck";
-import { removeCardPass } from "@/server/card-passes";
-import { answerFromBoard, recordResponse, undoPass } from "@/server/matches";
+import { passToken } from "@/lib/deck";
+import { undoDeckPass } from "@/server/deck";
+import { answerFromBoard, recordResponse } from "@/server/matches";
 
 const cardSchema = z.object({
   kind: z.enum(["person", "idea"]),
@@ -66,9 +66,7 @@ export async function undoPassAction(formData: FormData): Promise<void> {
   if (!parsed.success) redirect("/");
   const back = sanitizeNext(parsed.data.returnTo) ?? "/";
   if (!(await allow(LIMITS.answers, user.id))) redirect(withOutcome(back, "error", "busy"));
-  const pass = parsePassToken(parsed.data.passed);
-  if (pass && "matchId" in pass) await undoPass(pass.matchId, user.id);
-  else if (pass) await removeCardPass(user.id, pass.kind, pass.targetId);
+  await undoDeckPass(user.id, parsed.data.passed);
   revalidatePath("/");
   redirect(back);
 }

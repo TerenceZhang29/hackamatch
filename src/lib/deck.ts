@@ -1,5 +1,11 @@
 /** Pure helpers for the one-card deck (docs/plans/card-deck.md). */
 
+/**
+ * How many cards, from the top, the deck keeps details for, so answering
+ * shows the next card at once.
+ */
+export const DECK_DETAILS_WINDOW = 4;
+
 /** The deck's URL, optionally narrowed to one event's pool (P1-24: one deck, people only). */
 export function deckHref(eventSlug: string | null): string {
   return eventSlug ? `/?${new URLSearchParams({ event: eventSlug })}` : "/";

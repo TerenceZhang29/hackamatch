@@ -1,3 +1,5 @@
+"use client";
+
 import {
   CalendarDays,
   Check,
@@ -9,12 +11,15 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { answerCard, undoPassAction } from "@/app/actions/respond";
+import type { DeckAnswer } from "@/app/api/deck/route";
 import { Outcome } from "@/components/Outcome";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { deckHref, leftLabel, parsePassToken } from "@/lib/deck";
+import { DECK_DETAILS_WINDOW, deckHref, leftLabel, parsePassToken } from "@/lib/deck";
 import type { BoardPerson } from "@/server/board";
 import type { DeckDetails } from "@/server/deck";
 import { DeckCardView } from "./DeckCardView";
@@ -25,7 +30,8 @@ type Params = Record<string, string | string[] | undefined>;
 const round = "inline-flex items-center justify-center rounded-full transition active:scale-95";
 
 /**
- * ✕ / ♥ for the card on top, as one plain form that comes back to the deck.
+ * ✕ / ♥ for the card on top, as one plain form that comes back to the deck;
+ * with JavaScript, `onAnswer` / `onUndo` take the submit instead (DeckView).
  * Undo (the last Pass only) sits beside them when there's one to take back.
  * They float over a fade, not a solid strip, so the card shows through above
  * them; the bar keeps its place after the card, so scrolling to the end shows
@@ -35,16 +41,20 @@ function AnswerBar({
   person,
   returnTo,
   undoable,
+  onAnswer,
+  onUndo,
 }: {
   person: BoardPerson;
   returnTo: string;
   undoable: string | null;
+  onAnswer: (event: React.FormEvent<HTMLFormElement>) => void;
+  onUndo: (event: React.FormEvent<HTMLFormElement>) => void;
 }) {
   return (
     // Above the bottom tab bar on phones.
     <div className="pointer-events-none sticky bottom-16 z-10 -mx-4 -mt-6 flex items-center justify-center gap-6 bg-[linear-gradient(to_bottom,transparent,var(--color-surface)_60%)] px-4 pt-9 pb-3 sm:bottom-0 sm:gap-7">
       {undoable ? (
-        <form action={undoPassAction}>
+        <form action={undoPassAction} onSubmit={onUndo}>
           <input type="hidden" name="passed" value={undoable} />
           <input type="hidden" name="returnTo" value={returnTo} />
           <button
@@ -57,7 +67,11 @@ function AnswerBar({
           </button>
         </form>
       ) : null}
-      <form action={answerCard} className="pointer-events-auto flex items-center gap-6 sm:gap-7">
+      <form
+        action={answerCard}
+        onSubmit={onAnswer}
+        className="pointer-events-auto flex items-center gap-6 sm:gap-7"
+      >
         <input type="hidden" name="kind" value="person" />
         <input type="hidden" name="targetId" value={person.user_id} />
         <input type="hidden" name="returnTo" value={returnTo} />
@@ -94,7 +108,17 @@ function withMore(href: string): string {
 }
 
 /**"It's a match" between cards, after an Interested made a mutual match. */
-function Matched({ name, matchId, next }: { name: string; matchId: string; next: string }) {
+function Matched({
+  name,
+  matchId,
+  next,
+  onDone,
+}: {
+  name: string;
+  matchId: string;
+  next: string;
+  onDone: () => void;
+}) {
   return (
     <section
       aria-labelledby="matched-heading"
@@ -109,7 +133,15 @@ function Matched({ name, matchId, next }: { name: string; matchId: string; next:
         <Button href={`/matches/${matchId}`} size="lg">
           Say hi
         </Button>
-        <Button href={next} size="lg" variant="ghost">
+        <Button
+          href={next}
+          size="lg"
+          variant="ghost"
+          onClick={(event) => {
+            event.preventDefault();
+            onDone();
+          }}
+        >
           Keep going
         </Button>
       </div>
@@ -187,9 +219,28 @@ function HackathonFilter({
   );
 }
 
+/** Calls the deck's route (src/app/api/deck/route.ts); rejects unless it answers 200. */
+async function deckApi<T>(body: object): Promise<T> {
+  const response = await fetch("/api/deck", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) throw new Error(`deck: ${response.status}`);
+  return response.json() as Promise<T>;
+}
+
+/** "Jordan" from "Jordan L.", for "You matched with …". */
+function firstNameOf(displayName: string): string {
+  return displayName.trim().split(/\s+/)[0] ?? displayName;
+}
+
 /**
- * One card at a time for members (docs/plans/card-deck.md). Answering posts
- * the card's form and comes back here, where the next card is on top.
+ * One card at a time for members (docs/plans/card-deck.md). With JavaScript,
+ * answering shows the next card straight away and saves the answer in the
+ * background (src/app/api/deck/route.ts); the details of the next few cards
+ * are fetched ahead. Without it, each answer posts the card's form and comes back here,
+ * where the next card is on top.
  */
 export function DeckView({
   cards,
@@ -203,8 +254,8 @@ export function DeckView({
 }: {
   cards: BoardPerson[];
   more: boolean;
-  /** Extra details for the card on top (null when the deck is empty). */
-  details: DeckDetails | null;
+  /** Extra details for the first cards (DECK_DETAILS_WINDOW), by user id. */
+  details: Record<string, DeckDetails>;
   /** `?more=1`: the card on top shows its full profile. */
   expanded: boolean;
   eventSlug: string | null;
@@ -214,29 +265,139 @@ export function DeckView({
   /** Set right after a mutual match: show the celebration before the next card. */
   matched: { name: string; matchId: string } | null;
 }) {
+  const router = useRouter();
   const here = deckHref(eventSlug);
-  const person = cards[0];
-  const passed = typeof params.passed === "string" ? params.passed : null;
-  const undoable = parsePassToken(passed) ? passed : null;
+  const [queue, setQueue] = useState(cards);
+  const [known, setKnown] = useState(details);
+  const [open, setOpen] = useState(expanded);
+  const [outcome, setOutcome] = useState<Params>(params);
+  const [celebrate, setCelebrate] = useState(matched);
+  // The last Pass, to undo. `person` is set when it was made on this screen.
+  const [undo, setUndo] = useState<{ token: string; person?: BoardPerson } | null>(() => {
+    const passed = typeof params.passed === "string" ? params.passed : null;
+    return parsePassToken(passed) ? { token: passed! } : null;
+  });
+  const fetching = useRef(new Set<string>());
+  // Counts answers, so a slow reply doesn't offer Undo after a newer answer.
+  const answered = useRef(0);
+
+  const person = queue[0];
   const eventName =
     filterEvents.find((e) => e.slug === eventSlug)?.name ?? (eventSlug ? "this event" : null);
+
+  // Fetch the details of the next few cards before they reach the top.
+  useEffect(() => {
+    const missing = queue
+      .slice(0, DECK_DETAILS_WINDOW)
+      .map((p) => p.user_id)
+      .filter((id) => !known[id] && !fetching.current.has(id));
+    if (missing.length === 0) return;
+    for (const id of missing) fetching.current.add(id);
+    deckApi<Record<string, DeckDetails>>({ op: "details", userIds: missing })
+      .then((fetched) => setKnown((k) => ({ ...k, ...fetched })))
+      .catch(() => {})
+      .finally(() => {
+        for (const id of missing) fetching.current.delete(id);
+      });
+  }, [queue, known]);
+
+  // Past the cards this page loaded, but there are more: load the next batch.
+  useEffect(() => {
+    if (!person && more) router.refresh();
+  }, [person, more, router]);
+
+  /** Shows `url` without a server render. */
+  const show = (url: string) => window.history.replaceState(null, "", url);
+
+  const toggle = (next: boolean) => {
+    setOpen(next);
+    show(next ? withMore(here) : here);
+  };
+
+  const putBack = (card: BoardPerson) =>
+    setQueue((q) => [card, ...q.filter((p) => p.user_id !== card.user_id)]);
+
+  function onAnswer(event: React.FormEvent<HTMLFormElement>) {
+    const submitter = (event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
+    const response = submitter?.value;
+    if (!person || (response !== "pass" && response !== "interested")) return;
+    event.preventDefault();
+    const card = person;
+    const mine = ++answered.current;
+    setQueue((q) => q.filter((p) => p.user_id !== card.user_id));
+    setOpen(false);
+    setUndo(null);
+    setOutcome(response === "pass" ? { passed: "1" } : { sent: "1" });
+    show(here);
+    window.scrollTo({ top: 0 });
+    deckApi<DeckAnswer>({ op: "answer", targetId: card.user_id, response }).then(
+      (result) => {
+        if (!result.ok) {
+          if (result.error !== "unavailable") putBack(card);
+          setOutcome({ error: result.error });
+        } else if (result.response === "pass") {
+          if (mine === answered.current) setUndo({ token: result.passed, person: card });
+        } else if (result.matchId) {
+          setCelebrate({ name: firstNameOf(card.display_name), matchId: result.matchId });
+        }
+      },
+      () => {
+        putBack(card);
+        setOutcome({ error: "failed" });
+      },
+    );
+  }
+
+  function onUndo(event: React.FormEvent<HTMLFormElement>) {
+    // A Pass from before this page loaded: the form post brings its card back.
+    const card = undo?.person;
+    if (!undo || !card) return;
+    event.preventDefault();
+    const token = undo.token;
+    ++answered.current;
+    setUndo(null);
+    setOutcome({});
+    putBack(card);
+    deckApi<{ ok: boolean }>({ op: "undo", passed: token }).then(
+      ({ ok }) => {
+        if (ok) return;
+        setQueue((q) => q.filter((p) => p.user_id !== card.user_id));
+        setOutcome({ error: "failed" });
+      },
+      () => {
+        setQueue((q) => q.filter((p) => p.user_id !== card.user_id));
+        setOutcome({ error: "failed" });
+      },
+    );
+  }
+
+  const undoable = undo?.token ?? null;
   return (
     <div className="mx-auto flex w-full max-w-md flex-col gap-4">
       <h1 className="sr-only">Discover</h1>
       <HackathonFilter
         events={filterEvents}
         current={eventSlug}
-        left={person && !matched ? leftLabel(cards.length, more) : null}
+        left={person && !celebrate ? leftLabel(queue.length, more) : null}
       />
-      {matched ? null : <Outcome params={params} />}
-      {matched ? (
-        <Matched name={matched.name} matchId={matched.matchId} next={here} />
+      {celebrate ? null : <Outcome params={outcome} />}
+      {celebrate ? (
+        <Matched
+          name={celebrate.name}
+          matchId={celebrate.matchId}
+          next={here}
+          onDone={() => {
+            setCelebrate(null);
+            setOutcome({});
+            show(here);
+          }}
+        />
       ) : person ? (
         <>
-          <Swipe key={person.user_id} moreHref={withMore(here)} expanded={expanded}>
+          <Swipe key={person.user_id} onOpen={() => toggle(true)} expanded={open}>
             <div className="relative pb-3">
               {/* The next card, peeking out behind this one. */}
-              {cards.length > 1 ? (
+              {queue.length > 1 ? (
                 <div
                   aria-hidden="true"
                   className="absolute inset-x-[18px] top-3.5 bottom-0 rounded-[28px] bg-line"
@@ -245,15 +406,23 @@ export function DeckView({
               <div className="relative">
                 <DeckCardView
                   person={person}
-                  details={details!}
-                  expanded={expanded}
+                  // Shown without its hackathons for a moment if answers outran the fetch.
+                  details={known[person.user_id] ?? NO_DETAILS}
+                  expanded={open}
                   moreHref={withMore(here)}
                   lessHref={here}
+                  onToggle={toggle}
                 />
               </div>
             </div>
           </Swipe>
-          <AnswerBar person={person} returnTo={here} undoable={undoable} />
+          <AnswerBar
+            person={person}
+            returnTo={here}
+            undoable={undoable}
+            onAnswer={onAnswer}
+            onUndo={onUndo}
+          />
         </>
       ) : (
         <>
@@ -276,7 +445,7 @@ export function DeckView({
             )}
           </EmptyState>
           {undoable ? (
-            <form action={undoPassAction} className="flex justify-center">
+            <form action={undoPassAction} onSubmit={onUndo} className="flex justify-center">
               <input type="hidden" name="passed" value={undoable} />
               <input type="hidden" name="returnTo" value={here} />
               <Button type="submit" variant="ghost" size="sm">
@@ -289,3 +458,5 @@ export function DeckView({
     </div>
   );
 }
+
+const NO_DETAILS: DeckDetails = { viewerEventIds: [], personEvents: [], isDemo: false };

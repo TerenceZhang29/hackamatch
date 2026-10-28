@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { SearchX } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -25,10 +26,10 @@ import {
   wantsDeck,
   type BoardState,
 } from "@/lib/board";
-import { orderFilterEvents, sharedFirst } from "@/lib/deck";
+import { DECK_DETAILS_WINDOW, orderFilterEvents, sharedFirst } from "@/lib/deck";
 import { slugsOf } from "@/lib/taxonomy/skills";
 import { boardExclusions, demoUserIds, listBoardPeople, poolEventsFor } from "@/server/board";
-import { deckDetails, nextDeckCards } from "@/server/deck";
+import { deckDetailsFor, nextDeckCards } from "@/server/deck";
 import { listEventInterestIds, listUpcomingEvents } from "@/server/events";
 import { matchedFirstName } from "@/server/matches";
 
@@ -65,8 +66,10 @@ export default async function BoardPage({
       nextDeckCards(user!, eventSlug),
       listEventInterestIds(user!.id),
     ]);
-    const top = deckData.cards[0];
-    const details = top ? await deckDetails(user!.id, top) : null;
+    const details = await deckDetailsFor(
+      user!.id,
+      deckData.cards.slice(0, DECK_DETAILS_WINDOW).map((card) => card.user_id),
+    );
     const matchedId = typeof params.matched === "string" ? params.matched : null;
     const matchedName =
       matchedId && /^[0-9a-f-]{36}$/.test(matchedId)
@@ -83,6 +86,9 @@ export default async function BoardPage({
       // Discover sits on a light grey page, like the mockup.
       <main className="flex min-h-[calc(100dvh-3.5rem)] flex-col gap-6 bg-surface px-4 py-6">
         <DeckView
+          // A fresh deck for every server render (a filter, a refresh): the
+          // deck's own state only covers answers made on this screen.
+          key={randomUUID()}
           cards={deckData.cards}
           more={deckData.more}
           details={details}

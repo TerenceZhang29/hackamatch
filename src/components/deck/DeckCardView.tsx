@@ -29,12 +29,15 @@ export function DeckCardView({
   expanded,
   moreHref,
   lessHref,
+  onToggle,
 }: {
   person: BoardPerson;
   details: DeckDetails;
   expanded: boolean;
   moreHref: string;
   lessHref: string;
+  /** Opens or closes the full profile in place; the links are the fallback without JavaScript. */
+  onToggle: (expanded: boolean) => void;
 }) {
   const allEvents = sharedFirst(details.personEvents, details.viewerEventIds);
   // The nearest three, with shared ones first.
@@ -73,6 +76,10 @@ export function DeckCardView({
           <Link
             href={lessHref}
             scroll={false}
+            onClick={(event) => {
+              event.preventDefault();
+              onToggle(false);
+            }}
             className="flex items-center gap-1 self-center text-sm text-muted"
           >
             <ChevronUp aria-hidden="true" className="size-4" /> Show less
@@ -82,6 +89,10 @@ export function DeckCardView({
         <Link
           href={moreHref}
           scroll={false}
+          onClick={(event) => {
+            event.preventDefault();
+            onToggle(true);
+          }}
           className="flex items-center gap-1 self-center text-sm text-muted"
         >
           <ChevronDown aria-hidden="true" className="size-4" /> See full profile

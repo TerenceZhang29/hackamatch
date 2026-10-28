@@ -8,6 +8,7 @@ const MESSAGES: Record<string, { text: string; tone: "neutral" | "success" | "da
   unavailable: { text: "No longer available.", tone: "danger" },
   self: { text: "That's you!", tone: "danger" },
   busy: { text: "Too fast. Try again in a few minutes.", tone: "danger" },
+  failed: { text: "That didn't save. Try again.", tone: "danger" },
 };
 
 type Params = Record<string, string | string[] | undefined>;

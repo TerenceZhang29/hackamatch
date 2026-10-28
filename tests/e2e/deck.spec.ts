@@ -99,8 +99,8 @@ test("one person at a time; Pass and Interested move on to the end", async ({ pa
   await expect(page.getByRole("article")).toHaveCount(0);
 
   // Pass hid the card only; Interested answered the pair.
-  expect(await answersOf(viewer)).toEqual(["interested"]);
-  expect((await passes(viewer)).map((p) => p.kind)).toEqual(["person"]);
+  await expect.poll(() => answersOf(viewer)).toEqual(["interested"]);
+  await expect.poll(async () => (await passes(viewer)).map((p) => p.kind)).toEqual(["person"]);
   // Passing sent nothing.
   expect(await readOutbox(newer.email)).toHaveLength(0);
 });
@@ -187,12 +187,12 @@ test("Undo takes back the last Pass, and only a Pass", async ({ page }) => {
   await page.getByRole("button", { name: "Pass" }).click();
   await expect(page.getByText("Passed", { exact: true })).toBeVisible();
   expect(await matchCount()).toBe(0);
-  expect(await passes(viewer)).toHaveLength(1);
+  await expect.poll(async () => (await passes(viewer)).length).toBe(1);
   await undo.click();
   await expect(page.getByRole("article", { name: "First U." })).toBeVisible();
   await expect(page.getByText("2 left")).toBeVisible();
   await expect(undo).toHaveCount(0);
-  expect(await passes(viewer)).toHaveLength(0);
+  await expect.poll(async () => (await passes(viewer)).length).toBe(0);
 
   // Interested offers no Undo.
   await page.getByRole("button", { name: "Interested" }).click();
@@ -348,7 +348,9 @@ test("arrow keys answer the card, sideways swipes don't; up opens the full profi
   await page.keyboard.press("ArrowUp");
   await expect(page).toHaveURL(`/?event=${event.slug}&more=1`);
 
-  // Swiping sideways no longer answers (owner, 2026-10-27).
+  // Swiping sideways no longer answers (owner, 2026-10-27). The Pass saves in
+  // the background, so wait for it before loading the deck again.
+  await expect.poll(async () => (await passes(viewer)).length).toBe(1);
   await page.goto(`/?event=${event.slug}`);
   await swipe(220, 0);
   await swipe(-220, 0);
@@ -358,6 +360,6 @@ test("arrow keys answer the card, sideways swipes don't; up opens the full profi
   await expect(page.getByRole("article", { name: "Third S." })).toBeVisible();
   await swipe(0, -160);
   await expect(page).toHaveURL(/[?&]more=1/);
-  expect(await answersOf(viewer)).toEqual(["interested"]);
-  expect(await passes(viewer)).toHaveLength(1);
+  await expect.poll(() => answersOf(viewer)).toEqual(["interested"]);
+  await expect.poll(async () => (await passes(viewer)).length).toBe(1);
 });

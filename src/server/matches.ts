@@ -1,4 +1,5 @@
 import "server-only";
+import { after } from "next/server";
 import { addCardPass } from "./card-passes";
 import { createElement } from "react";
 import { track } from "@/lib/analytics";
@@ -105,8 +106,11 @@ export async function revealIfMutual(matchId: string): Promise<Match | null> {
   const match = data[0];
   if (!match) return null;
 
-  await track("mutual_match", { match_id: matchId, source: match.source });
-  await sendMutualEmails(match);
+  // After the response, so the answer doesn't wait on the emails (and their AI intro).
+  after(async () => {
+    await track("mutual_match", { match_id: matchId, source: match.source });
+    await sendMutualEmails(match);
+  });
   return match;
 }
 
@@ -324,7 +328,7 @@ export async function answerFromBoard(
   // which decline someone, go through recordResponse instead.
   if (response === "pass") {
     await addCardPass(actorId, target.kind, target.kind === "idea" ? target.ideaId : target.userId);
-    await track("passed", { kind: target.kind, source: "board" }, actorId);
+    after(() => track("passed", { kind: target.kind, source: "board" }, actorId));
     return { ok: true, response: "pass" };
   }
 
@@ -349,7 +353,7 @@ export async function answerFromBoard(
   const row = data[0];
   if (!row) throw new Error("answerFromBoard: no match returned");
 
-  await track("interest_expressed", { match_id: row.match_id, source: "board" }, actorId);
+  after(() => track("interest_expressed", { match_id: row.match_id, source: "board" }, actorId));
 
   // Demo profiles answer Interested straight away, so testers can try the
   // whole flow; involvesDemo keeps every email of this match from going out.
@@ -367,18 +371,21 @@ export async function answerFromBoard(
   const revealed = await revealIfMutual(row.match_id);
   if (revealed) return { ok: true, response: "interested", matchId: row.match_id, revealed: true };
 
-  // The other side hasn't answered yet: tell them, unless they've had enough email today.
-  const match = await getMatch(row.match_id);
-  const otherId = resolved.userId;
-  const otherSide = match ? sideOf(match, otherId) : null;
-  const otherAnswer = match && otherSide ? match[`${otherSide}_response`] : null;
-  if (
-    match &&
-    otherAnswer === "pending" &&
-    (await inboundEmailsToday(otherId)) < DAILY_INBOUND_EMAIL_LIMIT
-  ) {
-    await sendInboundInterest(match, otherId, "interest");
-  }
+  // The other side hasn't answered yet: tell them, unless they've had enough
+  // email today. After the response, so the answer doesn't wait on the email.
+  after(async () => {
+    const match = await getMatch(row.match_id);
+    const otherId = resolved.userId;
+    const otherSide = match ? sideOf(match, otherId) : null;
+    const otherAnswer = match && otherSide ? match[`${otherSide}_response`] : null;
+    if (
+      match &&
+      otherAnswer === "pending" &&
+      (await inboundEmailsToday(otherId)) < DAILY_INBOUND_EMAIL_LIMIT
+    ) {
+      await sendInboundInterest(match, otherId, "interest");
+    }
+  });
   return { ok: true, response: "interested", matchId: row.match_id, revealed: false };
 }
 
