@@ -1,4 +1,5 @@
 import "server-only";
+import { detailsToRow, hasDetails, type EventDetails } from "@/lib/event-details";
 import { slugify } from "@/lib/slug";
 import { createServiceClient } from "@/lib/supabase/service";
 import type { Enums, Tables } from "@/types/db";
@@ -152,6 +153,8 @@ export interface EventInput {
   venue: string | null;
   host: string | null;
   domains: string[];
+  /** P1-25: what people compare hackathons on (src/lib/event-details.ts). */
+  details: EventDetails;
 }
 
 /** Creates an event, or updates one when `eventId` is given. Returns its id and slug. */
@@ -174,6 +177,9 @@ export async function saveEvent(
     venue: input.venue,
     host: input.host,
     domains: input.domains,
+    ...detailsToRow(input.details),
+    // "Details updated <date>" on the event page.
+    details_updated_at: hasDetails(input.details) ? new Date().toISOString() : null,
   };
   if (eventId) {
     // The slug is the shareable link, so renaming an event keeps it.

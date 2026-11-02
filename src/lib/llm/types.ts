@@ -10,6 +10,14 @@ export interface StructuredRequest<T> {
   maxTokens?: number;
   /** Deadline for the whole call, including the one validation retry. */
   timeoutMs?: number;
+  /** Called once with the tokens the call used, retries included (Claude only for now). */
+  onUsage?: (usage: LlmUsage) => void;
+}
+
+export interface LlmUsage {
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
 }
 
 export interface LlmClient {

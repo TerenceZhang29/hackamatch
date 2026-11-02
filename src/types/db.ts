@@ -174,60 +174,117 @@ export type Database = {
       };
       events: {
         Row: {
+          admission: Database["public"]["Enums"]["event_admission"] | null;
+          apply_by: string | null;
+          apply_url: string | null;
+          capacity: number | null;
+          chat_url: string | null;
           created_at: string;
           description: string | null;
+          details_updated_at: string | null;
           domains: string[];
           end_date: string;
+          entry_fee_cents: number | null;
+          format: Database["public"]["Enums"]["event_format"] | null;
           host: string | null;
           id: string;
+          judging: Json | null;
+          length_hours: number | null;
+          level: Database["public"]["Enums"]["event_level"] | null;
           name: string;
           nudge_sent_at: string | null;
+          open_to: string | null;
           organizer_email: string | null;
           organizer_id: string | null;
+          perk_notes: string | null;
+          perks: string[];
+          prize_total_cents: number | null;
+          prizes: Json | null;
+          schedule: Json | null;
           slug: string;
           start_date: string;
           team_size_max: number;
           team_size_min: number;
           time_label: string | null;
+          tools: string | null;
+          tracks: Json | null;
           url: string | null;
           venue: string | null;
         };
         ComputedFields: never;
         Insert: {
+          admission?: Database["public"]["Enums"]["event_admission"] | null;
+          apply_by?: string | null;
+          apply_url?: string | null;
+          capacity?: number | null;
+          chat_url?: string | null;
           created_at?: string;
           description?: string | null;
+          details_updated_at?: string | null;
           domains?: string[];
           end_date: string;
+          entry_fee_cents?: number | null;
+          format?: Database["public"]["Enums"]["event_format"] | null;
           host?: string | null;
           id?: string;
+          judging?: Json | null;
+          length_hours?: number | null;
+          level?: Database["public"]["Enums"]["event_level"] | null;
           name: string;
           nudge_sent_at?: string | null;
+          open_to?: string | null;
           organizer_email?: string | null;
           organizer_id?: string | null;
+          perk_notes?: string | null;
+          perks?: string[];
+          prize_total_cents?: number | null;
+          prizes?: Json | null;
+          schedule?: Json | null;
           slug: string;
           start_date: string;
           team_size_max?: number;
           team_size_min?: number;
           time_label?: string | null;
+          tools?: string | null;
+          tracks?: Json | null;
           url?: string | null;
           venue?: string | null;
         };
         Update: {
+          admission?: Database["public"]["Enums"]["event_admission"] | null;
+          apply_by?: string | null;
+          apply_url?: string | null;
+          capacity?: number | null;
+          chat_url?: string | null;
           created_at?: string;
           description?: string | null;
+          details_updated_at?: string | null;
           domains?: string[];
           end_date?: string;
+          entry_fee_cents?: number | null;
+          format?: Database["public"]["Enums"]["event_format"] | null;
           host?: string | null;
           id?: string;
+          judging?: Json | null;
+          length_hours?: number | null;
+          level?: Database["public"]["Enums"]["event_level"] | null;
           name?: string;
           nudge_sent_at?: string | null;
+          open_to?: string | null;
           organizer_email?: string | null;
           organizer_id?: string | null;
+          perk_notes?: string | null;
+          perks?: string[];
+          prize_total_cents?: number | null;
+          prizes?: Json | null;
+          schedule?: Json | null;
           slug?: string;
           start_date?: string;
           team_size_max?: number;
           team_size_min?: number;
           time_label?: string | null;
+          tools?: string | null;
+          tracks?: Json | null;
           url?: string | null;
           venue?: string | null;
         };
@@ -944,6 +1001,21 @@ export type Database = {
     };
     Functions: {
       display_name: { Args: { p_name: string }; Returns: string };
+      event_going_stats: {
+        Args: { p_event_ids: string[] };
+        Returns: {
+          event_id: string;
+          going: number;
+          need_team: number;
+        }[];
+      };
+      event_top_skills: {
+        Args: { p_event_id: string; p_limit?: number };
+        Returns: {
+          people: number;
+          skill: string;
+        }[];
+      };
       hit_rate_limit: {
         Args: { p_key: string; p_max: number; p_window_seconds: number };
         Returns: boolean;
@@ -1007,6 +1079,9 @@ export type Database = {
     };
     Enums: {
       card_kind: "idea" | "person";
+      event_admission: "open" | "application" | "first_come";
+      event_format: "in_person" | "online" | "hybrid";
+      event_level: "beginner" | "intermediate" | "advanced";
       experience_level: "beginner" | "intermediate" | "advanced";
       idea_scope: "weekend" | "few_weeks" | "ongoing";
       idea_status: "open" | "filled" | "archived" | "draft";
@@ -1129,6 +1204,9 @@ export const Constants = {
   public: {
     Enums: {
       card_kind: ["idea", "person"],
+      event_admission: ["open", "application", "first_come"],
+      event_format: ["in_person", "online", "hybrid"],
+      event_level: ["beginner", "intermediate", "advanced"],
       experience_level: ["beginner", "intermediate", "advanced"],
       idea_scope: ["weekend", "few_weeks", "ongoing"],
       idea_status: ["open", "filled", "archived", "draft"],

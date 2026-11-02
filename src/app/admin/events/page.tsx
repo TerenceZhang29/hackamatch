@@ -5,6 +5,9 @@ import { listEvents } from "@/server/admin";
 import { AdminShell, ScrollTable, Notice, table, td, th } from "../ui";
 import { EventForm } from "./EventForm";
 
+// "Fill from event site" reads a page and makes one model call (P1-25).
+export const maxDuration = 60;
+
 export default async function AdminEvents({
   searchParams,
 }: {

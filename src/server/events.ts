@@ -3,6 +3,7 @@ import { getConfig } from "@/lib/config";
 import { createServiceClient } from "@/lib/supabase/service";
 import { localDateString } from "@/lib/time";
 import { firstName } from "./matches";
+import type { DetailsRow } from "@/lib/event-details";
 import type { Tables } from "@/types/db";
 
 export type EventSummary = Pick<
@@ -21,6 +22,59 @@ export async function listUpcomingEvents(): Promise<EventSummary[]> {
     .gte("end_date", today)
     .order("start_date", { ascending: true });
   if (error) throw new Error(`listUpcomingEvents: ${error.message}`);
+  return data;
+}
+
+/** An upcoming event with the facts its row on the events list shows (P1-25). */
+export type EventListItem = EventSummary &
+  Pick<
+    Tables<"events">,
+    | "venue"
+    | "format"
+    | "length_hours"
+    | "entry_fee_cents"
+    | "level"
+    | "prize_total_cents"
+    | "apply_by"
+    | "admission"
+  >;
+
+/** Upcoming events for the events list, soonest first, with their row facts. */
+export async function listUpcomingEventItems(): Promise<EventListItem[]> {
+  const today = localDateString(getConfig().APP_TIMEZONE);
+  const { data, error } = await createServiceClient()
+    .from("events")
+    .select(
+      `${SUMMARY_COLUMNS}, venue, format, length_hours, entry_fee_cents, level, prize_total_cents, apply_by, admission`,
+    )
+    .gte("end_date", today)
+    .order("start_date", { ascending: true });
+  if (error) throw new Error(`listUpcomingEventItems: ${error.message}`);
+  return data;
+}
+
+/** Going and still-need-a-team counts per event (event_going_stats); events with nobody are left out. */
+export async function eventGoingStats(
+  eventIds: readonly string[],
+): Promise<Map<string, { going: number; needTeam: number }>> {
+  if (eventIds.length === 0) return new Map();
+  const { data, error } = await createServiceClient().rpc("event_going_stats", {
+    p_event_ids: [...eventIds],
+  });
+  if (error) throw new Error(`eventGoingStats: ${error.message}`);
+  return new Map(data.map((row) => [row.event_id, { going: row.going, needTeam: row.need_team }]));
+}
+
+/** The most common skills among people going (counts only), most common first. */
+export async function eventTopSkills(
+  eventId: string,
+  limit = 4,
+): Promise<{ skill: string; people: number }[]> {
+  const { data, error } = await createServiceClient().rpc("event_top_skills", {
+    p_event_id: eventId,
+    p_limit: limit,
+  });
+  if (error) throw new Error(`eventTopSkills: ${error.message}`);
   return data;
 }
 
@@ -78,10 +132,15 @@ export type EventDetail = Pick<
   | "venue"
   | "host"
   | "domains"
+  | DetailColumn
 >;
 
+/** The P1-25 detail columns (src/lib/event-details.ts reads them). */
+type DetailColumn = keyof DetailsRow | "details_updated_at";
+
+// One literal, so the client can type the result.
 const DETAIL_COLUMNS =
-  "id, slug, name, description, url, start_date, end_date, team_size_min, team_size_max, time_label, venue, host, domains";
+  "id, slug, name, description, url, start_date, end_date, team_size_min, team_size_max, time_label, venue, host, domains, format, length_hours, entry_fee_cents, open_to, level, apply_by, apply_url, admission, capacity, prize_total_cents, prizes, tracks, tools, judging, schedule, perks, perk_notes, chat_url, details_updated_at";
 
 export async function getEventById(id: string): Promise<EventDetail | null> {
   const { data, error } = await createServiceClient()

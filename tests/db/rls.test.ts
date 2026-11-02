@@ -66,10 +66,15 @@ describe("anon (logged-out visitors)", () => {
 
   it("sees people on the board with display names and no contact details", async () => {
     const { rows, fields } = await db.asService<{ display_name: string }>(
-      "select * from public.public_board_people(50, 0)",
+      "select * from public.public_board_people(100, 0)",
     );
-    // 11 onboarded seed users, minus Lena (paused).
-    expect(rows).toHaveLength(10);
+    // 11 onboarded seed users, minus Lena (paused). Seed accounts only, so
+    // local test or dev sign-ins (dev-…, e2e-…) don't change the count.
+    const seed = await db.asService(
+      `select 1 from public.public_board_people(100, 0) b
+       join public.users u on u.id = b.user_id where u.cornell_email like 'seed-%'`,
+    );
+    expect(seed.rowCount).toBe(10);
     expect(fields.map((f) => f.name)).not.toContain("cornell_email");
     expect(rows.map((r) => r.display_name)).toContain("Sofia C.");
     expect(rows.map((r) => r.display_name)).not.toContain("Lena H.");

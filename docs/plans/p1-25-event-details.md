@@ -1,6 +1,6 @@
 # P1-25: more event details, filled from the event's site
 
-Requested by the owner on 2026-11-02. Status: **planned, not started.**
+Requested by the owner on 2026-11-02. Status: **built locally (2026-11-02), not deployed**; see "Built so far". The production migration, the deploy and the first real model call each need the owner's approval.
 
 The event page should carry enough to choose between hackathons, and the same details will later drive event recommendations. Designed in the mockup canvas, page "Event details: more info" ([HackaMatch Sign-up Flow](https://claude.ai/artifact/HZn2BMBxNwiwDMg1J1j9HP), private to the owner). Its boards:
 - the event page, full length;
@@ -9,6 +9,42 @@ The event page should carry enough to choose between hackathons, and the same de
 - **later:** "A strong fit for you" on the event page, and a "For you" sort on the list.
 
 Where the mockup and this plan differ, this plan wins. The mockup's sample event, prizes and counts are made up.
+
+## Built so far (2026-11-02, local only)
+- **Migrations:**
+  - `20261102000000_event_details.sql`: the detail columns, all nullable, with enums and size checks.
+  - `20261102000001_event_going_stats.sql`: two server-only functions. `event_going_stats(uuid[])` gives going and still-need-a-team counts; `event_top_skills(uuid, int)` gives skill counts.
+- **One schema** (`src/lib/event-details.ts`): checks every write and converts between the database, the form and the draft.
+- **Admin form** (`src/app/admin/events/EventForm.tsx`): the new fields. Lists are edited one per line, e.g. `1st place | $5,000`, `Track | what to build | ML, Backend`, `Impact | 30%`, `2026-12-05 | 10:00 AM | Check-in`.
+- **Fill from event site** (`AutofillPanel.tsx`, `autofillEventAction`):
+  - `src/server/event-page.ts` downloads the page, with the SSRF guard, timeout, size cap and checked redirects, and turns HTML into text, keeping JSON-LD.
+  - `src/server/event-autofill.ts` makes the model call and cleans the draft.
+  - The prompt is `eventDetailsSystemPrompt` (`EVENT_PROMPT_VERSION` `2026-11-02.1`), and the fake provider has a keyword rule for it.
+  - Filled fields are outlined. A second fill only replaces fields still holding the last draft.
+  - The paste box works without a link.
+  - The admin event pages get `maxDuration = 60`.
+- **Token counts:** `llm.structured` takes an `onUsage` callback (Claude only), so `event_autofilled` logs `input_tokens` and `output_tokens`, plus model, source, size and prompt version.
+- **Event page:** the new sections, each hidden when empty, in the decided order.
+  - "I'm going!" and "Discover who's going" float above the tab bar. Once you're going, the bar keeps Discover and the "You're going!" status sits in the page.
+  - "Who's going" adds "N still need a team" (members) and skill bars (members, from 5 people going).
+- **Events list:** rows add format and venue, a prize chip, length, level, cost, "N going · N need a team" (need-a-team for members) and "Apply by".
+- **Tests:**
+  - unit: `event-details`, `event-autofill`;
+  - database: `event-details`;
+  - browser: `event-details.spec.ts`, covering sections, floating buttons, who's going, list facts, the admin fill with the fake model, and https checks.
+
+**Assumed for the open questions until the owner says otherwise:**
+- no field is required;
+- "still need a team" counts people in the pool not on a team for the event;
+- prizes are USD only.
+
+**Differs from the table below:** the jsonb lists store the TypeScript shapes, e.g. `{label, amountCents, note}` and `{criterion, weightPct}`.
+
+**Not done yet:**
+- the approved real check on 3 to 5 event pages;
+- the production backup, migrations and deploy;
+- filling in the four NYC events;
+- a `docs/PROMPT_TUNING.md` entry after the real check.
 
 ## Decisions (owner, 2026-11-02)
 1. **The admin fills events in**, in `/admin/events`, helped by a "Fill from event site" button that uses Claude. Organizers may get the same form later.

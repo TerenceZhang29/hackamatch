@@ -23,6 +23,8 @@ export const LIMITS = {
   llm: { name: "llm:user", max: 30, windowSeconds: HOUR },
   /** Interested / Pass answers per user, on top of the 15-a-day Interested cap. */
   answers: { name: "answer:user", max: 60, windowSeconds: HOUR },
+  /** "Fill from event site" per admin (P1-25): each one is a paid model call. */
+  eventAutofill: { name: "autofill:admin", max: 30, windowSeconds: HOUR },
   /** Ideas posted per user. */
   ideas: { name: "idea:user", max: 20, windowSeconds: DAY },
 } as const satisfies Record<string, Limit>;

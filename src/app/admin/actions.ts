@@ -1,6 +1,17 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
+import { track } from "@/lib/analytics";
+import { getConfig } from "@/lib/config";
+import { LlmError, type LlmUsage } from "@/lib/llm/client";
+import { EVENT_PROMPT_VERSION } from "@/lib/llm/prompts";
+import { LIMITS } from "@/lib/rate-limit";
+import { localDateString } from "@/lib/time";
+import { draftEventFromText, type DraftValues } from "@/server/event-autofill";
+import { EventPageError, MAX_TEXT_CHARS, fetchEventPageText } from "@/server/event-page";
+import { allow } from "@/server/rate-limit";
+import { DETAIL_FIELDS, detailsFromForm } from "@/lib/event-details";
 import { EVENT_NAME_MAX } from "@/lib/event-name";
 import { normalizeTags } from "@/lib/taxonomy/normalize";
 import { redirect } from "next/navigation";
@@ -92,11 +103,19 @@ export async function saveEventAction(data: FormData) {
       `${back}?error=${encodeURIComponent(parsed.error.issues[0]?.message ?? "Check the form")}`,
     );
   }
+  const details = detailsFromForm({
+    ...Object.fromEntries(DETAIL_FIELDS.map((name) => [name, String(data.get(name) ?? "")])),
+    perks: data.getAll("perks").map(String),
+  });
+  if (!details.ok) redirect(`${back}?error=${encodeURIComponent(details.error)}`);
   const { eventId, organizerEmail, ...input } = parsed.data;
   // The organizer may not use HackaMatch: keep their email, and link their
   // account if they have one (signing up later links it too).
   const organizerId = organizerEmail ? await findUserIdByEmail(organizerEmail) : null;
-  const saved = await saveEvent({ ...input, organizerEmail, organizerId }, eventId);
+  const saved = await saveEvent(
+    { ...input, organizerEmail, organizerId, details: details.details },
+    eventId,
+  );
   revalidatePath("/admin/events");
   revalidatePath("/");
   redirect(`/admin/events?saved=${saved.slug}`);
@@ -165,4 +184,89 @@ export async function removePilotAccess(data: FormData) {
   const { netid } = z.object({ netid: z.string().regex(/^[a-z0-9-]{2,40}$/) }).parse(form(data));
   await removePilotNetId(netid);
   revalidatePath("/admin/pilot");
+}
+
+const autofillSchema = z.object({
+  url: z.string().trim().max(2048).default(""),
+  text: z
+    .string()
+    .max(MAX_TEXT_CHARS * 2)
+    .default(""),
+});
+
+export type AutofillResult = { ok: true; values: DraftValues } | { ok: false; error: string };
+
+/**
+ * "Fill from event site" (P1-25): drafts the event form from the event's page
+ * (or text pasted from it). Returns the draft to the form; nothing is saved.
+ * Each call is a paid model call, so it is rate limited and logged with its
+ * token counts.
+ */
+export async function autofillEventAction(input: {
+  url: string;
+  text: string;
+}): Promise<AutofillResult> {
+  const admin = await requireAdmin();
+  const parsed = autofillSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Check the link or the text" };
+  const { url, text } = parsed.data;
+  if (!url && !text.trim())
+    return { ok: false, error: "Add the event's link, or paste its page text" };
+  if (!(await allow(LIMITS.eventAutofill, admin.id))) {
+    return { ok: false, error: "That's 30 fills this hour. Try again later." };
+  }
+
+  const source = text.trim() ? "text" : "url";
+  let usage: LlmUsage | null = null;
+  const log = (ok: boolean, chars: number, error?: string) =>
+    after(() =>
+      track(
+        "event_autofilled",
+        {
+          ok,
+          source,
+          chars,
+          error,
+          prompt_version: EVENT_PROMPT_VERSION,
+          model: usage?.model,
+          input_tokens: usage?.inputTokens,
+          output_tokens: usage?.outputTokens,
+        },
+        admin.id,
+      ),
+    );
+
+  let pageText: string;
+  try {
+    pageText =
+      source === "text" ? text.slice(0, MAX_TEXT_CHARS) : (await fetchEventPageText(url)).text;
+  } catch (error) {
+    const message = error instanceof EventPageError ? error.message : "The site couldn't be read";
+    log(false, 0, message);
+    return { ok: false, error: `${message}. You can paste the page's text instead.` };
+  }
+  if (pageText.trim().length < 50) {
+    log(false, pageText.length, "too little text");
+    return {
+      ok: false,
+      error: "The page had almost no text (it may load with JavaScript). Paste its text instead.",
+    };
+  }
+
+  try {
+    const values = await draftEventFromText(
+      pageText,
+      localDateString(getConfig().APP_TIMEZONE),
+      (u) => (usage = u),
+    );
+    log(true, pageText.length);
+    return { ok: true, values };
+  } catch (error) {
+    console.error("autofillEventAction", error);
+    log(false, pageText.length, error instanceof LlmError ? error.message : "draft failed");
+    return {
+      ok: false,
+      error: "The AI couldn't read that page. Try again, or fill it in by hand.",
+    };
+  }
 }

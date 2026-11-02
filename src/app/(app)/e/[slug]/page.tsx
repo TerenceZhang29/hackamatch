@@ -1,27 +1,31 @@
 import type { Metadata } from "next";
-import {
-  ArrowLeft,
-  ArrowRight,
-  Check,
-  Clock,
-  ExternalLink,
-  Landmark,
-  MapPin,
-  Users,
-} from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, ExternalLink, Users } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { EventPoolPanel } from "@/components/EventPool";
+import {
+  EventGlance,
+  EventGoingSkills,
+  EventIncluded,
+  EventJudging,
+  EventPrizes,
+  EventSchedule,
+  EventTracks,
+} from "@/components/EventDetails";
+import { Choice, EventPoolPanel } from "@/components/EventPool";
 import { DateTile } from "@/components/PersonLines";
 import { Avatar } from "@/components/ui/Avatar";
 import { Chip } from "@/components/ui/Chip";
 import { getUser } from "@/lib/auth";
+import { getConfig } from "@/lib/config";
+import { detailsFromRow } from "@/lib/event-details";
 import { displayLabel } from "@/lib/taxonomy/labels";
-import { formatEventDates } from "@/lib/time";
+import { localDateString } from "@/lib/time";
 import { listBoardPeople } from "@/server/board";
 import {
   addEventInterests,
   countEventInterest,
+  eventGoingStats,
+  eventTopSkills,
   getEventBySlug,
   getEventPool,
   hasEnded,
@@ -36,32 +40,14 @@ export async function generateMetadata({
   return { title: event ? `${event.name} · HackaMatch` : "HackaMatch" };
 }
 
-function Fact({
-  icon,
-  label,
-  children,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-start gap-3">
-      <dt className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-surface text-accent">
-        {icon}
-        <span className="sr-only">{label}</span>
-      </dt>
-      <dd className="flex min-h-9 flex-col justify-center text-[15px] font-semibold">{children}</dd>
-    </div>
-  );
-}
-
 /**
- * An event's details (P1-24), and the link organizers share: area tags, when,
- * where, host, description and how many are going; "I'm going!"; and
- * "Discover who's going", which opens Discover filtered on the event (members)
- * or sign-up with the event ticked (visitors). `?join=1` (where sign-in
- * returns) tags the event for an onboarded member.
+ * An event's details (P1-24, P1-25), and the link organizers share: the
+ * name, host, description and areas; at a glance (when, where, teams, cost,
+ * who can join, level, links, apply by); tracks; who's going; prizes,
+ * judging, schedule and what's included, each hidden when empty. "I'm going!"
+ * and "Discover who's going" float at the bottom; Discover opens filtered on
+ * the event (members) or sign-up with the event ticked (visitors).
+ * `?join=1` (where sign-in returns) tags the event for an onboarded member.
  */
 export default async function EventPage({
   params,
@@ -85,15 +71,21 @@ export default async function EventPage({
     redirect(`/e/${slug}`);
   }
 
-  const [count, pool, faces] = await Promise.all([
+  const [count, pool, faces, stats, skills] = await Promise.all([
     countEventInterest(event.id),
     member ? getEventPool(user!.id, event.id) : Promise.resolve(null),
     // A few faces for members; who's going is for members only.
     member
       ? listBoardPeople({ event: slug, domain: null, skill: null }, 3, [user!.id])
       : Promise.resolve(null),
+    member ? eventGoingStats([event.id]) : Promise.resolve(null),
+    member ? eventTopSkills(event.id) : Promise.resolve([]),
   ]);
   const going = pool?.going ?? false;
+  const details = detailsFromRow(event);
+  const today = localDateString(getConfig().APP_TIMEZONE);
+  const needTeam = stats?.get(event.id)?.needTeam ?? null;
+  const applyHref = details.applyUrl ?? event.url;
   const discoverHref = member
     ? `/?event=${slug}`
     : user
@@ -101,9 +93,9 @@ export default async function EventPage({
       : `/signup?${new URLSearchParams({ event: slug })}`;
 
   return (
-    // A light grey page, like the mockup.
-    <main className="min-h-[calc(100dvh-3.5rem)] bg-surface px-4 pt-3 pb-6">
-      <div className="mx-auto flex w-full max-w-xl flex-col gap-5">
+    // A light grey page, like the mockup. Room at the bottom for the floating buttons.
+    <main className="min-h-[calc(100dvh-3.5rem)] bg-surface px-4 pt-3">
+      <div className="mx-auto flex w-full max-w-xl flex-col gap-5 pb-6">
         <Link
           href="/events"
           className="-ml-2 inline-flex h-10 items-center gap-1 self-start rounded-[10px] px-2.5 text-[15px] font-medium"
@@ -114,19 +106,22 @@ export default async function EventPage({
 
         <article
           aria-labelledby="event-name"
-          className={`flex flex-col gap-[18px] rounded-3xl border-2 bg-bg px-5 py-[22px] ${
+          className={`flex flex-col gap-4 rounded-3xl border-2 bg-bg px-5 py-[22px] ${
             going ? "border-green-500" : "border-transparent shadow-[0_1px_3px_rgba(22,22,26,0.06)]"
           }`}
         >
           <div className="flex items-start gap-3.5">
             <DateTile isoDate={event.start_date} shared={going} large />
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-1">
               <h1
                 id="event-name"
                 className="text-[26px] leading-[1.15] font-extrabold tracking-[-0.02em]"
               >
                 {event.name}
               </h1>
+              {event.host ? (
+                <span className="text-sm text-muted">Hosted by {event.host}</span>
+              ) : null}
               {going ? (
                 <span className="flex items-center gap-1 text-[13px] font-semibold text-success-ink">
                   <Check aria-hidden="true" className="size-3.5" strokeWidth={3} />
@@ -135,7 +130,11 @@ export default async function EventPage({
               ) : null}
             </div>
           </div>
-
+          {event.description ? (
+            <p className="text-[15px] leading-normal text-zinc-700 dark:text-zinc-300">
+              {event.description}
+            </p>
+          ) : null}
           {event.domains.length ? (
             <ul className="flex flex-wrap gap-1.5" aria-label="Areas">
               {event.domains.map((slug) => (
@@ -147,90 +146,114 @@ export default async function EventPage({
               ))}
             </ul>
           ) : null}
-
-          <dl className="flex flex-col gap-3">
-            <Fact icon={<Clock aria-hidden="true" className="size-4" />} label="When">
-              <span>{formatEventDates(event.start_date, event.end_date)}</span>
-              {event.time_label ? (
-                <span className="font-normal text-muted">{event.time_label}</span>
-              ) : null}
-            </Fact>
-            {event.venue ? (
-              <Fact icon={<MapPin aria-hidden="true" className="size-4" />} label="Where">
-                {event.venue}
-              </Fact>
-            ) : null}
-            {event.host ? (
-              <Fact icon={<Landmark aria-hidden="true" className="size-4" />} label="Host">
-                Hosted by {event.host}
-              </Fact>
-            ) : null}
-          </dl>
-
-          {event.description ? (
-            <p className="text-[15px] leading-normal text-zinc-700 dark:text-zinc-300">
-              {event.description}
-            </p>
-          ) : null}
-          <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
-            <span>
-              Teams of {event.team_size_min}–{event.team_size_max}
-            </span>
-            {event.url ? (
-              <a
-                href={event.url}
-                className="inline-flex items-center gap-1 underline"
-                rel="noopener noreferrer"
-              >
-                <ExternalLink aria-hidden="true" className="size-3" />
-                Event site
-              </a>
-            ) : null}
-          </p>
         </article>
 
-        <p className="flex items-center gap-3 px-1">
-          {faces?.rows.length ? (
-            <span aria-hidden="true" className="flex -space-x-1.5">
-              {faces.rows.map((person) => (
-                <span key={person.user_id} className="rounded-full ring-2 ring-surface">
-                  <Avatar name={person.display_name} size={32} />
-                </span>
-              ))}
-            </span>
-          ) : (
-            <Users aria-hidden="true" className="size-5 text-muted" />
-          )}
-          <span className="text-base">
-            <strong className="text-xl font-extrabold">{count}</strong>{" "}
-            {count === 1 ? "person" : "people"} going{going ? ", including you" : ""}
-          </span>
-        </p>
+        <EventGlance event={event} details={details} today={today} />
 
-        {ended ? (
-          <Chip>This event has ended.</Chip>
-        ) : (
-          <>
-            {member ? (
-              <EventPoolPanel
+        {member && going && !ended ? (
+          <EventPoolPanel
+            eventId={event.id}
+            eventName={event.name}
+            slug={slug}
+            pool={pool!}
+            confirmNotGoing={query.confirm === "not-going"}
+          />
+        ) : null}
+
+        <EventTracks details={details} />
+
+        <section
+          aria-labelledby="going-heading"
+          className="flex flex-col gap-3.5 rounded-3xl bg-bg p-5 shadow-[0_1px_3px_rgba(22,22,26,0.06)]"
+        >
+          <h2
+            id="going-heading"
+            className="text-xs font-semibold tracking-[0.06em] text-muted uppercase"
+          >
+            Who&apos;s going on HackaMatch
+          </h2>
+          <p className="flex items-center gap-3">
+            {faces?.rows.length ? (
+              <span aria-hidden="true" className="flex -space-x-1.5">
+                {faces.rows.map((person) => (
+                  <span key={person.user_id} className="rounded-full ring-2 ring-bg">
+                    <Avatar name={person.display_name} size={32} />
+                  </span>
+                ))}
+              </span>
+            ) : (
+              <Users aria-hidden="true" className="size-5 text-muted" />
+            )}
+            <span className="flex flex-wrap items-baseline gap-x-1.5 text-base">
+              <span>
+                <strong className="text-xl font-extrabold">{count}</strong>{" "}
+                {count === 1 ? "person" : "people"} going{going ? ", including you" : ""}
+              </span>
+              {needTeam !== null && count > 0 ? (
+                <span className="basis-full text-[15px] text-muted">
+                  {needTeam} still need a team
+                </span>
+              ) : null}
+            </span>
+          </p>
+          {/* Counts only, and only from 5 people, so the bars can't point at anyone. */}
+          {member && count >= 5 ? <EventGoingSkills skills={skills} /> : null}
+        </section>
+
+        {applyHref && !ended ? (
+          <a
+            href={applyHref}
+            rel="noopener noreferrer"
+            className="flex h-11 items-center justify-center gap-1.5 rounded-xl text-[15px] font-semibold"
+          >
+            {details.applyUrl ? "Apply on the event site" : "Register on the event site"}
+            <ExternalLink aria-hidden="true" className="size-4" />
+          </a>
+        ) : null}
+
+        <EventPrizes details={details} />
+        <EventJudging details={details} />
+        <EventSchedule details={details} />
+        <EventIncluded details={details} />
+
+        {event.details_updated_at ? (
+          <p className="px-1 text-[13px] text-muted">
+            Details from the organizer&apos;s site, updated{" "}
+            {new Date(event.details_updated_at).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+            })}
+          </p>
+        ) : null}
+
+        {ended ? <Chip>This event has ended.</Chip> : null}
+      </div>
+
+      {ended ? null : (
+        // Floats above the tab bar while the page scrolls (owner, 2026-11-02), over a fade.
+        <div className="sticky bottom-16 z-10 -mx-4 bg-[linear-gradient(to_bottom,transparent,var(--color-surface)_45%)] px-4 pt-7 pb-3 sm:bottom-0">
+          <div className="mx-auto flex w-full max-w-xl gap-2.5">
+            {member && !going ? (
+              <Choice
                 eventId={event.id}
-                eventName={event.name}
-                slug={slug}
-                pool={pool!}
-                confirmNotGoing={query.confirm === "not-going"}
-              />
+                choice="going"
+                returnTo={`/e/${slug}`}
+                className="flex h-[52px] shrink-0 items-center justify-center rounded-[14px] bg-bg px-[18px] text-base font-bold text-success-ink shadow-[0_6px_16px_rgba(22,22,26,0.1)] ring-2 ring-green-600 transition ring-inset hover:bg-success-soft"
+              >
+                I&apos;m going!
+              </Choice>
             ) : null}
             <Link
               href={discoverHref}
               prefetch={false}
-              className="flex h-14 w-full items-center justify-center gap-2 rounded-[14px] bg-accent text-[17px] font-bold text-accent-ink shadow-[0_8px_20px_rgba(79,70,229,0.28)] transition hover:opacity-90"
+              className="flex h-[52px] min-w-0 flex-1 items-center justify-center gap-1.5 rounded-[14px] bg-accent text-base font-bold text-accent-ink shadow-[0_8px_20px_rgba(79,70,229,0.28)] transition hover:opacity-90"
             >
               Discover who&apos;s going
-              <ArrowRight aria-hidden="true" className="size-[18px]" strokeWidth={2.25} />
+              <ArrowRight aria-hidden="true" className="size-[17px]" strokeWidth={2.25} />
             </Link>
-          </>
-        )}
-      </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

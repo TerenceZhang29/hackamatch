@@ -30,7 +30,8 @@ test("the logged-out board lists people and never shows emails", async ({ page }
   await expect(page.getByRole("article", { name: "Lena H." })).toHaveCount(0);
 
   const html = await response!.text();
-  expect(html).not.toMatch(/[a-z0-9.+-]+@cornell\.edu/i);
+  // The address itself, so a failure says what leaked.
+  expect(html.match(/[a-z0-9.+-]+@cornell\.edu/i)?.[0]).toBeUndefined();
 });
 
 test("filters change the results and the URL can be shared", async ({ page }) => {

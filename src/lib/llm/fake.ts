@@ -1,5 +1,5 @@
 import { findTags } from "@/lib/taxonomy/normalize";
-import { COFFEE_CHAT_TOOL, IDEA_TOOL, PROFILE_TOOL } from "./prompts";
+import { COFFEE_CHAT_TOOL, EVENT_TOOL, IDEA_TOOL, PROFILE_TOOL } from "./prompts";
 import { LlmError, type LlmClient, type StructuredRequest } from "./types";
 
 /**
@@ -162,6 +162,63 @@ async function simulateDelay(prompt: string, timeoutMs: number | undefined) {
   if (delay > deadline) throw new LlmError("LLM request timed out");
 }
 
+/**
+ * A rough event draft from keywords in the page (P1-25), enough to exercise
+ * "Fill from event site" locally: format, a prize total ("$12,000 in prizes"),
+ * perks, a beginner level, and "Track: Name - what to build" lines. Everything
+ * else stays empty, as the real model leaves what the page doesn't say.
+ */
+function fakeEventDraft(prompt: string) {
+  const page = readTag(prompt, "page");
+  const has = (pattern: RegExp) => pattern.test(page);
+  const online = has(/\b(online|virtual|remote)\b/i);
+  const inPerson = has(/\bin[- ]person\b/i);
+  const prize = /\$([\d,]+)\s+in prizes/i.exec(page)?.[1];
+  const description =
+    /^Description: (.+)$/m.exec(page)?.[1] ??
+    page.split("\n").find((line) => line.split(/\s+/).length >= 8) ??
+    null;
+  const perks = [
+    has(/\b(meals?|food|breakfast|lunch|dinner)\b/i) && "meals",
+    has(/\bmentors?\b/i) && "mentors",
+    has(/\bworkshops?\b/i) && "workshops",
+    has(/\bswag\b/i) && "swag",
+    has(/\btravel\b/i) && "travel",
+  ].filter((perk): perk is string => Boolean(perk));
+  const tracks = [...page.matchAll(/^Track:\s*(.+?)\s+[-–]\s+(.+)$/gm)].map(([, name, what]) => ({
+    name: name!,
+    description: what!,
+    skills: findTags("skills", what!, PROSE_SKIP),
+  }));
+  return {
+    description,
+    start_date: null,
+    end_date: null,
+    time_label: null,
+    venue: null,
+    host: null,
+    domains: findTags("domains", page, PROSE_SKIP),
+    format: online && inPerson ? "hybrid" : online ? "online" : inPerson ? "in_person" : null,
+    length_hours: null,
+    entry_fee_usd: has(/\bfree\b/i) ? 0 : null,
+    open_to: null,
+    level: has(/\bbeginners?\b/i) ? "beginner" : null,
+    apply_by: null,
+    apply_url: null,
+    admission: null,
+    capacity: null,
+    prize_total_usd: prize ? Number(prize.replaceAll(",", "")) : null,
+    prizes: [],
+    tracks,
+    tools: null,
+    judging: [],
+    schedule: [],
+    perks,
+    perk_notes: null,
+    chat_url: null,
+  };
+}
+
 export const fakeLlm: LlmClient = {
   async structured<T>(request: StructuredRequest<T>): Promise<T> {
     await simulateDelay(request.user, request.timeoutMs);
@@ -169,6 +226,7 @@ export const fakeLlm: LlmClient = {
     if (request.toolName === PROFILE_TOOL) output = fakeProfile(request.user);
     else if (request.toolName === IDEA_TOOL) output = fakeIdea(readTag(request.user, "idea"));
     else if (request.toolName === COFFEE_CHAT_TOOL) output = fakeCoffeeChat(request.user);
+    else if (request.toolName === EVENT_TOOL) output = fakeEventDraft(request.user);
     else throw new LlmError(`The fake LLM has no rule for tool "${request.toolName}"`);
 
     const parsed = request.schema.safeParse(output);

@@ -7,7 +7,7 @@ import { createGeminiLlm } from "./gemini";
 import { DEFAULT_MAX_TOKENS, DEFAULT_TIMEOUT_MS, MAX_ATTEMPTS, describeIssues } from "./shared";
 import { LlmError, type LlmClient, type StructuredRequest } from "./types";
 
-export { LlmError, type LlmClient, type StructuredRequest } from "./types";
+export { LlmError, type LlmClient, type LlmUsage, type StructuredRequest } from "./types";
 
 function toInputSchema(schema: z.ZodType): Anthropic.Tool.InputSchema {
   const { $schema: _, ...jsonSchema } = z.toJSONSchema(schema);
@@ -36,6 +36,8 @@ export function createAnthropicLlm(client: Pick<Anthropic, "messages">, model: s
       // One deadline for the whole call, so the retry cannot double the wait.
       const signal = AbortSignal.timeout(request.timeoutMs ?? DEFAULT_TIMEOUT_MS);
       let problem = "no attempt made";
+      const usage = { model, inputTokens: 0, outputTokens: 0 };
+      const report = () => request.onUsage?.(usage);
 
       for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
         let response: Anthropic.Message;
@@ -61,7 +63,13 @@ export function createAnthropicLlm(client: Pick<Anthropic, "messages">, model: s
           throw new LlmError("LLM request failed", { cause: error });
         }
 
+        // Optional so test doubles can leave it out.
+        const used = response.usage as Anthropic.Usage | undefined;
+        usage.inputTokens += used?.input_tokens ?? 0;
+        usage.outputTokens += used?.output_tokens ?? 0;
+
         if (response.stop_reason === "refusal") {
+          report();
           throw new LlmError("LLM refused the request");
         }
 
@@ -76,7 +84,10 @@ export function createAnthropicLlm(client: Pick<Anthropic, "messages">, model: s
         }
 
         const parsed = request.schema.safeParse(toolUse.input);
-        if (parsed.success) return parsed.data;
+        if (parsed.success) {
+          report();
+          return parsed.data;
+        }
 
         problem = describeIssues(parsed.error);
         messages.push(
@@ -95,6 +106,7 @@ export function createAnthropicLlm(client: Pick<Anthropic, "messages">, model: s
         );
       }
 
+      report();
       throw new LlmError(`LLM output was invalid after ${MAX_ATTEMPTS} attempts: ${problem}`);
     },
   };

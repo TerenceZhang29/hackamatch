@@ -115,7 +115,8 @@ describe("active_pool", () => {
 describe("seed data", () => {
   it("loads the expected users, events and ideas", async () => {
     const { rows } = await db.asPostgres<{ users: number; events: number; ideas: number }>(
-      `select (select count(*)::int from public.users where cornell_email like '%@cornell.edu') as users,
+      // Seed accounts only: local test or dev sign-ins (dev-…, e2e-…) mustn't change the count.
+      `select (select count(*)::int from public.users where cornell_email like 'seed-%@cornell.edu') as users,
               (select count(*)::int from public.events) as events,
               (select count(*)::int from public.ideas) as ideas`,
     );
