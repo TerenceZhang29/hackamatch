@@ -19,6 +19,7 @@ import { Outcome } from "@/components/Outcome";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { MEMBER_LIST } from "@/lib/board";
 import { DECK_DETAILS_WINDOW, deckHref, leftLabel, parsePassToken } from "@/lib/deck";
 import type { BoardPerson } from "@/server/board";
 import type { DeckDetails } from "@/server/deck";
@@ -152,9 +153,11 @@ function Matched({
 /**
  * The hackathon filter (P1-24): "All hackathons" pinned at the left, then the
  * upcoming hackathons (the selected one, then the viewer's own, then the
- * rest), which scroll sideways, then Browse all. One row, so the card gets
- * the height (option 2 of the phone fix); the selected chip shows how many
- * are left. Plain links, so it works without JavaScript.
+ * rest), which scroll sideways, then Browse all (only while MEMBER_LIST is
+ * on). One row, so the card gets the height (option 2 of the phone fix); the
+ * selected chip shows how many are left. It stays under the header while the
+ * card scrolls (owner, 2026-11-02). Plain links, so it works without
+ * JavaScript.
  */
 function HackathonFilter({
   events,
@@ -171,8 +174,9 @@ function HackathonFilter({
     }`;
   const count = left ? <span className="font-normal opacity-70">· {left}</span> : null;
   return (
-    // A white strip across the top of the grey Discover page (the mockup's filter bar).
-    <div className="-mx-4 -mt-6 flex items-center gap-2 border-b border-line bg-bg px-4 py-2 sm:mx-0 sm:mt-0 sm:rounded-2xl sm:border">
+    // A white strip across the top of the grey Discover page (the mockup's
+    // filter bar), held just under the sticky header (h-14).
+    <div className="sticky top-14 z-20 -mx-4 -mt-6 flex items-center gap-2 border-b border-line bg-bg px-4 py-2 sm:mx-0 sm:mt-0 sm:rounded-2xl sm:border">
       <nav aria-label="Filter by hackathon" className="flex min-w-0 flex-1 items-center gap-2">
         <Link
           href={deckHref(null)}
@@ -207,14 +211,16 @@ function HackathonFilter({
           </>
         ) : null}
       </nav>
-      <Link
-        href="/?view=list"
-        title="Browse all"
-        className="inline-flex size-[34px] shrink-0 items-center justify-center rounded-full bg-surface text-ink hover:bg-surface-2"
-      >
-        <LayoutGrid aria-hidden="true" className="size-4" />
-        <span className="sr-only">Browse all</span>
-      </Link>
+      {MEMBER_LIST ? (
+        <Link
+          href="/?view=list"
+          title="Browse all"
+          className="inline-flex size-[34px] shrink-0 items-center justify-center rounded-full bg-surface text-ink hover:bg-surface-2"
+        >
+          <LayoutGrid aria-hidden="true" className="size-4" />
+          <span className="sr-only">Browse all</span>
+        </Link>
+      ) : null}
     </div>
   );
 }

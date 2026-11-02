@@ -56,6 +56,7 @@ Make browsing feel easier and less overwhelming. Members see **one card at a tim
 - **A mutual match:** answering redirects with `?matched=<id>` (the existing outcome parameter). The deck then shows a "You matched with <name>!" screen, with "Say hi" (the pair page) and "Keep going" (the next card).
 - **After a Pass:** the redirect carries `?passed=<matchId>`, so the deck can offer "↶ Undo" for that one match (decision 4).
 - **End of the deck:** "You've seen everyone for now", with links to `/events`, "Post an idea" and `/matches`. With an event chip on, it says "You've seen everyone going to <event>", with a link back to Everyone.
+- **The list for members is off for now (owner, 2026-11-02):** `MEMBER_LIST` in `src/lib/board.ts` is false, so members only see one card after another: "Browse all" is hidden and every member visit to `/`, list URLs included, opens the deck. The hackathon filter stays under the header while the card scrolls. Turning the switch on brings back the following.
 - **The list stays:** "Browse all" in the header opens today's board (`/?view=list`, keeping its tabs, filters and Load more). Any board URL with list parameters (`tab`, `domain`, `skill`, `intent`, `n`) still shows the list, so shared links keep working. Visitors and members who haven't finished onboarding always get the list.
 
 ## Data

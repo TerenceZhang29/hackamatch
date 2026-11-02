@@ -2,6 +2,14 @@ import { slugsOf } from "@/lib/taxonomy/skills";
 
 /** Parsing and building the public board's URL state (filters, page size). People only (P1-24). */
 
+/**
+ * Whether members can open the list (`/?view=list`, "Browse all"). Off for
+ * now (owner, 2026-11-02): members see people one card at a time on
+ * Discover, and every member link to the list opens the deck instead.
+ * Visitors keep the landing page and the public board either way.
+ */
+export const MEMBER_LIST = false;
+
 export const PAGE_SIZE = 20;
 /** The URL parameters the board reads. */
 export const BOARD_PARAM_KEYS = ["event", "domain", "skill", "n", "view"] as const;

@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { expect, test, type Page } from "@playwright/test";
 import { signInOnboarded } from "./auth";
+import { MEMBER_LIST } from "../../src/lib/board";
 import {
   createMatch,
   createUser,
@@ -131,7 +132,28 @@ test("answering someone waiting on you shows the match", async ({ page }) => {
   expect(mutual.length).toBeGreaterThan(0);
 });
 
+test("members only get the deck: no Browse all, list links open Discover, the filter stays on top", async ({
+  page,
+}) => {
+  test.skip(MEMBER_LIST, "the member list is on");
+  const event = await privateEvent();
+  await signInMember(page);
+  await page.goto(`/?event=${event.slug}`);
+  await expect(page.getByRole("heading", { name: "Discover" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Browse all" })).toHaveCount(0);
+  // The filter is held under the sticky header while the card scrolls.
+  await expect(
+    page.getByRole("navigation", { name: "Filter by hackathon" }).locator(".."),
+  ).toHaveCSS("position", "sticky");
+  for (const url of ["/?view=list", "/?skill=react&view=list", `/?event=${event.slug}&view=list`]) {
+    await page.goto(url);
+    await expect(page.getByRole("heading", { name: "Discover" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Everyone", exact: true })).toHaveCount(0);
+  }
+});
+
 test("Browse all opens the list, which keeps members on it", async ({ page }) => {
+  test.skip(!MEMBER_LIST, "the member list is off for now (owner, 2026-11-02)");
   await signInMember(page);
   await page.goto("/");
   await page.getByRole("link", { name: "Browse all" }).click();

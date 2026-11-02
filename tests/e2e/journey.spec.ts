@@ -36,12 +36,13 @@ test("two students go from sign-up to a team", async ({ browser }) => {
     await onboard(sofiaPage, { firstName: "Sofia", area: "Health", skill: "UX design" });
     await expect(sofiaPage).toHaveURL("/");
 
-    // Sofia finds Maya on the board, filtered to her skill.
-    await sofiaPage.goto("/?skill=hardware&view=list");
-    await sofiaPage
-      .getByRole("article", { name: mayaName })
-      .getByRole("button", { name: "Interested" })
-      .click();
+    // Sofia opens Maya's page (members have no list for now, MEMBER_LIST).
+    const [mayaRow] = await query<{ id: string }>(
+      `select id from public.users where cornell_email = $1`,
+      [mayaEmail],
+    );
+    await sofiaPage.goto(`/people/${mayaRow!.id}`);
+    await sofiaPage.getByRole("button", { name: "Interested" }).click();
     await expect(sofiaPage.getByText("Sent", { exact: true })).toBeVisible();
 
     // Maya answers from the email, without opening the app first.

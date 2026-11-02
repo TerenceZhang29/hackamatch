@@ -1,5 +1,6 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
 import { onboard, signIn } from "./auth";
+import { MEMBER_LIST } from "../../src/lib/board";
 import { createUser, deleteUser, eventually, query, readOutbox, uniqueEmail } from "./helpers";
 
 const created: string[] = [];
@@ -100,8 +101,10 @@ test("Pass hides that card and sends nothing", async ({ browser }) => {
     expect(
       await query(`select 1 from public.matches where $1 in (user_a, user_b)`, [targetId]),
     ).toEqual([]);
-    await viewer.page.goto("/?view=list");
-    await expect(viewer.page.getByRole("article", { name: `${first} T.` })).toHaveCount(0);
+    if (MEMBER_LIST) {
+      await viewer.page.goto("/?view=list");
+      await expect(viewer.page.getByRole("article", { name: `${first} T.` })).toHaveCount(0);
+    }
     expect(await readOutbox(target)).toEqual([]);
   } finally {
     await viewer.close();

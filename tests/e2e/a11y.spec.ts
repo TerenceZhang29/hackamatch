@@ -2,6 +2,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { signToken } from "../../src/lib/notify/tokens";
 import { onboard, signIn } from "./auth";
+import { MEMBER_LIST } from "../../src/lib/board";
 import {
   createMatch,
   createUser,
@@ -103,8 +104,10 @@ test("member pages", async ({ page }) => {
 
   await page.goto("/");
   await expectAccessible(page, "deck");
-  await page.goto("/?view=list");
-  await expectAccessible(page, "board list (member)");
+  if (MEMBER_LIST) {
+    await page.goto("/?view=list");
+    await expectAccessible(page, "board list (member)");
+  }
   await page.goto("/matches");
   await expectAccessible(page, "matches");
   // The shell marks the current tab (one "Main" nav is visible per screen size).

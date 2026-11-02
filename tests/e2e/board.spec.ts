@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
 import { onboard, signIn, signInOnboarded } from "./auth";
+import { MEMBER_LIST } from "../../src/lib/board";
 import { createUser, deleteUser, query, uniqueEmail } from "./helpers";
 
 const created: string[] = [];
@@ -71,6 +72,8 @@ test("visitors see 3 cards for an event; members can load more", async ({ page }
   await expect(page.getByText("See all people going to this event")).toBeVisible();
   await expect(page.getByRole("link", { name: "Load more" })).toHaveCount(0);
 
+  // Members get the deck while the member list is off (MEMBER_LIST).
+  if (!MEMBER_LIST) return;
   await signInOnboarded(page, newEmail());
   await page.goto(`/?event=${slug}&view=list`);
   await expect(page.getByRole("article")).toHaveCount(20);
@@ -99,6 +102,8 @@ test("logged-out calls to action lead to sign-up and sign-in", async ({ page }) 
 });
 
 test("a signed-in member does not see their own card", async ({ page }) => {
+  // The deck leaves the viewer out too (deckExcludedUserIds).
+  test.skip(!MEMBER_LIST, "the member list is off for now (owner, 2026-11-02)");
   const email = newEmail();
   await signIn(page, email);
   await onboard(page, { firstName: "Selfie", skill: "Frontend" });

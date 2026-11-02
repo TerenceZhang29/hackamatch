@@ -8,6 +8,7 @@ import { Outcome } from "@/components/Outcome";
 import { PairStatus } from "@/components/PairStatus";
 import { PersonCard } from "@/components/PersonCard";
 import { getUser } from "@/lib/auth";
+import { MEMBER_LIST } from "@/lib/board";
 import { sharedFirst } from "@/lib/deck";
 import { demoUserIds, getPublicPerson, poolEventsFor } from "@/server/board";
 import { listEventInterestIds } from "@/server/events";
@@ -40,8 +41,9 @@ export default async function PersonPage({
   return (
     <main className="mx-auto flex max-w-xl flex-col gap-4 px-4 py-6">
       <Link
-        href="/?view=list"
-        aria-label="Everyone"
+        // Back to the list, or to Discover for members while the list is off for them.
+        href={viewer === "onboarded" && !MEMBER_LIST ? "/" : "/?view=list"}
+        aria-label={viewer === "onboarded" && !MEMBER_LIST ? "Discover" : "Everyone"}
         className="-ml-2 self-start rounded-full p-2 text-muted"
       >
         <ArrowLeft aria-hidden="true" className="size-5" />

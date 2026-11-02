@@ -23,6 +23,7 @@ import {
   PAGE_SIZE,
   parseBoardParams,
   VISITOR_LIMIT,
+  MEMBER_LIST,
   wantsDeck,
   type BoardState,
 } from "@/lib/board";
@@ -59,8 +60,9 @@ export default async function BoardPage({
     );
   }
 
-  // Members: one deck of person cards, optionally for one event (P1-24).
-  if (viewer === "onboarded" && wantsDeck(params)) {
+  // Members: one deck of person cards, optionally for one event (P1-24); only
+  // the deck while the member list is off (MEMBER_LIST).
+  if (viewer === "onboarded" && (!MEMBER_LIST || wantsDeck(params))) {
     const eventSlug = parsed.filters.event;
     const [deckData, myEventIds] = await Promise.all([
       nextDeckCards(user!, eventSlug),
