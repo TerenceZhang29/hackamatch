@@ -305,6 +305,29 @@ Live results, 2026-10-22, `claude-haiku-5-5`, the same 10 cases twice (approved 
 The stored builder summaries come from tags, so they read plainly ("Builds with react, frontend…"). Tuning their wording is optional.
 
 
+### Event details `2026-11-02.1` and `.2` — "Fill from event site" (P1-25)
+
+A separate prompt (`eventDetailsSystemPrompt`, `EVENT_PROMPT_VERSION`) turns an event page's text into the event form; the admin checks every field before saving.
+
+Live results, 2026-11-02, `claude-haiku-5-5`, the four NYC events' pages (approved by the owner). Each page was downloaded by `fetchEventPageText`, giving 4,000 to 18,000 characters, including JSON-LD. 6 calls in all: 46,761 input and 8,399 output tokens, about $0.009. All were valid on the first attempt.
+
+`.1`, all four pages:
+
+| Page | Result |
+| --- | --- |
+| Spacefast (Luma) | Pass: dates, time, address, host, free, schedule, pizza as meals. The apply link was the page itself |
+| Environmental (Program Earth) | Mostly right: dates, tracks with fitting skills, schedule, areas. **Wrong:** "apply by" Jan 31, 2027 was the *sponsor* deadline; "swag" for a digital badge; the apply link was the page itself |
+| Fashion and Finance (AI Tinkerers) | Pass: free (from JSON-LD), 100 spots, by application, both tracks, tools, judging, schedule. "Open to" cut mid-word at 120 characters; venue "[Venue TBD], …" copied as is |
+| Innodata | Pass: $8,750 total and the three prizes, both tracks, schedule, venue. No cost given, so none filled. "Open to" cut mid-word |
+
+Changes in `.2`:
+- **Prompt:** "apply by" is the participant deadline, never a sponsor's or volunteer's. "Open to" is at most 12 words. The venue is just the city if the address isn't announced. "swag" means physical giveaways and "workshops" means sessions that teach a skill.
+- **Code:** cuts text at a word and adds "…". Drops an apply link that is the event page itself (`draftToValues`, `pageUrls`).
+
+`.2`, the two pages with errors: no sponsor deadline, no duplicate apply link, no swag, and short "open to" lines ("Students from CUNY, SUNY, Columbia, and Cornell").
+
+Still a judgment call: "workshops" ticked for an onboarding session or a platform primer. The venue says "New York City (venue TBD; …)".
+
 ## Known differences between models
 
 - **Gemini is told to "call `record_profile`"** by the shared prompt although it has no tool; it answers in JSON regardless. Harmless so far. If per-model prompts are introduced, this sentence is the first thing to vary.

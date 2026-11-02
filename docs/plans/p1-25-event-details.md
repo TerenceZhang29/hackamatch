@@ -40,11 +40,11 @@ Where the mockup and this plan differ, this plan wins. The mockup's sample event
 
 **Differs from the table below:** the jsonb lists store the TypeScript shapes, e.g. `{label, amountCents, note}` and `{criterion, weightPct}`.
 
+**Real check (2026-11-02, approved):** Claude Haiku 5.5 on the four NYC events' pages, 6 calls, about $0.009 in all. It's accurate enough to keep Haiku. Four errors were fixed in prompt `2026-11-02.2` and in code. Details are in `docs/PROMPT_TUNING.md`.
+
 **Not done yet:**
-- the approved real check on 3 to 5 event pages;
 - the production backup, migrations and deploy;
 - filling in the four NYC events;
-- a `docs/PROMPT_TUNING.md` entry after the real check.
 
 ## Decisions (owner, 2026-11-02)
 1. **The admin fills events in**, in `/admin/events`, helped by a "Fill from event site" button that uses Claude. Organizers may get the same form later.

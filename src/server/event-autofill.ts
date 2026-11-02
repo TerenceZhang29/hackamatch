@@ -70,18 +70,45 @@ export type DraftValues = Partial<Omit<DetailFormValues, "perks">> & {
 };
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
+/** Trims to `max` characters, cutting at a word and adding "…" when it has to cut. */
 const clip = (value: string | null | undefined, max: number) => {
   const text = value?.replace(/\s+/g, " ").trim();
-  return text ? text.slice(0, max) : null;
+  if (!text) return null;
+  if (text.length <= max) return text;
+  const cut = text.slice(0, max - 1);
+  const space = cut.lastIndexOf(" ");
+  return `${(space > max / 2 ? cut.slice(0, space) : cut).replace(/[\s,;:.-]+$/, "")}…`;
 };
+
+/** The same page, ignoring the scheme, "www.", a trailing slash and lu.ma vs luma.com. */
+function samePage(a: string, b: string): boolean {
+  const key = (url: string) => {
+    try {
+      const u = new URL(url);
+      const host = u.hostname.replace(/^www\./, "").replace(/^lu\.ma$/, "luma.com");
+      return `${host}${u.pathname.replace(/\/+$/, "")}${u.search}`;
+    } catch {
+      return url;
+    }
+  };
+  return key(a) === key(b);
+}
 const date = (value: string | null) => (value && ISO.test(value) ? value : null);
 const cents = (usd: number | null) =>
   usd === null || !Number.isFinite(usd) || usd < 0 ? null : Math.round(usd * 100);
 const whole = (n: number | null, max: number) =>
   n === null || !Number.isFinite(n) || n < 1 ? null : Math.min(Math.round(n), max);
 
-/** Turns the model's draft into form values, through the same checks a save makes. */
-export function draftToValues(draft: EventDraft): DraftValues {
+/**
+ * Turns the model's draft into form values, through the same checks a save
+ * makes. `pageUrls` are the event page's own addresses: an apply link that is
+ * just this page again is dropped, since the Website field already has it.
+ */
+export function draftToValues(draft: EventDraft, pageUrls: readonly string[] = []): DraftValues {
+  const applyUrl =
+    draft.apply_url && pageUrls.some((url) => samePage(url, draft.apply_url!))
+      ? null
+      : draft.apply_url;
   const details = eventDetailsSchema.parse({
     ...EMPTY_DETAILS,
     format: draft.format,
@@ -90,7 +117,7 @@ export function draftToValues(draft: EventDraft): DraftValues {
     openTo: clip(draft.open_to, 120),
     level: draft.level,
     applyBy: date(draft.apply_by),
-    applyUrl: draft.apply_url,
+    applyUrl,
     admission: draft.admission,
     capacity: whole(draft.capacity, 100_000),
     prizeTotalCents: cents(draft.prize_total_usd),
@@ -156,6 +183,7 @@ export async function draftEventFromText(
   pageText: string,
   today: string,
   onUsage?: (usage: LlmUsage) => void,
+  pageUrls: readonly string[] = [],
 ): Promise<DraftValues> {
   const draft = await llm.structured({
     system: eventDetailsSystemPrompt(today),
@@ -166,5 +194,5 @@ export async function draftEventFromText(
     timeoutMs: 45_000,
     onUsage,
   });
-  return draftToValues(draft);
+  return draftToValues(draft, pageUrls);
 }

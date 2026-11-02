@@ -86,7 +86,7 @@ export function ideaUserPrompt(text: string): string {
 // Event details (P1-25) ------------------------------------------------------
 
 /** Bump when the event prompt's wording changes; logged with each fill. */
-export const EVENT_PROMPT_VERSION = "2026-11-02.1";
+export const EVENT_PROMPT_VERSION = "2026-11-02.2";
 export const EVENT_TOOL = "record_event_details";
 
 /**
@@ -102,10 +102,14 @@ Rules:
 - Money is in US dollars as a number (5000 for $5,000). A free event has entry_fee_usd 0; use null when the page doesn't mention cost.
 - length_hours: how long hacking lasts, only if the page says or it follows from start and end times.
 - format: "in_person", "online" or "hybrid". level: "beginner" only if the page says beginners are welcome or it is beginner friendly; "advanced" only if it says so.
+- apply_by: the last day participants can apply or register. Never a deadline for sponsors, volunteers, judges or partners.
+- apply_url: the link participants use to apply or register, only if it is a different page from this one.
+- open_to: who can take part, in at most 12 words (e.g. "Students and recent graduates, 18+").
+- venue: the place and area. If the address isn't announced yet, give only the city.
 - admission: "application" if people apply and are picked, "first_come" if spots go to the first who register, "open" if anyone who registers can come.
 - tracks: each track or challenge, with a one-sentence description of what to build. skills: the skills that would help, copied exactly from this list, at most 6, only ones the track plainly needs: ${[...slugsOf("skills"), ...slugsOf("stack")].join(", ")}
 - domains: the event's problem areas, copied exactly from this list, at most 5: ${slugsOf("domains").join(", ")}
-- perks: only from meals, mentors, sleep, travel, workshops, swag, and only ones the page mentions.
+- perks: only from meals, mentors, sleep, travel, workshops, swag, and only ones the page mentions for participants. swag means physical giveaways (shirts, stickers), not badges or credits; workshops means scheduled talks or sessions that teach a skill, not check-in or onboarding.
 - description: two sentences at most, saying what the event is about, for a student deciding whether to go. No hype.
 - Links must be full https links that appear on the page.
 

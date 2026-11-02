@@ -194,6 +194,27 @@ describe("draftToValues", () => {
   });
 });
 
+describe("draftToValues, cleanup", () => {
+  it("drops an apply link that is just the event page again", () => {
+    const pages = ["https://lu.ma/abc", "https://luma.com/abc"];
+    expect(draftToValues({ ...emptyDraft, apply_url: "https://luma.com/abc/" }, pages)).toEqual({});
+    expect(
+      draftToValues({ ...emptyDraft, apply_url: "https://forms.example/apply" }, pages).applyUrl,
+    ).toBe("https://forms.example/apply");
+  });
+
+  it("cuts a long 'open to' at a word, with an ellipsis", () => {
+    const openTo = draftToValues({
+      ...emptyDraft,
+      open_to:
+        "Software engineers and developers, AI and ML builders, technical students and recent graduates with strong programming fundamentals",
+    }).openTo!;
+    expect(openTo.length).toBeLessThanOrEqual(120);
+    expect(openTo).toMatch(/ with strong…$|recent graduates…$|programming…$/);
+    expect(openTo).not.toMatch(/funda…$/);
+  });
+});
+
 describe("the fake model's event rule", () => {
   it("drafts from keywords, so local runs exercise the real path", async () => {
     const draft = await fakeLlm.structured({

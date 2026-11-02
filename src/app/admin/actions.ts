@@ -237,9 +237,15 @@ export async function autofillEventAction(input: {
     );
 
   let pageText: string;
+  // The page's own addresses (as given, and after redirects).
+  const pageUrls = url ? [url] : [];
   try {
-    pageText =
-      source === "text" ? text.slice(0, MAX_TEXT_CHARS) : (await fetchEventPageText(url)).text;
+    if (source === "text") pageText = text.slice(0, MAX_TEXT_CHARS);
+    else {
+      const page = await fetchEventPageText(url);
+      pageText = page.text;
+      pageUrls.push(page.url);
+    }
   } catch (error) {
     const message = error instanceof EventPageError ? error.message : "The site couldn't be read";
     log(false, 0, message);
@@ -258,6 +264,7 @@ export async function autofillEventAction(input: {
       pageText,
       localDateString(getConfig().APP_TIMEZONE),
       (u) => (usage = u),
+      pageUrls,
     );
     log(true, pageText.length);
     return { ok: true, values };
