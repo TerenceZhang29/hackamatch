@@ -1,6 +1,6 @@
 # P1-25: more event details, filled from the event's site
 
-Requested by the owner on 2026-11-02. Status: **built locally (2026-11-02), not deployed**; see "Built so far". The production migration, the deploy and the first real model call each need the owner's approval.
+Requested by the owner on 2026-11-02. Status: **live on production since 2026-11-02** (`164a0ee`); see "Built so far". Still open: filling in the four NYC events in `/admin/events`.
 
 The event page should carry enough to choose between hackathons, and the same details will later drive event recommendations. Designed in the mockup canvas, page "Event details: more info" ([HackaMatch Sign-up Flow](https://claude.ai/artifact/HZn2BMBxNwiwDMg1J1j9HP), private to the owner). Its boards:
 - the event page, full length;
@@ -10,7 +10,7 @@ The event page should carry enough to choose between hackathons, and the same de
 
 Where the mockup and this plan differ, this plan wins. The mockup's sample event, prizes and counts are made up.
 
-## Built so far (2026-11-02, local only)
+## Built so far (live on production since 2026-11-02)
 - **Migrations:**
   - `20261102000000_event_details.sql`: the detail columns, all nullable, with enums and size checks.
   - `20261102000001_event_going_stats.sql`: two server-only functions. `event_going_stats(uuid[])` gives going and still-need-a-team counts; `event_top_skills(uuid, int)` gives skill counts.
@@ -42,9 +42,12 @@ Where the mockup and this plan differ, this plan wins. The mockup's sample event
 
 **Real check (2026-11-02, approved):** Claude Haiku 5.5 on the four NYC events' pages, 6 calls, about $0.009 in all. It's accurate enough to keep Haiku. Four errors were fixed in prompt `2026-11-02.2` and in code. Details are in `docs/PROMPT_TUNING.md`.
 
-**Not done yet:**
-- the production backup, migrations and deploy;
-- filling in the four NYC events;
+**On production (2026-11-02, approved by the owner):**
+- Backup first, kept outside the repo since it holds student emails.
+- Both migrations applied after a dry run listed exactly them. Read-only checks: all 19 columns, the 6 events untouched, the stats function runs, and `anon` can't call either new function.
+- `main` fast-forwarded to `164a0ee` (pull request #1, CI passed), and the Vercel deploy succeeded. `/events` and the event pages load.
+
+**Not done yet:** filling in the four NYC events (the owner, with "Fill from event site").
 
 ## Decisions (owner, 2026-11-02)
 1. **The admin fills events in**, in `/admin/events`, helped by a "Fill from event site" button that uses Claude. Organizers may get the same form later.
