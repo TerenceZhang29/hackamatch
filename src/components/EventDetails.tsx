@@ -90,11 +90,16 @@ function shortDate(iso: string): string {
   });
 }
 
-/** At a glance: the facts people compare hackathons on, and the apply-by line. */
+/**
+ * At a glance: the facts people compare hackathons on, then the apply-by line
+ * with the button to apply (mockup option B, owner 2026-11-03), so the
+ * deadline and the way to act on it sit together.
+ */
 export function EventGlance({
   event,
   details,
   today,
+  apply,
 }: {
   event: {
     start_date: string;
@@ -107,6 +112,8 @@ export function EventGlance({
   };
   details: EventDetails;
   today: string;
+  /** Where to apply or register, or null when there's nowhere (or it ended). */
+  apply: { href: string; label: string } | null;
 }) {
   const where = details.format ? FORMAT_LABELS[details.format] : null;
   const cost =
@@ -116,6 +123,18 @@ export function EventGlance({
         ? "Free"
         : `${formatDollars(details.entryFeeCents)} entry`;
   const applyIn = details.applyBy ? daysUntil(today, details.applyBy) : null;
+  const closed = applyIn !== null && applyIn < 0;
+  const applyButton =
+    apply && !closed ? (
+      <a
+        href={apply.href}
+        rel="noopener noreferrer"
+        className="flex h-11 items-center justify-center gap-1.5 rounded-xl border border-amber-300 bg-bg text-[15px] font-semibold text-amber-900 transition hover:bg-amber-50 dark:border-amber-800 dark:text-amber-200 dark:hover:bg-amber-900"
+      >
+        {apply.label}
+        <ExternalLink aria-hidden="true" className="size-4" />
+      </a>
+    ) : null;
   return (
     <section aria-labelledby="glance-heading" className={card}>
       <h2 id="glance-heading" className={heading}>
@@ -166,34 +185,39 @@ export function EventGlance({
         ) : null}
       </dl>
       {details.applyBy && applyIn !== null ? (
-        <div className="flex items-start gap-2.5 rounded-[14px] bg-amber-100 p-3 text-amber-900 dark:bg-amber-950 dark:text-amber-200">
-          <CalendarClock aria-hidden="true" className="mt-px size-[18px] shrink-0" />
-          <p className="flex flex-col gap-px">
-            <span className="text-sm font-bold">
-              {applyIn < 0
-                ? `Applications closed ${shortDate(details.applyBy)}`
-                : `Apply by ${shortDate(details.applyBy)} · ${
-                    applyIn === 0
-                      ? "last day"
-                      : applyIn === 1
-                        ? "1 day left"
-                        : `${applyIn} days left`
-                  }`}
-            </span>
-            {details.admission || details.capacity ? (
-              <span className="text-[13px]">
-                {[
-                  details.capacity ? `${details.capacity.toLocaleString("en-US")} spots` : null,
-                  details.admission ? ADMISSION_LABELS[details.admission] : null,
-                ]
-                  .filter(Boolean)
-                  .join(". ")}
-                .
+        <div className="flex flex-col gap-3 rounded-2xl bg-amber-100 p-3.5 text-amber-900 dark:bg-amber-950 dark:text-amber-200">
+          <div className="flex items-start gap-2.5">
+            <CalendarClock aria-hidden="true" className="mt-px size-[18px] shrink-0" />
+            <p className="flex flex-col gap-px">
+              <span className="text-sm font-bold">
+                {applyIn < 0
+                  ? `Applications closed ${shortDate(details.applyBy)}`
+                  : `Apply by ${shortDate(details.applyBy)} · ${
+                      applyIn === 0
+                        ? "last day"
+                        : applyIn === 1
+                          ? "1 day left"
+                          : `${applyIn} days left`
+                    }`}
               </span>
-            ) : null}
-          </p>
+              {details.admission || details.capacity ? (
+                <span className="text-[13px]">
+                  {[
+                    details.capacity ? `${details.capacity.toLocaleString("en-US")} spots` : null,
+                    details.admission ? ADMISSION_LABELS[details.admission] : null,
+                  ]
+                    .filter(Boolean)
+                    .join(". ")}
+                  .
+                </span>
+              ) : null}
+            </p>
+          </div>
+          {applyButton}
         </div>
-      ) : null}
+      ) : (
+        applyButton
+      )}
     </section>
   );
 }

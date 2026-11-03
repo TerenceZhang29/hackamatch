@@ -32,7 +32,7 @@ async function detailedEvent() {
        chat_url, details_updated_at)
      values ($1, $2, current_date + 30, current_date + 31, 'E2E Lab', 'Roosevelt Island',
        'https://example.org/hack', '{health}', 'in_person', 24, 0, 'All students, 18+',
-       'beginner', current_date + 9, 'https://example.org/apply', 'application', 300, 1200000,
+       'beginner', (now() at time zone 'America/New_York')::date + 9, 'https://example.org/apply', 'application', 300, 1200000,
        '[{"label":"1st place","amountCents":500000,"note":null}]',
        '[{"name":"Less paperwork","description":"Draft clinical notes.","skills":["ml","backend"]}]',
        'cloud credits', '[{"criterion":"Impact","weightPct":30}]',
@@ -86,7 +86,8 @@ test("the event page shows the details that are set, and hides the rest", async 
   await expect(page.getByRole("region", { name: "What's included" })).toContainText(
     "Mentors on site",
   );
-  await expect(page.getByRole("link", { name: "Apply on the event site" })).toHaveAttribute(
+  // The apply button sits with the deadline, in At a glance.
+  await expect(glance.getByRole("link", { name: "Apply on the event site" })).toHaveAttribute(
     "href",
     "https://example.org/apply",
   );

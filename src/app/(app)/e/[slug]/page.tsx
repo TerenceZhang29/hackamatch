@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ArrowLeft, ArrowRight, Check, ExternalLink, Users } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Users } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import {
@@ -43,8 +43,9 @@ export async function generateMetadata({
 /**
  * An event's details (P1-24, P1-25), and the link organizers share: the
  * name, host, description and areas; at a glance (when, where, teams, cost,
- * who can join, level, links, apply by); tracks; who's going; prizes,
- * judging, schedule and what's included, each hidden when empty. "I'm going!"
+ * who can join, level, links, apply by and the apply button); tracks; who's
+ * going (hidden at 0); prizes, judging, schedule and what's included, each
+ * hidden when empty. "I'm going!"
  * and "Discover who's going" float at the bottom; Discover opens filtered on
  * the event (members) or sign-up with the event ticked (visitors).
  * `?join=1` (where sign-in returns) tags the event for an onboarded member.
@@ -86,6 +87,13 @@ export default async function EventPage({
   const today = localDateString(getConfig().APP_TIMEZONE);
   const needTeam = stats?.get(event.id)?.needTeam ?? null;
   const applyHref = details.applyUrl ?? event.url;
+  const apply =
+    applyHref && !ended
+      ? {
+          href: applyHref,
+          label: details.applyUrl ? "Apply on the event site" : "Register on the event site",
+        }
+      : null;
   const discoverHref = member
     ? `/?event=${slug}`
     : user
@@ -148,7 +156,7 @@ export default async function EventPage({
           ) : null}
         </article>
 
-        <EventGlance event={event} details={details} today={today} />
+        <EventGlance event={event} details={details} today={today} apply={apply} />
 
         {member && going && !ended ? (
           <EventPoolPanel
@@ -162,53 +170,45 @@ export default async function EventPage({
 
         <EventTracks details={details} />
 
-        <section
-          aria-labelledby="going-heading"
-          className="flex flex-col gap-3.5 rounded-3xl bg-bg p-5 shadow-[0_1px_3px_rgba(22,22,26,0.06)]"
-        >
-          <h2
-            id="going-heading"
-            className="text-xs font-semibold tracking-[0.06em] text-muted uppercase"
+        {/* Hidden while nobody on HackaMatch is going (owner, 2026-11-03). */}
+        {count > 0 ? (
+          <section
+            aria-labelledby="going-heading"
+            className="flex flex-col gap-3.5 rounded-3xl bg-bg p-5 shadow-[0_1px_3px_rgba(22,22,26,0.06)]"
           >
-            Who&apos;s going on HackaMatch
-          </h2>
-          <p className="flex items-center gap-3">
-            {faces?.rows.length ? (
-              <span aria-hidden="true" className="flex -space-x-1.5">
-                {faces.rows.map((person) => (
-                  <span key={person.user_id} className="rounded-full ring-2 ring-bg">
-                    <Avatar name={person.display_name} size={32} />
-                  </span>
-                ))}
-              </span>
-            ) : (
-              <Users aria-hidden="true" className="size-5 text-muted" />
-            )}
-            <span className="flex flex-wrap items-baseline gap-x-1.5 text-base">
-              <span>
-                <strong className="text-xl font-extrabold">{count}</strong>{" "}
-                {count === 1 ? "person" : "people"} going{going ? ", including you" : ""}
-              </span>
-              {needTeam !== null && count > 0 ? (
-                <span className="basis-full text-[15px] text-muted">
-                  {needTeam} still need a team
+            <h2
+              id="going-heading"
+              className="text-xs font-semibold tracking-[0.06em] text-muted uppercase"
+            >
+              Who&apos;s going on HackaMatch
+            </h2>
+            <p className="flex items-center gap-3">
+              {faces?.rows.length ? (
+                <span aria-hidden="true" className="flex -space-x-1.5">
+                  {faces.rows.map((person) => (
+                    <span key={person.user_id} className="rounded-full ring-2 ring-bg">
+                      <Avatar name={person.display_name} size={32} />
+                    </span>
+                  ))}
                 </span>
-              ) : null}
-            </span>
-          </p>
-          {/* Counts only, and only from 5 people, so the bars can't point at anyone. */}
-          {member && count >= 5 ? <EventGoingSkills skills={skills} /> : null}
-        </section>
-
-        {applyHref && !ended ? (
-          <a
-            href={applyHref}
-            rel="noopener noreferrer"
-            className="flex h-11 items-center justify-center gap-1.5 rounded-xl text-[15px] font-semibold"
-          >
-            {details.applyUrl ? "Apply on the event site" : "Register on the event site"}
-            <ExternalLink aria-hidden="true" className="size-4" />
-          </a>
+              ) : (
+                <Users aria-hidden="true" className="size-5 text-muted" />
+              )}
+              <span className="flex flex-wrap items-baseline gap-x-1.5 text-base">
+                <span>
+                  <strong className="text-xl font-extrabold">{count}</strong>{" "}
+                  {count === 1 ? "person" : "people"} going{going ? ", including you" : ""}
+                </span>
+                {needTeam !== null && count > 0 ? (
+                  <span className="basis-full text-[15px] text-muted">
+                    {needTeam} still need a team
+                  </span>
+                ) : null}
+              </span>
+            </p>
+            {/* Counts only, and only from 5 people, so the bars can't point at anyone. */}
+            {member && count >= 5 ? <EventGoingSkills skills={skills} /> : null}
+          </section>
         ) : null}
 
         <EventPrizes details={details} />

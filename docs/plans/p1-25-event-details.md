@@ -59,9 +59,9 @@ Where the mockup and this plan differ, this plan wins. The mockup's sample event
 
 ## What changes, at a glance
 - **Event page (`/e/<slug>`):** new sections, each hidden when empty:
-  - **At a glance:** when, where (in person, online or hybrid), teams, cost, open to, level, event site, chat, plus a highlighted "Apply by" line;
+  - **At a glance:** when, where (in person, online or hybrid), teams, cost, open to, level, event site, chat, plus a highlighted "Apply by" box holding the "Apply on the event site" button (option B, owner 2026-11-03);
   - **Tracks**, with "Skills that help" tags and the tools provided;
-  - **Who's going on HackaMatch:** count, how many still need a team, top skills;
+  - **Who's going on HackaMatch:** count, how many still need a team, top skills; hidden while nobody is going;
   - **Prizes, How it's judged, Schedule, What's included.**
 - **Events list (`/events`):** each row adds prize total, length, level, cost, "N going · N need a team" and the apply-by date.
 - **Admin (`/admin/events/<id>`):** the new fields, and "Fill from event site".
@@ -97,7 +97,7 @@ One migration, `supabase/migrations/<date>_event_details.sql`. Every new column 
 
 ## 2. Event page and list
 - **Layout:** per the mockup, in `src/app/(app)/e/[slug]/page.tsx`, split into small components (`EventGlance`, `EventTracks`, `EventGoing`, `EventPrizes`, …) so the list rows and the later fit panel can reuse pieces.
-- **Floating buttons:** a `sticky bottom-16` bar on phones (above the tab bar), `bottom-0` on wider screens, over a fade, the same pattern as Discover's `AnswerBar`. "Apply on the event site" stays in the page.
+- **Floating buttons:** a `sticky bottom-16` bar on phones (above the tab bar), `bottom-0` on wider screens, over a fade, the same pattern as Discover's `AnswerBar`. "Apply on the event site" stays in the page, inside the "Apply by" box (or at the end of At a glance when there is no deadline).
 - **Who's going:** one server query over the event's pool returns:
   - the going count;
   - how many aren't on a team for the event yet;

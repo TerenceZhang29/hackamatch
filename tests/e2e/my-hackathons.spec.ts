@@ -174,8 +174,12 @@ test("a match for an event you never tagged: 'I'm going', and teaming up tags it
   try {
     const visitorPage = await visitor.newPage();
     await visitorPage.goto(`/e/${teamed.slug}`);
-    // Both have their team, so neither counts as going-and-looking.
-    await expect(visitorPage.getByText("0 people going")).toBeVisible();
+    // Both have their team, so neither counts as going-and-looking, and with
+    // nobody going the section is hidden.
+    await expect(visitorPage.getByRole("heading", { name: "At a glance" })).toBeVisible();
+    await expect(
+      visitorPage.getByRole("heading", { name: "Who's going on HackaMatch" }),
+    ).toHaveCount(0);
   } finally {
     await visitor.close();
   }
