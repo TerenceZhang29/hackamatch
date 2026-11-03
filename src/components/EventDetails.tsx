@@ -5,6 +5,7 @@ import {
   ExternalLink,
   Globe,
   GraduationCap,
+  Lock,
   MapPin,
   MessageCircle,
   Sprout,
@@ -222,9 +223,61 @@ export function EventGlance({
   );
 }
 
-/** Tracks: what to build, and the skills that help. */
-export function EventTracks({ details }: { details: EventDetails }) {
+/**
+ * Tracks: what to build, and the skills that help. For anyone who isn't a
+ * member yet (`locked`: signed out, or not finished joining), blurred
+ * stand-in cards sit under a prompt (owner, 2026-11-03); the real tracks
+ * aren't sent, so they can't be read from the page.
+ */
+export function EventTracks({
+  details,
+  locked,
+}: {
+  details: EventDetails;
+  locked?: { prompt: string; action: string; href: string };
+}) {
   if (!details.tracks.length && !details.tools) return null;
+  if (locked) {
+    const cards = Math.min(Math.max(details.tracks.length, 1), 3);
+    return (
+      <section aria-labelledby="tracks-heading" className="flex flex-col gap-2.5">
+        <h2 id="tracks-heading" className={`${heading} px-1`}>
+          Tracks
+        </h2>
+        <div className="relative">
+          <div aria-hidden="true" className="flex flex-col gap-2.5 blur-[7px] select-none">
+            {Array.from({ length: cards }, (_, i) => (
+              <div
+                key={i}
+                className="flex flex-col gap-2.5 rounded-[20px] bg-bg px-[18px] py-4 shadow-[0_1px_3px_rgba(22,22,26,0.06)]"
+              >
+                <span className="h-4 w-2/5 rounded-full bg-zinc-300 dark:bg-zinc-600" />
+                <span className="h-3 w-11/12 rounded-full bg-zinc-200 dark:bg-zinc-700" />
+                <span className="flex gap-1.5">
+                  <span className="h-7 w-14 rounded-full bg-accent-soft" />
+                  <span className="h-7 w-20 rounded-full bg-accent-soft" />
+                </span>
+              </div>
+            ))}
+          </div>
+          <div className="absolute inset-0 flex items-center justify-center p-4">
+            <div className="flex w-full max-w-[300px] flex-col items-center gap-3 rounded-[20px] bg-bg p-5 text-center shadow-[0_8px_24px_rgba(22,22,26,0.12)]">
+              <span className="flex size-11 items-center justify-center rounded-[14px] bg-accent-soft text-accent">
+                <Lock aria-hidden="true" className="size-[22px]" />
+              </span>
+              <p className="leading-snug font-bold">{locked.prompt}</p>
+              <a
+                href={locked.href}
+                className="flex h-11 items-center justify-center self-stretch rounded-xl bg-accent text-[15px] font-bold text-accent-ink transition hover:opacity-90"
+              >
+                {locked.action}
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
   return (
     <section aria-labelledby="tracks-heading" className="flex flex-col gap-2.5">
       <h2 id="tracks-heading" className={`${heading} px-1`}>

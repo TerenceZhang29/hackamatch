@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { expect, test, type Page } from "@playwright/test";
 import { onboard, signIn, signInOnboarded } from "./auth";
-import { createUser, deleteUser, query, uniqueEmail } from "./helpers";
+import { createUser, deleteUser, markOnboarded, query, uniqueEmail } from "./helpers";
 
 // P1-25 (docs/plans/p1-25-event-details.md): more event details, and
 // "Fill from event site" (the fake model locally).
@@ -61,7 +61,38 @@ async function peopleGoing(eventId: string, n: number) {
 
 test("the event page shows the details that are set, and hides the rest", async ({ page }) => {
   const event = await detailedEvent();
+
+  // Signed out, the tracks are behind sign-in, and not in the page at all.
+  const response = await page.goto(`/e/${event.slug}`);
+  const lockedTracks = page.getByRole("region", { name: "Tracks" });
+  await expect(lockedTracks.getByText("Sign in to view the tracks and details")).toBeVisible();
+  await expect(lockedTracks.getByRole("link", { name: "Sign in" })).toHaveAttribute(
+    "href",
+    `/login?next=%2Fe%2F${event.slug}`,
+  );
+  // Only a production build (CI) can show this: the dev server adds every
+  // server component's props to the page for debugging.
+  if (process.env.CI) {
+    expect(await response!.text()).not.toMatch(/Less paperwork|Draft clinical notes/);
+  }
+  await expect(page.getByRole("region", { name: "At a glance" })).toBeVisible();
+
+  // Signed in but not joined yet: the same lock, asking them to finish joining.
+  const email = newEmail();
+  await signIn(page, email);
   await page.goto(`/e/${event.slug}`);
+  await expect(lockedTracks.getByRole("link", { name: "Finish joining" })).toHaveAttribute(
+    "href",
+    `/onboarding?next=%2Fe%2F${event.slug}`,
+  );
+  await expect(
+    lockedTracks.getByText("Finish joining to view the tracks and details"),
+  ).toBeVisible();
+
+  // A member sees the tracks.
+  await markOnboarded(email);
+  await page.reload();
+  await expect(page.getByText(/to view the tracks and details/)).toHaveCount(0);
   const glance = page.getByRole("region", { name: "At a glance" });
   await expect(glance.getByText("In person")).toBeVisible();
   await expect(glance.getByText("2–4 people")).toBeVisible();

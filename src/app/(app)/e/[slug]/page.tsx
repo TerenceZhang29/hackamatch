@@ -43,9 +43,9 @@ export async function generateMetadata({
 /**
  * An event's details (P1-24, P1-25), and the link organizers share: the
  * name, host, description and areas; at a glance (when, where, teams, cost,
- * who can join, level, links, apply by and the apply button); tracks; who's
- * going (hidden at 0); prizes, judging, schedule and what's included, each
- * hidden when empty. "I'm going!"
+ * who can join, level, links, apply by and the apply button); tracks
+ * (members only); who's going (hidden at 0); prizes, judging, schedule and
+ * what's included, each hidden when empty. "I'm going!"
  * and "Discover who's going" float at the bottom; Discover opens filtered on
  * the event (members) or sign-up with the event ticked (visitors).
  * `?join=1` (where sign-in returns) tags the event for an onboarded member.
@@ -94,6 +94,21 @@ export default async function EventPage({
           label: details.applyUrl ? "Apply on the event site" : "Register on the event site",
         }
       : null;
+  // Tracks are for members; everyone else gets the step that makes them one.
+  const back = new URLSearchParams({ next: `/e/${slug}` });
+  const tracksLock = member
+    ? undefined
+    : user
+      ? {
+          prompt: "Finish joining to view the tracks and details",
+          action: "Finish joining",
+          href: `/onboarding?${back}`,
+        }
+      : {
+          prompt: "Sign in to view the tracks and details",
+          action: "Sign in",
+          href: `/login?${back}`,
+        };
   const discoverHref = member
     ? `/?event=${slug}`
     : user
@@ -168,7 +183,7 @@ export default async function EventPage({
           />
         ) : null}
 
-        <EventTracks details={details} />
+        <EventTracks details={details} locked={tracksLock} />
 
         {/* Hidden while nobody on HackaMatch is going (owner, 2026-11-03). */}
         {count > 0 ? (
