@@ -72,7 +72,11 @@ test("A says Interested on B's card, B gets an email, B says Interested, both ar
       (emails) => emails.length === 2,
     );
     expect(toOwner[1]!.html).toContain(`mailto:${builder.email}`);
-    const toBuilder = await readOutbox(builder.email);
+    // Sent after the response (after()), so it can land a moment after the owner's.
+    const toBuilder = await eventually(
+      () => readOutbox(builder.email),
+      (emails) => emails.length >= 1,
+    );
     expect(toBuilder.map((e) => e.subject)).toEqual([expect.stringMatching(/^It's a match/)]);
 
     const [row] = await query<{ revealed: boolean; source: string }>(

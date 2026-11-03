@@ -140,7 +140,10 @@ test("a manual match emails both people, and each can answer from the email", as
     () => readOutbox(maya),
     (emails) => emails.length === 1,
   );
-  const [toSofia] = await readOutbox(sofia);
+  const [toSofia] = await eventually(
+    () => readOutbox(sofia),
+    (emails) => emails.length === 1,
+  );
   expect(toMaya!.subject).toBe("We think you should meet Sofia");
   expect(toMaya!.html).toContain("Sofia builds React apps for health");
   expect(toSofia!.html).toContain("Maya has a health idea");

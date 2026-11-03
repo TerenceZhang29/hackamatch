@@ -82,7 +82,11 @@ test("confirming interest reveals the match and emails both people their contact
     () => readOutbox(ownerEmail),
     (emails) => emails.length > 0,
   );
-  const toBuilder = await readOutbox(builderEmail);
+  // Both are sent after the response (after()), one after the other.
+  const toBuilder = await eventually(
+    () => readOutbox(builderEmail),
+    (emails) => emails.length > 0,
+  );
   expect(toOwner).toHaveLength(1);
   expect(toBuilder).toHaveLength(1);
   expect(toOwner[0]!.subject).toBe("It's a match: you and Sofia");
