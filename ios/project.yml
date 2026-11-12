@@ -1,0 +1,88 @@
+# The iOS app's Xcode project (docs/plans/ios-app.md). Edit this file, then run
+# `xcodegen` in ios/ to regenerate HackaMatch.xcodeproj; commit both.
+name: HackaMatch
+options:
+  bundleIdPrefix: com.hackamatch
+  deploymentTarget:
+    iOS: "18.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    DEVELOPMENT_TEAM: 5B89U2CMF9
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_VERSION: "6.0"
+    # Everything runs on the main actor unless marked otherwise; the models are `nonisolated`.
+    SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
+    SWIFT_APPROACHABLE_CONCURRENCY: "YES"
+    SWIFT_STRICT_CONCURRENCY: complete
+targets:
+  HackaMatch:
+    type: application
+    platform: iOS
+    sources: [HackaMatch]
+    info:
+      path: Config/Info.plist
+      properties:
+        CFBundleDisplayName: HackaMatch
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        # Where the app's JSON API lives: the local server in Debug, the live site in Release.
+        HMAPIBaseURL: $(HM_API_BASE_URL)
+        ITSAppUsesNonExemptEncryption: false
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        # Lets Debug builds reach http://localhost:3000; https everywhere else.
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.hackamatch.app
+        TARGETED_DEVICE_FAMILY: "1"
+        CODE_SIGN_STYLE: Automatic
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+      configs:
+        Debug:
+          HM_API_BASE_URL: http://localhost:3000
+        Release:
+          HM_API_BASE_URL: https://hackamatch.com
+  HackaMatchTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [HackaMatchTests]
+    dependencies:
+      - target: HackaMatch
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: "YES"
+        PRODUCT_BUNDLE_IDENTIFIER: com.hackamatch.app.tests
+  HackaMatchUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [HackaMatchUITests]
+    dependencies:
+      - target: HackaMatch
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: "YES"
+        PRODUCT_BUNDLE_IDENTIFIER: com.hackamatch.app.uitests
+        TEST_TARGET_NAME: HackaMatch
+        # XCTestCase isn't main-actor; the test methods say @MainActor themselves.
+        SWIFT_DEFAULT_ACTOR_ISOLATION: nonisolated
+schemes:
+  # Unit tests only: no server needed.
+  HackaMatch:
+    build:
+      targets:
+        HackaMatch: all
+    test:
+      targets: [HackaMatchTests]
+  # Against the local stack; run through scripts/test-ui.sh.
+  HackaMatchUITests:
+    build:
+      targets:
+        HackaMatch: all
+        HackaMatchUITests: [test]
+    test:
+      targets: [HackaMatchUITests]

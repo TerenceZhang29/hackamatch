@@ -35,7 +35,7 @@ Local services once `pnpm db:start` is running:
 
 Seeded accounts (see `supabase/seed.sql`) include `seed-001@cornell.edu` (admin and organizer), idea people `seed-101@` to `seed-104@`, builders `seed-201@` to `seed-205@` `both` users `seed-301@` and `seed-302@` (paused), and `seed-303@`, who never finished onboarding; `pnpm seed:dev` adds `dev-001@` to `dev-060@`. Sign in with a magic link and open it from Mailpit.
 
-Test addresses always use a `<use case>-<digits>` NetID (`ut-`, `db-`, `e2e-`, `seed-`, `dev-`, `p0-`), which can never be a real student's (real NetIDs are letters then digits, like `abc123`). `tests/unit/test-addresses.test.ts` enforces this.
+Test addresses always use a `<use case>-<digits>` NetID (`ut-`, `db-`, `e2e-`, `seed-`, `dev-`, `p0-`, `ios-`), which can never be a real student's (real NetIDs are letters then digits, like `abc123`). `tests/unit/test-addresses.test.ts` enforces this.
 
 ## Scripts
 
@@ -68,6 +68,15 @@ Test addresses always use a `<use case>-<digits>` NetID (`ut-`, `db-`, `e2e-`, `
 - The same email carries a 6-digit code for the iOS app, which signs in through `/api/v1/auth/request` and `/api/v1/auth/verify` and then sends a bearer token (see [docs/plans/ios-app.md](docs/plans/ios-app.md)). The hosted templates need the `{{ .Token }}` line too.
 - `src/middleware.ts` redirects signed-out visitors away from `/me`, `/matches`, `/ideas/new`, `/organizer` and `/admin`. Pages and server actions also call `requireUser()`, `requireOnboarded()`, `requireAdmin()` or `requireOrganizer()` from `src/lib/auth.ts`.
 - `?next=` accepts same-site relative paths only (`sanitizeNext` in `src/lib/auth-helpers.ts`).
+
+## iOS app
+
+The native app lives in `ios/` (SwiftUI, iOS 18+, no third-party packages); the plan is [docs/plans/ios-app.md](docs/plans/ios-app.md). It talks only to `/api/v1`.
+
+- `ios/project.yml` describes the Xcode project; after changing it, run `xcodegen` in `ios/` and commit the regenerated `HackaMatch.xcodeproj`.
+- Debug builds call `http://localhost:3000`, Release builds `https://hackamatch.com`.
+- Unit tests (no server): `xcodebuild test -project ios/HackaMatch.xcodeproj -scheme HackaMatch -destination 'platform=iOS Simulator,name=iPhone 17' -collect-test-diagnostics never CODE_SIGNING_ALLOWED=NO`.
+- UI test against the local stack: `pnpm db:start`, `LOGIN_RATE_LIMIT_PER_IP=100000 pnpm dev`, then `ios/scripts/test-ui.sh`. It signs up a new `ios-<digits>` student with the emailed code and deletes it afterwards.
 
 ## Configuration
 

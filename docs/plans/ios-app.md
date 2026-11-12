@@ -98,12 +98,27 @@ They are plain-language drafts, not legal advice.
 1. Back up, then apply the migration (`supabase db push`, after a dry run lists exactly it).
 2. Merge and deploy.
 
-### 3. App: skeleton, sign-in, Discover (about 1 week)
-- `ios/HackaMatch.xcodeproj`: SwiftUI, iPhone only, no third-party packages (URLSession and Keychain).
-- **Two configurations:** Debug talks to `http://localhost:3000` (local Supabase, fake providers, codes from Mailpit); Release talks to `https://hackamatch.com`.
-- **Design:** the tokens from `globals.css` as an asset catalog with light and dark values; SF Symbols in place of lucide; the four tabs as a native tab bar.
-- **Screens:** landing, sign-up (hackathons, areas, skills, name and email), enter code, then Discover with swipe, the hackathon filter, Undo and the full profile.
-- Dynamic Type and VoiceOver labels from the start, with the same names as the web ("Pass", "Interested").
+### 3. App: skeleton, sign-in, Discover: built 2026-11-11
+- **Project:** `ios/project.yml` (XcodeGen) generates `ios/HackaMatch.xcodeproj`. SwiftUI, iPhone only, iOS 18+, Swift 6 with the main actor as the default; no third-party packages. Bundle ID `com.hackamatch.app`, team `5B89U2CMF9`.
+- **Two configurations:** Debug calls `http://localhost:3000` (local Supabase, fake providers, codes from Mailpit); Release calls `https://hackamatch.com`.
+- **API client** (`API/APIClient.swift`): bearer token, refreshed a minute before it expires or on a 401, one refresh at a time; the session is in the Keychain (this device only, after first unlock). A refresh token the server refuses signs the person out; being offline doesn't.
+- **Models** (`API/Models.swift`) mirror `src/lib/api/schemas.ts`; `HackaMatchTests/FixtureTests.swift` decodes every file in `ios/Fixtures`.
+- **Design:** the tokens from `globals.css` in light and dark (`Design/Theme.swift`), SF Symbols, a native tab bar, the system font.
+- **Screens:**
+  - landing, with the next five hackathons rolling every 3 seconds (still under Reduce Motion);
+  - sign-up's four steps, the same rules and search as the web, the email last; "By joining you agree to the Terms and Privacy policy";
+  - the code screen (fills from the email with one tap, checks itself at six digits, "Send a new code");
+  - "I already have an account": email, then code;
+  - Discover: the hackathon chips, the card (swipe right for Interested, left to Pass, tap for the full profile), the round Pass, Interested and Undo buttons, "It's a match!", and the full profile with Pass, Interested and Report or block;
+  - Events and Matches link to the website for now; Me has the name, email, pause state and Sign out.
+- **Sign-up after the code fails:** the person stays signed in and sign-up reopens on its last step with their answers.
+- **Accessibility:** VoiceOver names match the web ("Pass", "Interested", "Undo"); the card has Pass and Interested actions; selected chips and rows say so; Dynamic Type throughout.
+- **Tests:** 23 unit tests (`HackaMatchTests`: the samples, the deck, sign-up's rules), and one UI test (`HackaMatchUITests`, `ios/scripts/test-ui.sh`) against the local stack: sign-up with the emailed code, the deck, Pass and Undo, the full profile, Sign out. It saves screenshots in the test results.
+
+- **App icon:** Option I, "Pieces that fit", from the owner's design canvas (2026-11-11). The source is `ios/Artwork/AppIcon.svg`; `AppIcon.png` in the asset catalog is it at 1024 px, square and opaque (iOS rounds the corners).
+- **CI:** `.github/workflows/ios.yml` builds the app and runs the unit tests on `macos-26` when `ios/` or `src/lib/api/` changes. The UI test needs the local stack, so it stays local.
+
+**Not done yet:** push (phase 5).
 
 ### 4. App: the other tabs (about 1 week)
 - **Events:** the list, event details with the same section order, "I'm going!".
