@@ -48,7 +48,7 @@ Test addresses always use a `<use case>-<digits>` NetID (`ut-`, `db-`, `e2e-`, `
 | `pnpm typecheck`                    | Generate Next route types, then `tsc --noEmit`                         |
 | `pnpm test`                         | Unit tests (Vitest)                                                    |
 | `pnpm test:db`                      | Database tests (schema, triggers, RLS) against local Supabase          |
-| `pnpm test:e2e`                     | End-to-end tests (Playwright; starts the app itself)                   |
+| `pnpm test:e2e`                     | End-to-end tests (Playwright; starts the app itself), and the iOS API  |
 | `pnpm db:start`                     | Start local Supabase                                                   |
 | `pnpm db:env`                       | Write `.env.local` from the running local Supabase                     |
 | `pnpm db:reset`                     | Recreate the local database from migrations + seed                     |
@@ -65,6 +65,7 @@ Test addresses always use a `<use case>-<digits>` NetID (`ut-`, `db-`, `e2e-`, `
 - Sign-in is by magic link at `/login`, limited to the email domains in the `app_settings` table (`cornell.edu` by default). Locally, open the link from Mailpit.
 - The emailed link opens `/auth/confirm` on any device. That page signs the user in only when its button is pressed, so mail scanners that fetch the link can't use it up.
 - The email templates live in `supabase/templates/` and are registered in `supabase/config.toml`. The hosted Supabase project needs the same two templates and `${APP_URL}/auth/confirm**` on its redirect allow-list.
+- The same email carries a 6-digit code for the iOS app, which signs in through `/api/v1/auth/request` and `/api/v1/auth/verify` and then sends a bearer token (see [docs/plans/ios-app.md](docs/plans/ios-app.md)). The hosted templates need the `{{ .Token }}` line too.
 - `src/middleware.ts` redirects signed-out visitors away from `/me`, `/matches`, `/ideas/new`, `/organizer` and `/admin`. Pages and server actions also call `requireUser()`, `requireOnboarded()`, `requireAdmin()` or `requireOrganizer()` from `src/lib/auth.ts`.
 - `?next=` accepts same-site relative paths only (`sanitizeNext` in `src/lib/auth-helpers.ts`).
 

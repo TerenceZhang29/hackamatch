@@ -27,37 +27,47 @@ The cost is that every student-facing screen then exists twice, and app changes 
 ## Phases
 Time estimates are rough and unchecked.
 
-### 0. Apple setup (owner, about an hour)
-- Register the bundle ID (suggested `com.hackamatch.app`) with Push Notifications and Associated Domains.
-- Create the app record in App Store Connect.
-- Create an APNs auth key (`.p8`). Keep it out of the repo; it goes into Vercel as environment variables.
-- Send Claude the Team ID and the key ID.
+### 0. Apple setup (owner): done 2026-11-11, as reported by the owner
+- Bundle ID `com.hackamatch.app`, with Push Notifications and Associated Domains.
+- App record "HackaMatch" in App Store Connect.
+- Team ID `5B89U2CMF9`. It is public by nature: it appears in the app and in the associated-domains file.
+- An APNs auth key (`.p8`), held by the owner outside the repo. The key and its ID go into Vercel as environment variables in phase 5.
 
-### 1. Server: API and sign-in for the app (about 1 week, with phase 2)
-No change for web users.
-- **Bearer sign-in.** A `getApiUser(request)` next to `getUser()` in `src/lib/auth.ts` that reads `Authorization: Bearer <Supabase access token>`. No cookies, so no cross-site risk and no origin check.
+### 1. Server: API and sign-in for the app: built 2026-11-11, not deployed
+No change for web users. Nothing is on production: the hosted email templates and a deploy both wait for the owner.
+- **Bearer sign-in.** `getApiUser(request)` in `src/lib/api/auth.ts` reads `Authorization: Bearer <Supabase access token>`, checks it, and loads the caller's row as that user. No cookies, so no cross-site risk and no origin check.
 - **Sign in with a 6-digit code.**
-  - The email templates add `{{ .Token }}` under the link. Local `otp_length` is already 6.
+  - Both email templates (`supabase/templates/`) show `{{ .Token }}` under the link. The link and the code are the same single-use sign-in.
   - `POST /api/v1/auth/request` reuses `sendMagicLink`, so the domain check, rate limits and pilot gate all apply.
-  - `POST /api/v1/auth/verify` checks the code and returns the access and refresh tokens.
+  - `POST /api/v1/auth/verify` checks the code (10 guesses per address per hour) and returns the access and refresh tokens.
   - `POST /api/v1/auth/refresh` and `/auth/signout`. The app keeps tokens in the Keychain and needs no Supabase library.
-- **Routes**, each a thin wrapper over an existing `src/server` function, with zod on the way in and out:
+- **Sign-up needs no waiting answers.** The web keeps answers in `pending_signups` because its link may open on another device. The app asks the same four steps, keeps the answers on the phone, verifies the code, then posts them to `POST /signup`.
+- **Routes** (`src/app/api/v1/`), each a thin wrapper over the `src/server` functions the web uses. `src/server/api-views.ts` shapes the responses.
 
-  | Route | Backs | Server code |
-  |---|---|---|
-  | `GET /me`, `PATCH /me`, `DELETE /me` | Me tab, pause, delete account | `profiles.ts` |
-  | `POST /signup` | the four sign-up steps | `signup.ts` |
-  | `GET /taxonomy` | areas and skills for the pickers | `src/lib/taxonomy` |
-  | `GET /deck`, `POST /deck/answer`, `POST /deck/undo` | Discover | `deck.ts`, `matches.ts`, `card-passes.ts` |
-  | `GET /people/:id` | full profile | `board.ts` |
-  | `GET /events`, `GET /events/:slug`, `PUT /events/:id/going` | Events | `events.ts` |
-  | `GET /matches`, `GET /matches/:id`, `POST /matches/:id/answer` | Matches and the pair page | `matches.ts` |
-  | `POST /matches/:id/hackathons`, `POST /matches/:id/team` | pick a hackathon, "We teamed up" | `teams.ts` |
-  | `PUT /devices`, `DELETE /devices/:token` | push tokens | new |
-  | `POST /reports`, `PUT /blocks/:userId` | report and block | new |
+  | Route | Backs |
+  |---|---|
+  | `GET /me`, `PATCH /me`, `DELETE /me?confirm=delete` | Me tab: name, areas and skills, pause, delete account |
+  | `POST /signup` | the four sign-up steps |
+  | `GET /taxonomy` | areas and skills for the pickers |
+  | `GET /deck?event=`, `POST /deck/answer`, `POST /deck/undo` | Discover; 30 cards a page |
+  | `GET /people/:id` | a full profile and the caller's standing with them |
+  | `GET /events`, `GET /events/:slug`, `PUT /events/:slug/going` | Events (public reads; a member's token adds more) |
+  | `GET /matches`, `GET /matches/:id`, `POST /matches/:id/answer` | Matches and the pair page |
+  | `POST /matches/:id/hackathons`, `POST /matches/:id/team`, `POST /teams/:id/members` | pick a hackathon, "We teamed up", add a teammate |
 
-- **One contract for both sides.** Response schemas live in `src/lib/api/`. The route tests write sample responses to `ios/Fixtures/*.json`, and the Swift tests decode those files, so a changed field fails a test on both sides.
-- **Tests:** unit and database tests per route; add every route to the inventory in `docs/security.md`.
+  Still to come: `PUT /devices` (phase 5) and `POST /reports`, `PUT /blocks/:userId` (phase 2).
+- **One contract for both sides** (`src/lib/api/schemas.ts`):
+  - responses are strict objects, missing values are `null`, and tags carry their label, so the app needs no copy of the taxonomy;
+  - errors are `{ error: { code, message } }` with an HTTP status; the codes are listed in `src/lib/api/http.ts`;
+  - `ios/Fixtures/*.json` are hand-written samples. `tests/unit/api-contract.test.ts` checks each against its schema, and the Swift tests will decode the same files.
+- **Tests:** `tests/unit/api-contract.test.ts`, and `tests/e2e/api.spec.ts` (its own Playwright project, `api`), which calls the routes as the app does and checks every response against the contract: code sign-in, sign-up, refresh and sign-out; refused domains; missing and bad tokens; the public routes; two members matching, picking a hackathon and teaming up; going to an event; profile changes; account deletion.
+- **Inventory:** `docs/security.md`.
+
+**Known limit:** Supabase counts code checks per caller IP, and ours all come from the server. Its limit (30 per 5 minutes locally; check the hosted project's setting) is shared by everyone signing in at once, as it already is for the web's link.
+
+**To put on production (each needs the owner's approval):**
+1. Add the `{{ .Token }}` line to the two hosted email templates, and check the hosted OTP length is 6.
+2. Merge and deploy. No migration.
 
 ### 2. Server and web: what App Review requires
 - **Report and block.**

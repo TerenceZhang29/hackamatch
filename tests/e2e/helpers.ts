@@ -50,6 +50,28 @@ export async function getMagicLink(email: string, { after = 0, timeoutMs = 15_00
   throw new Error(`No magic-link email for ${email} within ${timeoutMs} ms`);
 }
 
+/**
+ * Waits for the newest sign-in email to `email` and returns its 6-digit code
+ * (what the iOS app asks for). `after` skips emails from earlier sign-ins.
+ */
+export async function getSignInCode(email: string, { after = 0, timeoutMs = 15_000 } = {}) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const messages = await searchMail(email);
+    const newest = messages.toSorted((a, b) => b.Created.localeCompare(a.Created))[0];
+    if (newest && messages.length > after) {
+      const response = await fetch(`${MAILPIT_URL}/api/v1/message/${newest.ID}`);
+      if (!response.ok) throw new Error(`Mailpit message fetch failed: ${response.status}`);
+      const message = (await response.json()) as { HTML: string };
+      const code = /<strong>(\d{6})<\/strong>/.exec(message.HTML)?.[1];
+      if (!code) throw new Error(`No sign-in code in the email to ${email}`);
+      return code;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  throw new Error(`No sign-in email for ${email} within ${timeoutMs} ms`);
+}
+
 async function withDb<T>(run: (client: pg.Client) => Promise<T>) {
   const client = new pg.Client({ connectionString: DATABASE_URL });
   await client.connect();

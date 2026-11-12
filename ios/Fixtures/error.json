@@ -1,0 +1,6 @@
+{
+  "error": {
+    "code": "daily_limit",
+    "message": "That's 15 today. Back tomorrow."
+  }
+}

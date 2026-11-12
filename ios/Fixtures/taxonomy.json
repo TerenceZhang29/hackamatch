@@ -1,0 +1,38 @@
+{
+  "areas": [
+    {
+      "slug": "health",
+      "label": "Health",
+      "featured": true,
+      "related": ["mental-health", "fitness"]
+    },
+    {
+      "slug": "mental-health",
+      "label": "Mental health",
+      "featured": false,
+      "related": ["health"]
+    }
+  ],
+  "skills": [
+    {
+      "slug": "frontend",
+      "label": "Frontend",
+      "group": "technical",
+      "featured": true
+    },
+    {
+      "slug": "pitching",
+      "label": "Pitching",
+      "group": "business",
+      "featured": true
+    },
+    {
+      "slug": "react",
+      "label": "React",
+      "group": "technical",
+      "featured": false
+    }
+  ],
+  "maxAreas": 5,
+  "maxSkills": 3
+}
