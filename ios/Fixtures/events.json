@@ -1,0 +1,42 @@
+{
+  "events": [
+    {
+      "id": "00000000-0000-4000-8000-000000000101",
+      "slug": "fall-hack",
+      "name": "Fall Hack",
+      "startDate": "2026-12-05",
+      "endDate": "2026-12-06",
+      "venue": "Tata Innovation Center",
+      "format": "in_person",
+      "formatLabel": "In person",
+      "lengthHours": 24,
+      "entryFeeCents": 0,
+      "level": "beginner",
+      "levelLabel": "Beginner friendly",
+      "prizeTotalCents": 1000000,
+      "applyBy": "2026-11-28",
+      "going": true,
+      "goingCount": 12,
+      "needTeamCount": 7
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000102",
+      "slug": "health-ai-buildathon",
+      "name": "Health AI Buildathon",
+      "startDate": "2026-12-16",
+      "endDate": "2026-12-17",
+      "venue": null,
+      "format": null,
+      "formatLabel": null,
+      "lengthHours": null,
+      "entryFeeCents": null,
+      "level": null,
+      "levelLabel": null,
+      "prizeTotalCents": null,
+      "applyBy": null,
+      "going": false,
+      "goingCount": 0,
+      "needTeamCount": null
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "id": "00000000-0000-4000-8000-000000000001",
+  "email": "seed-201@cornell.edu",
+  "firstName": "Sam",
+  "lastName": "Lee",
+  "displayName": "Sam L.",
+  "onboarded": true,
+  "summary": null,
+  "areas": [
+    {
+      "slug": "climate",
+      "label": "Climate"
+    }
+  ],
+  "skills": [
+    {
+      "slug": "react",
+      "label": "React"
+    },
+    {
+      "slug": "ml",
+      "label": "Machine learning"
+    }
+  ],
+  "eventIds": ["00000000-0000-4000-8000-000000000101"],
+  "pause": {
+    "until": "2026-12-01T15:00:00.000Z",
+    "label": "Paused until Dec 1"
+  },
+  "waitingCount": 2
+}

@@ -19,6 +19,8 @@ export const LIMITS = {
   loginEmail: { name: "login:email", max: 5, windowSeconds: HOUR },
   /** Sign-in emails per client IP; the max comes from LOGIN_RATE_LIMIT_PER_IP. */
   loginIp: { name: "login:ip", max: 20, windowSeconds: HOUR },
+  /** Sign-in code guesses per address (the iOS app's sign-in): a 6-digit code lasts an hour. */
+  verifyCode: { name: "verify:email", max: 10, windowSeconds: HOUR },
   /** LLM-backed requests per user (onboarding, sentence edits, idea previews): protects spend. */
   llm: { name: "llm:user", max: 30, windowSeconds: HOUR },
   /** Interested / Pass answers per user, on top of the 15-a-day Interested cap. */

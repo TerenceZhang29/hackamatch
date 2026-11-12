@@ -2,6 +2,8 @@
   The link goes to the app's /auth/confirm page, which verifies the token hash
   when the user presses its button. {{ .RedirectTo }} always ends with a
   ?next= query (see src/app/login/actions.ts), so parameters are appended with &.
+  {{ .Token }} is the same sign-in as a 6-digit code, for the iOS app, which
+  can't open the link (docs/plans/ios-app.md).
   Keep this file in sync with the template on the hosted Supabase project.
 -->
 <h2>Welcome to HackaMatch</h2>
@@ -10,5 +12,6 @@
     >Confirm your email and sign in</a
   >
 </p>
-<p>The link works once and expires in an hour. It opens on any device.</p>
+<p>In the HackaMatch app, enter this code: <strong>{{ .Token }}</strong></p>
+<p>The link and the code work once and expire in an hour. The link opens on any device.</p>
 <p>If you didn't ask for this, you can ignore this email.</p>

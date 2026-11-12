@@ -1,0 +1,140 @@
+{
+  "id": "00000000-0000-4000-8000-000000000101",
+  "slug": "fall-hack",
+  "name": "Fall Hack",
+  "description": "A weekend of building with students from every program.",
+  "host": "Cornell Tech",
+  "venue": "Tata Innovation Center",
+  "timeLabel": "Sat 10 AM to Sun 4 PM",
+  "url": "https://example.com/fall-hack",
+  "startDate": "2026-12-05",
+  "endDate": "2026-12-06",
+  "ended": false,
+  "teamSizeMin": 2,
+  "teamSizeMax": 4,
+  "areas": [
+    {
+      "slug": "health",
+      "label": "Health"
+    },
+    {
+      "slug": "climate",
+      "label": "Climate"
+    }
+  ],
+  "format": "in_person",
+  "formatLabel": "In person",
+  "lengthHours": 24,
+  "entryFeeCents": 0,
+  "openTo": "All students, 18+",
+  "level": "beginner",
+  "levelLabel": "Beginner friendly",
+  "admissionLabel": "Apply to join",
+  "capacity": 200,
+  "applyBy": "2026-11-28",
+  "apply": {
+    "url": "https://example.com/fall-hack/apply",
+    "label": "Apply on the event site"
+  },
+  "chatUrl": "https://example.com/chat",
+  "prizeTotalCents": 1000000,
+  "prizes": [
+    {
+      "label": "1st place",
+      "amountCents": 500000,
+      "note": null
+    },
+    {
+      "label": "Best design",
+      "amountCents": null,
+      "note": "Mentorship sessions"
+    }
+  ],
+  "tracksLocked": false,
+  "tracks": [
+    {
+      "name": "Health",
+      "description": "Tools for patients and clinicians.",
+      "skills": [
+        {
+          "slug": "ml",
+          "label": "Machine learning"
+        },
+        {
+          "slug": "backend",
+          "label": "Backend"
+        }
+      ]
+    },
+    {
+      "name": "Open",
+      "description": null,
+      "skills": []
+    }
+  ],
+  "tools": "API credits from sponsors",
+  "judging": [
+    {
+      "criterion": "Impact",
+      "weightPct": 30
+    },
+    {
+      "criterion": "Design",
+      "weightPct": null
+    }
+  ],
+  "schedule": [
+    {
+      "date": "2026-12-05",
+      "time": "10:00 AM",
+      "label": "Check-in"
+    },
+    {
+      "date": null,
+      "time": null,
+      "label": "Demos"
+    }
+  ],
+  "perks": [
+    {
+      "key": "meals",
+      "label": "Meals"
+    },
+    {
+      "key": "mentors",
+      "label": "Mentors"
+    }
+  ],
+  "perkNotes": "Vegetarian options",
+  "detailsUpdatedAt": "2026-11-02T18:30:00.000Z",
+  "goingCount": 12,
+  "needTeamCount": 7,
+  "faces": ["Maya P.", "Omar", "Lee C."],
+  "topSkills": [
+    {
+      "skill": {
+        "slug": "react",
+        "label": "React"
+      },
+      "people": 5
+    },
+    {
+      "skill": {
+        "slug": "ml",
+        "label": "Machine learning"
+      },
+      "people": 3
+    }
+  ],
+  "pool": {
+    "going": true,
+    "leftPool": false,
+    "matches": [
+      {
+        "matchId": "00000000-0000-4000-8000-000000000201",
+        "firstName": "Maya"
+      }
+    ],
+    "askToKeepMatching": true
+  }
+}

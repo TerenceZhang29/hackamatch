@@ -1,0 +1,54 @@
+{
+  "person": {
+    "id": "00000000-0000-4000-8000-000000000002",
+    "displayName": "Maya P.",
+    "summary": "Builds health apps with React and Python.",
+    "areas": [
+      {
+        "slug": "health",
+        "label": "Health"
+      },
+      {
+        "slug": "ai-tools",
+        "label": "AI tools"
+      }
+    ],
+    "skills": [
+      {
+        "slug": "react",
+        "label": "React"
+      },
+      {
+        "slug": "python",
+        "label": "Python"
+      },
+      {
+        "slug": "ml",
+        "label": "Machine learning"
+      },
+      {
+        "slug": "ux-design",
+        "label": "UX design"
+      }
+    ],
+    "goingTo": [
+      {
+        "id": "00000000-0000-4000-8000-000000000101",
+        "slug": "fall-hack",
+        "name": "Fall Hack",
+        "startDate": "2026-12-05",
+        "shared": true
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000102",
+        "slug": "health-ai-buildathon",
+        "name": "Health AI Buildathon",
+        "startDate": "2026-12-16",
+        "shared": false
+      }
+    ],
+    "isDemo": false
+  },
+  "status": "matched",
+  "matchId": "00000000-0000-4000-8000-000000000201"
+}

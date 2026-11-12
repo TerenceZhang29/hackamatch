@@ -23,6 +23,24 @@ Audit for P1-18, done 2026-10-14 against commit `ee97818` plus the P1-18 changes
   | `src/app/join/route.ts` | `GET` | public; records a click and redirects (sanitized `next`) |
   | `src/app/logout/route.ts` | `POST` | signs out the current session |
 
+- [x] **The iOS app's API (`/api/v1`, added 2026-11-11) authenticates with a bearer token only.** `getApiUser` (`src/lib/api/auth.ts`) checks the Supabase access token's signature and expiry, then reads the caller's row as that user. Cookies are never read, so a web page can't make a signed-in call for a visitor and no origin check is needed. Every body is parsed with zod, and every response is `no-store`. Contract: `src/lib/api/schemas.ts`. Inventory:
+
+  | Route (under `/api/v1`) | Check |
+  | --- | --- |
+  | `POST /auth/request` | public; `sendMagicLink`: domain allow-list, per-address and per-IP limits, pilot list |
+  | `POST /auth/verify` | public; Supabase code verification, 10 guesses per address per hour |
+  | `POST /auth/refresh` | public; the refresh token is the proof |
+  | `POST /auth/signout` | ends the session of a token that still verifies |
+  | `GET /taxonomy` | public; no user data |
+  | `GET /events`, `GET /events/<slug>` | public, as on the web; member-only facts (tracks, need-a-team counts, faces, the caller's pool) only with a member's token |
+  | `GET /me`, `DELETE /me`, `POST /signup` | `requireApiUser` (signed in, joined or not) |
+  | `PATCH /me` | `requireApiMember` |
+  | `GET /deck`, `POST /deck/answer`, `POST /deck/undo`, `GET /people/<id>` | `requireApiMember`; answers share the web's limits |
+  | `PUT /events/<slug>/going` | `requireApiMember` |
+  | `GET /matches`, `POST /matches/<id>/answer` | `requireApiMember`; match membership checked |
+  | `GET /matches/<id>`, `POST /matches/<id>/hackathons`, `POST /matches/<id>/team` | `requireApiMember`; revealed-match membership checked, a 404 otherwise |
+  | `POST /teams/<id>/members` | `requireApiMember`; team membership and a mutual match with the invitee |
+
 - [x] **Every input is validated with zod** before use: all actions above parse their input, and so do the token payloads (`verifyToken` checks shape as well as signature).
 - [x] **Admin pages are hidden:** `requireAdmin` in `src/app/admin/layout.tsx`, every admin page and every admin action; non-admins get a 404.
 - [x] **The service-role client is confined.** ESLint (`eslint.config.mjs`) only allows importing it from `src/server/**`, `src/app/admin/**`, `src/app/(focus)/r/**`, `src/app/api/cron/**`, `src/lib/analytics.ts`, `scripts/**` and `tests/**`. Current importers: the `src/server` services, `src/app/(focus)/r/[token]/page.tsx`, `src/app/admin/events/[id]/page.tsx` and `src/lib/analytics.ts`.

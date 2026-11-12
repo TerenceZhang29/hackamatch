@@ -1,0 +1,14 @@
+{
+  "id": "00000000-0000-4000-8000-000000000001",
+  "email": "seed-303@cornell.edu",
+  "firstName": "",
+  "lastName": "",
+  "displayName": "Cornell student",
+  "onboarded": false,
+  "summary": null,
+  "areas": [],
+  "skills": [],
+  "eventIds": [],
+  "pause": null,
+  "waitingCount": 0
+}

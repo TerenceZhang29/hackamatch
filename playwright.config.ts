@@ -3,6 +3,9 @@ import { defineConfig, devices } from "@playwright/test";
 const PORT = Number(process.env.E2E_PORT ?? 3000);
 const baseURL = `http://localhost:${PORT}`;
 
+/** Specs that don't run in the two browser projects. */
+const BROWSERLESS = [/pilot\.spec\.ts/, /api\.spec\.ts/];
+
 export default defineConfig({
   testDir: "tests/e2e",
   fullyParallel: true,
@@ -14,15 +17,17 @@ export default defineConfig({
     trace: "retain-on-failure",
   },
   projects: [
-    { name: "chromium", use: { ...devices["Desktop Chrome"] }, testIgnore: /pilot\.spec\.ts/ },
-    { name: "mobile", use: { ...devices["Pixel 7"] }, testIgnore: /pilot\.spec\.ts/ },
+    { name: "chromium", use: { ...devices["Desktop Chrome"] }, testIgnore: BROWSERLESS },
+    { name: "mobile", use: { ...devices["Pixel 7"] }, testIgnore: BROWSERLESS },
+    // The iOS app's JSON API (docs/plans/ios-app.md): plain requests, so once is enough.
+    { name: "api", testMatch: /api\.spec\.ts/ },
     // The pilot gate is one switch for the whole app, so its tests run alone,
     // after every other test, and turn it off again.
     {
       name: "pilot",
       use: { ...devices["Desktop Chrome"] },
       testMatch: /pilot\.spec\.ts/,
-      dependencies: ["chromium", "mobile"],
+      dependencies: ["chromium", "mobile", "api"],
     },
   ],
   webServer: {

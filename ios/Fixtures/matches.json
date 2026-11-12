@@ -1,0 +1,99 @@
+{
+  "matches": [
+    {
+      "id": "00000000-0000-4000-8000-000000000202",
+      "section": "waiting",
+      "otherId": "00000000-0000-4000-8000-000000000003",
+      "otherName": "Omar",
+      "otherSummary": null,
+      "otherTags": [
+        {
+          "slug": "pitching",
+          "label": "Pitching"
+        }
+      ],
+      "reason": "You both picked Fall Hack.",
+      "isNew": true,
+      "isDemo": true,
+      "createdAt": "2026-11-10T14:00:00.000Z"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000201",
+      "section": "mutual",
+      "otherId": "00000000-0000-4000-8000-000000000002",
+      "otherName": "Maya P.",
+      "otherSummary": "Builds health apps with React and Python.",
+      "otherTags": [
+        {
+          "slug": "react",
+          "label": "React"
+        },
+        {
+          "slug": "python",
+          "label": "Python"
+        }
+      ],
+      "reason": null,
+      "isNew": false,
+      "isDemo": false,
+      "createdAt": "2026-11-08T09:30:00.000Z"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000203",
+      "section": "sent",
+      "otherId": "00000000-0000-4000-8000-000000000004",
+      "otherName": "Lee C.",
+      "otherSummary": null,
+      "otherTags": [],
+      "reason": null,
+      "isNew": false,
+      "isDemo": false,
+      "createdAt": "2026-11-07T20:15:00.000Z"
+    }
+  ],
+  "hackathons": {
+    "events": [
+      {
+        "id": "00000000-0000-4000-8000-000000000101",
+        "slug": "fall-hack",
+        "name": "Fall Hack",
+        "startDate": "2026-12-05",
+        "endDate": "2026-12-06",
+        "status": "looking",
+        "statusLabel": "Looking for a team",
+        "summary": "Team with Maya · 1 more match",
+        "askToKeepMatching": true,
+        "teams": [
+          {
+            "id": "00000000-0000-4000-8000-000000000301",
+            "members": [
+              {
+                "id": "00000000-0000-4000-8000-000000000002",
+                "firstName": "Maya",
+                "matchId": "00000000-0000-4000-8000-000000000201"
+              }
+            ]
+          }
+        ],
+        "matchedNoTeam": [
+          {
+            "matchId": "00000000-0000-4000-8000-000000000203",
+            "firstName": "Lee"
+          }
+        ]
+      }
+    ],
+    "sideProjects": [
+      {
+        "id": "00000000-0000-4000-8000-000000000302",
+        "members": [
+          {
+            "id": "00000000-0000-4000-8000-000000000005",
+            "firstName": "Ravi",
+            "matchId": null
+          }
+        ]
+      }
+    ]
+  }
+}

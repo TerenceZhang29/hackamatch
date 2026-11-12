@@ -1,0 +1,81 @@
+{
+  "created": true,
+  "pair": {
+    "matchId": "00000000-0000-4000-8000-000000000201",
+    "me": {
+      "name": "Sam Lee",
+      "firstName": "Sam"
+    },
+    "other": {
+      "id": "00000000-0000-4000-8000-000000000002",
+      "name": "Maya Patel",
+      "firstName": "Maya",
+      "email": "seed-101@cornell.edu",
+      "summary": "Builds health apps with React and Python.",
+      "tags": [
+        {
+          "slug": "react",
+          "label": "React"
+        },
+        {
+          "slug": "python",
+          "label": "Python"
+        }
+      ],
+      "githubUrl": "https://github.com/example",
+      "linkedinUrl": null,
+      "isDemo": false
+    },
+    "coffeeChat": "Hi Maya, I'm Sam. We matched on HackaMatch. Want to grab a 15-minute coffee this week?",
+    "events": [
+      {
+        "id": "00000000-0000-4000-8000-000000000101",
+        "name": "Fall Hack",
+        "startDate": "2026-12-05",
+        "endDate": "2026-12-06",
+        "mine": true,
+        "theirs": true,
+        "otherAlreadyTeamed": false,
+        "askToKeepMatching": true
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000102",
+        "name": "Health AI Buildathon",
+        "startDate": "2026-12-16",
+        "endDate": "2026-12-17",
+        "mine": false,
+        "theirs": true,
+        "otherAlreadyTeamed": false,
+        "askToKeepMatching": false
+      }
+    ],
+    "teams": [
+      {
+        "id": "00000000-0000-4000-8000-000000000301",
+        "eventId": "00000000-0000-4000-8000-000000000101",
+        "eventName": "Fall Hack",
+        "members": [
+          {
+            "id": "00000000-0000-4000-8000-000000000001",
+            "name": "Sam Lee"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000002",
+            "name": "Maya Patel"
+          }
+        ]
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000302",
+        "eventId": null,
+        "eventName": null,
+        "members": [
+          {
+            "id": "00000000-0000-4000-8000-000000000001",
+            "name": "Sam Lee"
+          }
+        ]
+      }
+    ]
+  }
+}
