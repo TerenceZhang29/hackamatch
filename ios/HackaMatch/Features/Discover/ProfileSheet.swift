@@ -81,7 +81,7 @@ struct ProfileSheet: View {
                 Text("You won't see each other again.")
             }
             .sheet(isPresented: $reporting) {
-                ReportForm(person: person) {
+                ReportSheet(userId: person.id, name: person.displayName) {
                     model.remove(person.id)
                     model.notice = "Reported and blocked. Thank you."
                     dismiss()
@@ -102,9 +102,10 @@ struct ProfileSheet: View {
     }
 }
 
-/// A reason and an optional note; reporting also blocks.
-private struct ReportForm: View {
-    let person: Person
+/// A reason and an optional note; reporting also blocks. From a profile or a pair page.
+struct ReportSheet: View {
+    let userId: String
+    let name: String
     let onDone: () -> Void
 
     @Environment(AppModel.self) private var app
@@ -127,13 +128,13 @@ private struct ReportForm: View {
                     TextField("What happened? (optional)", text: $note, axis: .vertical)
                         .lineLimit(3...6)
                 } footer: {
-                    Text("HackaMatch reviews every report within 24 hours. \(person.displayName) won't know who reported them, and you won't see each other again.")
+                    Text("HackaMatch reviews every report within 24 hours. \(name) won't know who reported them, and you won't see each other again.")
                 }
                 if let error {
                     Text(error).foregroundStyle(Theme.dangerInk)
                 }
             }
-            .navigationTitle("Report \(person.displayName)")
+            .navigationTitle("Report \(name)")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -154,7 +155,7 @@ private struct ReportForm: View {
         do {
             let trimmed = note.trimmingCharacters(in: .whitespacesAndNewlines)
             try await app.api.report(
-                userId: person.id, reason: reason, note: trimmed.isEmpty ? nil : String(trimmed.prefix(1000)))
+                userId: userId, reason: reason, note: trimmed.isEmpty ? nil : String(trimmed.prefix(1000)))
             dismiss()
             onDone()
         } catch {

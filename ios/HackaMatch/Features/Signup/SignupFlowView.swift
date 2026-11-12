@@ -261,7 +261,7 @@ private struct SearchBox: View {
     }
 }
 
-private struct AreasStep: View {
+struct AreasStep: View {
     @Bindable var model: SignupModel
 
     var body: some View {
@@ -300,7 +300,7 @@ private struct AreasStep: View {
     }
 }
 
-private struct SkillsStep: View {
+struct SkillsStep: View {
     @Bindable var model: SignupModel
 
     var body: some View {

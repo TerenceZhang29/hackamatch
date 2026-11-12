@@ -19,6 +19,44 @@ final class AppModel {
     private(set) var pendingAnswers: SignupAnswers?
     let api: APIClient
 
+    /// The members' tabs, and requests that cross them.
+    enum Tab: Hashable { case discover, events, matches, me }
+    var tab: Tab = .discover
+    /// "Discover who's going": Discover narrows to this event once it shows.
+    var discoverEvent: String??
+    /// "Open match": the Matches tab opens this pair page.
+    var openMatchId: String?
+    /// One line at the top of the screen, for a moment.
+    private(set) var flashMessage: (text: String, isError: Bool)?
+
+    func discover(eventSlug: String?) {
+        discoverEvent = .some(eventSlug)
+        tab = .discover
+    }
+
+    func openMatch(_ matchId: String) {
+        openMatchId = matchId
+        tab = .matches
+    }
+
+    func flash(_ text: String, isError: Bool = true) {
+        flashMessage = (text, isError)
+        Task {
+            try? await Task.sleep(for: .seconds(4))
+            if flashMessage?.text == text { flashMessage = nil }
+        }
+    }
+
+    /// After an edit that returned the member's new profile.
+    func update(_ me: Me) {
+        apply(me)
+    }
+
+    func deleteAccount() async throws {
+        try await api.deleteAccount()
+        sessionEnded()
+    }
+
     init(api: APIClient? = nil) {
         #if DEBUG
             // UI tests start signed out.
@@ -83,6 +121,7 @@ final class AppModel {
 
     private func sessionEnded() {
         me = nil
+        tab = .discover
         pendingAnswers = nil
         phase = .signedOut
     }

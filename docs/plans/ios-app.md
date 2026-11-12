@@ -120,11 +120,13 @@ They are plain-language drafts, not legal advice.
 
 **Not done yet:** push (phase 5).
 
-### 4. App: the other tabs (about 1 week)
-- **Events:** the list, event details with the same section order, "I'm going!".
-- **Matches:** the list with the waiting count, and the pair page: contact, the coffee-chat message with Copy and Share, picking a hackathon, "We teamed up".
-- **Me:** name, tags, hackathons, pause, sign out, delete account (typed "delete", as on the web).
-- Report and Block on the person card and the pair page.
+### 4. App: the other tabs: built 2026-11-11
+- **Events:** the list ("You're going", then the rest) with each row's facts (prize chip, length, level, cost, going and need-a-team counts, apply by), and the event page in the web's order: header, at a glance with the apply-by box and the apply button, the member's place in the pool ("Not going?", keep matching or "I have my team"), tracks (locked for visitors), who's going with skill bars, prizes, judging, schedule, what's included. "I'm going!" and "Discover who's going" stay at the bottom; the second opens Discover narrowed to the event.
+- **Matches:** "Your hackathons" (status, one line on teams, the keep-matching prompt, chips that open each match), then Waiting, Mutual and Sent. A waiting match has Pass and Interested in its row; Mutual opens the pair page; the others open the person's profile, which never shows their answer before a reveal.
+- **Pair page:** name, summary, skills, email, GitHub and LinkedIn; the first message with Copy and Share; each hackathon with "I'd do this" (green when you both would); "We teamed up" for an event or a side project; adding a teammate by email; Report or block.
+- **Me:** name, areas and skills (the same pickers as sign-up), hackathons as switches, pausing matches, blocked people with Unblock, Sign out, and Delete account (type "delete"), plus Terms and Privacy.
+- **Across tabs:** "It's a match!" opens the new match; one-line notices show over every tab; the Matches badge follows the waiting count.
+- **Tests:** 27 unit tests (adds money, dates and team sizes, and the side-project body). The UI test now covers the whole journey: sign-up, the deck, going to a hackathon, Discover narrowed to it, a mutual match with a demo profile the script adds, the pair page, teaming up, the Matches list, Me, and deleting the account.
 
 ### 5. Push and links (3 to 4 days)
 - **Push.**

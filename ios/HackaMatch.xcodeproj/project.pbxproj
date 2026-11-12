@@ -11,19 +11,27 @@
 		1D841332CB01E71DB472DDA5 /* SignupModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79BC33BC53276910DC576EE9 /* SignupModel.swift */; };
 		21BD16A40521762CAB85B511 /* DeckModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17B0A7C11D20549D9F42F413 /* DeckModelTests.swift */; };
 		2715110B49D02F3EFD2DD202 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F546CA75190D577E9DD52EBB /* AppModel.swift */; };
+		2E2EE383B179C3B0E02D47F1 /* EventsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9526D6B846447A14DD14ECF9 /* EventsView.swift */; };
 		39620A3B9F126791B52820EC /* SignupUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E38FE499AD1DCCAC07B8F633 /* SignupUITests.swift */; };
 		4CF91027A645B354E0880895 /* DiscoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 850F474F7E35B3F3A3CB7693 /* DiscoverView.swift */; };
 		53411F758ECEDA6E96B099CE /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70B15958A05CF8E149118B89 /* Components.swift */; };
 		5389E69589737B92F551448C /* CodeEntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABF4648AA2F9A555F43DC105 /* CodeEntryView.swift */; };
+		55C6177E76E2A1D69EDCD591 /* EventDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C0F7A35F5263A98660E27D7 /* EventDetailView.swift */; };
 		58F26B7B45F10A37ADCFA092 /* SignupFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A536C79FAF470F6E9E69161D /* SignupFlowView.swift */; };
+		5AD6C9B1C565E42629F315AF /* PersonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFEBBD58C5D6E8E2DF8A416F /* PersonView.swift */; };
 		60CBDAFC96B7257D98AD9A73 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CE607939C63EEF405498BA1 /* Models.swift */; };
 		73A11A5DE5E214874DC01492 /* ProfileSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = D69BA44B95613A5989A8CC0F /* ProfileSheet.swift */; };
 		80107650657D2D0E1AD112D5 /* HackaMatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7165826A2934C80BD198B4F /* HackaMatchApp.swift */; };
 		837DF073017293A111C6F91D /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A99239DCE9EA3CE7E70E70F /* MainTabView.swift */; };
 		91FC858424268AD6115F100C /* DeckModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFF9DA05CAC9AF43E509454C /* DeckModel.swift */; };
 		A967FD6F2BDD45615AB8FA2E /* FixtureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09DD109E391BDC87C1F6399A /* FixtureTests.swift */; };
+		B4E3F64F0199394C2FD6953D /* FormatTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D046772BBABA4691347919D /* FormatTests.swift */; };
+		B4F1FB87C1723DAE176A40DF /* MeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7C7CD78B5205341F06E4851 /* MeView.swift */; };
 		C3CBF70E34F6907892BB84DC /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 778033C14685D46FFFC60C8C /* Theme.swift */; };
+		C436884DDE07650F31AE5840 /* MatchesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B12C00A727B0EE33540130C2 /* MatchesView.swift */; };
+		C623D3C29C1BFBC4DAB39F71 /* PairView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EA057B1C53AEC4BBEBD1FF8 /* PairView.swift */; };
 		C70F28D243DBB3CBF8E0BDD4 /* PersonCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B45C48DA842D2F2F9A936F7 /* PersonCardView.swift */; };
+		CD14B4C6B546BE6DD32F094A /* Endpoints.swift in Sources */ = {isa = PBXBuildFile; fileRef = B13F809942687497785BA439 /* Endpoints.swift */; };
 		D357B0297D485E7F8324F7A3 /* LandingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBE1B68FAE6B36EFD4B0FE48 /* LandingView.swift */; };
 		D948A1368530AB1886FEE642 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 85EED3DE2D36C1159E1344D0 /* Assets.xcassets */; };
 		D9CE1CCC103099D7E961759E /* SessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A9FD15DFBE3D1A284FDBA1D /* SessionStore.swift */; };
@@ -53,19 +61,27 @@
 		17B0A7C11D20549D9F42F413 /* DeckModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeckModelTests.swift; sourceTree = "<group>"; };
 		1B45C48DA842D2F2F9A936F7 /* PersonCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonCardView.swift; sourceTree = "<group>"; };
 		330F0DF8697F24B6CCA1218F /* HackaMatch.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = HackaMatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		3D046772BBABA4691347919D /* FormatTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormatTests.swift; sourceTree = "<group>"; };
 		4A99239DCE9EA3CE7E70E70F /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
+		5EA057B1C53AEC4BBEBD1FF8 /* PairView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairView.swift; sourceTree = "<group>"; };
 		70B15958A05CF8E149118B89 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
 		778033C14685D46FFFC60C8C /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		79BC33BC53276910DC576EE9 /* SignupModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignupModel.swift; sourceTree = "<group>"; };
+		7C0F7A35F5263A98660E27D7 /* EventDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventDetailView.swift; sourceTree = "<group>"; };
 		850F474F7E35B3F3A3CB7693 /* DiscoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiscoverView.swift; sourceTree = "<group>"; };
 		85EED3DE2D36C1159E1344D0 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		8E748753BC56DA800421D181 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
+		9526D6B846447A14DD14ECF9 /* EventsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventsView.swift; sourceTree = "<group>"; };
 		9A9FD15DFBE3D1A284FDBA1D /* SessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionStore.swift; sourceTree = "<group>"; };
 		A536C79FAF470F6E9E69161D /* SignupFlowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignupFlowView.swift; sourceTree = "<group>"; };
 		A7165826A2934C80BD198B4F /* HackaMatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HackaMatchApp.swift; sourceTree = "<group>"; };
+		A7C7CD78B5205341F06E4851 /* MeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeView.swift; sourceTree = "<group>"; };
 		ABF4648AA2F9A555F43DC105 /* CodeEntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodeEntryView.swift; sourceTree = "<group>"; };
+		B12C00A727B0EE33540130C2 /* MatchesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatchesView.swift; sourceTree = "<group>"; };
+		B13F809942687497785BA439 /* Endpoints.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Endpoints.swift; sourceTree = "<group>"; };
 		C8F7FA59FA815711342BA43E /* HackaMatchTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = HackaMatchTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CBE1B68FAE6B36EFD4B0FE48 /* LandingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LandingView.swift; sourceTree = "<group>"; };
+		CFEBBD58C5D6E8E2DF8A416F /* PersonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonView.swift; sourceTree = "<group>"; };
 		D69BA44B95613A5989A8CC0F /* ProfileSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSheet.swift; sourceTree = "<group>"; };
 		E38FE499AD1DCCAC07B8F633 /* SignupUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignupUITests.swift; sourceTree = "<group>"; };
 		F546CA75190D577E9DD52EBB /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
@@ -85,6 +101,7 @@
 			isa = PBXGroup;
 			children = (
 				8E748753BC56DA800421D181 /* APIClient.swift */,
+				B13F809942687497785BA439 /* Endpoints.swift */,
 				0CE607939C63EEF405498BA1 /* Models.swift */,
 				9A9FD15DFBE3D1A284FDBA1D /* SessionStore.swift */,
 			);
@@ -95,7 +112,10 @@
 			isa = PBXGroup;
 			children = (
 				D162EE235ED7199057CC8400 /* Discover */,
+				F34E8F7B72348C0E8E4EE295 /* Events */,
 				0683D0BCFE6827BF4C26C906 /* Landing */,
+				75FD4491437B5491520AF18A /* Matches */,
+				D123C374AF63051335D8FD0E /* Me */,
 				A47A7CA80E4A9BE66A3CC31E /* Shell */,
 				9FD89A203D37AC93166EF295 /* SignIn */,
 				8491BB48D2920462FBB76137 /* Signup */,
@@ -111,6 +131,16 @@
 				0010D9B2EEE1AB55A5468D84 /* HackaMatchUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		75FD4491437B5491520AF18A /* Matches */ = {
+			isa = PBXGroup;
+			children = (
+				B12C00A727B0EE33540130C2 /* MatchesView.swift */,
+				5EA057B1C53AEC4BBEBD1FF8 /* PairView.swift */,
+				CFEBBD58C5D6E8E2DF8A416F /* PersonView.swift */,
+			);
+			path = Matches;
 			sourceTree = "<group>";
 		};
 		77C2C229AABD4D1CFBEDC36B = {
@@ -149,6 +179,7 @@
 			children = (
 				17B0A7C11D20549D9F42F413 /* DeckModelTests.swift */,
 				09DD109E391BDC87C1F6399A /* FixtureTests.swift */,
+				3D046772BBABA4691347919D /* FormatTests.swift */,
 			);
 			path = HackaMatchTests;
 			sourceTree = "<group>";
@@ -195,6 +226,14 @@
 			path = App;
 			sourceTree = "<group>";
 		};
+		D123C374AF63051335D8FD0E /* Me */ = {
+			isa = PBXGroup;
+			children = (
+				A7C7CD78B5205341F06E4851 /* MeView.swift */,
+			);
+			path = Me;
+			sourceTree = "<group>";
+		};
 		D162EE235ED7199057CC8400 /* Discover */ = {
 			isa = PBXGroup;
 			children = (
@@ -204,6 +243,15 @@
 				D69BA44B95613A5989A8CC0F /* ProfileSheet.swift */,
 			);
 			path = Discover;
+			sourceTree = "<group>";
+		};
+		F34E8F7B72348C0E8E4EE295 /* Events */ = {
+			isa = PBXGroup;
+			children = (
+				7C0F7A35F5263A98660E27D7 /* EventDetailView.swift */,
+				9526D6B846447A14DD14ECF9 /* EventsView.swift */,
+			);
+			path = Events;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -328,11 +376,18 @@
 				53411F758ECEDA6E96B099CE /* Components.swift in Sources */,
 				91FC858424268AD6115F100C /* DeckModel.swift in Sources */,
 				4CF91027A645B354E0880895 /* DiscoverView.swift in Sources */,
+				CD14B4C6B546BE6DD32F094A /* Endpoints.swift in Sources */,
+				55C6177E76E2A1D69EDCD591 /* EventDetailView.swift in Sources */,
+				2E2EE383B179C3B0E02D47F1 /* EventsView.swift in Sources */,
 				80107650657D2D0E1AD112D5 /* HackaMatchApp.swift in Sources */,
 				D357B0297D485E7F8324F7A3 /* LandingView.swift in Sources */,
 				837DF073017293A111C6F91D /* MainTabView.swift in Sources */,
+				C436884DDE07650F31AE5840 /* MatchesView.swift in Sources */,
+				B4F1FB87C1723DAE176A40DF /* MeView.swift in Sources */,
 				60CBDAFC96B7257D98AD9A73 /* Models.swift in Sources */,
+				C623D3C29C1BFBC4DAB39F71 /* PairView.swift in Sources */,
 				C70F28D243DBB3CBF8E0BDD4 /* PersonCardView.swift in Sources */,
+				5AD6C9B1C565E42629F315AF /* PersonView.swift in Sources */,
 				73A11A5DE5E214874DC01492 /* ProfileSheet.swift in Sources */,
 				D9CE1CCC103099D7E961759E /* SessionStore.swift in Sources */,
 				58F26B7B45F10A37ADCFA092 /* SignupFlowView.swift in Sources */,
@@ -347,6 +402,7 @@
 			files = (
 				21BD16A40521762CAB85B511 /* DeckModelTests.swift in Sources */,
 				A967FD6F2BDD45615AB8FA2E /* FixtureTests.swift in Sources */,
+				B4E3F64F0199394C2FD6953D /* FormatTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

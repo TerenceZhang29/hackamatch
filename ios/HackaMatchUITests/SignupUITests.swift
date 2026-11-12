@@ -2,7 +2,9 @@ import XCTest
 
 /**
  The app end to end against the local stack (`scripts/test-ui.sh`): a new
- student signs up with the emailed code, then uses the deck. The code is read
+ student signs up with the emailed code, uses the deck, goes to a
+ hackathon, matches with the demo profile the script adds, teams up, and
+ deletes their account. The code is read
  from the local mail catcher, as the web's browser tests do.
  */
 final class SignupUITests: XCTestCase {
@@ -11,7 +13,7 @@ final class SignupUITests: XCTestCase {
     }
 
     @MainActor
-    func testNewStudentSignsUpWithTheEmailedCodeAndUsesTheDeck() async throws {
+    func testNewStudentSignsUpMatchesTeamsUpAndDeletesTheirAccount() async throws {
         let app = XCUIApplication()
         app.launchArguments = ["-reset-session"]
         app.launch()
@@ -65,10 +67,53 @@ final class SignupUITests: XCTestCase {
         snapshot(app, "5-profile")
         app.buttons["Done"].tap()
 
-        // Signing out returns to the landing page.
+        // Events: going to Health AI Buildathon, then Discover who's going.
+        app.tabBars.buttons["Events"].tap()
+        let event = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Health AI Buildathon")).firstMatch
+        tap(event)
+        tap(app.buttons["I'm going!"])
+        XCTAssertTrue(app.staticTexts["You're going!"].waitForExistence(timeout: 10))
+        snapshot(app, "6-event")
+        app.buttons["Discover who's going"].tap()
+        let chip = app.buttons["Health AI Buildathon"]
+        XCTAssertTrue(chip.waitForExistence(timeout: 10))
+        XCTAssertTrue(chip.isSelected, "Discover should be narrowed to the event")
+
+        // The demo profile answers Interested at once: Pass everyone else until it shows.
+        XCTAssertTrue(card.waitForExistence(timeout: 10))
+        var passes = 0
+        while !card.label.hasPrefix("Iris D."), passes < 20 {
+            app.buttons["Pass"].tap()
+            passes += 1
+            XCTAssertTrue(card.waitForExistence(timeout: 10), "the demo profile should be in the deck")
+        }
+        app.buttons["Interested"].tap()
+        XCTAssertTrue(app.staticTexts["It's a match!"].waitForExistence(timeout: 10))
+        app.buttons["Open your match"].tap()
+
+        // The pair page: contact details, a hackathon picked, a team made.
+        XCTAssertTrue(app.navigationBars["You and Iris"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Iris Demo"].exists)
+        snapshot(app, "7-pair")
+        tap(app.buttons["We teamed up"])
+        XCTAssertTrue(app.staticTexts["Team saved. Good luck!"].waitForExistence(timeout: 10))
+
+        // Matches lists it as mutual, and the hackathon shows the team.
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(app.segmentedControls.buttons["Mutual 1"].waitForExistence(timeout: 10))
+        snapshot(app, "8-matches")
+
+        // Me: the name from sign-up, then delete the account, which ends at the landing page.
         app.tabBars.buttons["Me"].tap()
-        app.buttons["Sign out"].tap()
-        XCTAssertTrue(app.buttons["Match Now"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Shown as Ios"].waitForExistence(timeout: 10))
+        snapshot(app, "9-me")
+        tap(app.buttons["Delete account"])
+        let confirm = app.textFields["Type delete"]
+        XCTAssertTrue(confirm.waitForExistence(timeout: 5))
+        confirm.tap()
+        confirm.typeText("delete")
+        app.buttons["Delete my account"].tap()
+        XCTAssertTrue(app.buttons["Match Now"].waitForExistence(timeout: 15))
     }
 
     /// A screenshot kept in the test results, for reviewing the screens by eye.
@@ -80,15 +125,15 @@ final class SignupUITests: XCTestCase {
         add(attachment)
     }
 
-    /// Taps, scrolling the element into view first when it's below the fold.
+    /// Taps, scrolling down first when the element is below the fold (lazy lists only create what's on screen).
     @MainActor
     private func tap(_ element: XCUIElement) {
-        XCTAssertTrue(element.waitForExistence(timeout: 15), "\(element) should exist")
         var swipes = 0
-        while !element.isHittable, swipes < 5 {
+        while !(element.waitForExistence(timeout: swipes == 0 ? 10 : 2) && element.isHittable), swipes < 6 {
             XCUIApplication().swipeUp()
             swipes += 1
         }
+        XCTAssertTrue(element.exists && element.isHittable, "\(element) should be on screen")
         element.tap()
     }
 }

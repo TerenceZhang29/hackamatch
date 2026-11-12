@@ -20,8 +20,19 @@ struct DiscoverView: View {
             guard model == nil else { return }
             let deck = DeckModel(service: app.api)
             model = deck
-            await deck.load()
+            await deck.load(event: takeRequestedEvent() ?? nil)
         }
+        .onChange(of: app.discoverEvent) { _, _ in
+            guard let model, let event = takeRequestedEvent() else { return }
+            Task { await model.load(event: event) }
+        }
+    }
+
+    /// "Discover who's going" on an event page: the event to narrow to, taken once.
+    private func takeRequestedEvent() -> String?? {
+        guard let request = app.discoverEvent else { return nil }
+        app.discoverEvent = nil
+        return .some(request)
     }
 }
 
@@ -257,6 +268,7 @@ private struct RoundButton: View {
 /// "It's a match!" after an Interested that made it mutual.
 private struct MatchSheet: View {
     let match: DeckMatch
+    @Environment(AppModel.self) private var app
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -268,12 +280,18 @@ private struct MatchSheet: View {
             Text("It's a match!")
                 .font(.title.bold())
                 .accessibilityAddTraits(.isHeader)
-            Text("You and \(match.name) are both interested. We emailed you both each other's contact details.")
+            Text("You and \(match.name) are both interested. Their contact details are on your match, and in your email.")
                 .multilineTextAlignment(.center)
                 .foregroundStyle(Theme.muted)
+            Button("Open your match") {
+                dismiss()
+                app.openMatch(match.matchId)
+            }
+            .buttonStyle(.primary)
+            .padding(.top, 8)
             Button("Keep matching") { dismiss() }
-                .buttonStyle(.primary)
-                .padding(.top, 8)
+                .font(.headline)
+                .frame(minHeight: 44)
         }
         .padding(28)
         .presentationDetents([.medium])
