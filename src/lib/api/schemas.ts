@@ -371,3 +371,12 @@ export const pairVoteInput = z.object({ eventId: id, on: z.boolean() });
 export const teamUpInput = z.object({ eventId: id.nullable() });
 export const teamUpSchema = obj({ created: z.boolean(), pair: pairSchema });
 export const teamMemberInput = z.object({ email: z.string().trim().max(254) });
+
+// Report and block -----------------------------------------------------------
+
+/** `POST /reports` takes `reportInput` from src/lib/safety.ts: `{ userId, reason, note }`. */
+export const blocksSchema = obj({
+  /** The people the caller blocked, newest first, so they can unblock them. */
+  blocked: z.array(obj({ id, displayName: z.string() })),
+});
+export type ApiBlocks = z.infer<typeof blocksSchema>;

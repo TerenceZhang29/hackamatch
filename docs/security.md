@@ -17,7 +17,8 @@ Audit for P1-18, done 2026-10-14 against commit `ee97818` plus the P1-18 changes
   | `src/app/actions/respond.ts` | `answerCard`, `answerMatch` | `requireOnboarded`; match membership checked |
   | `src/app/(app)/matches/[id]/actions.ts` | 4 actions | `requireOnboarded`; revealed-match membership checked |
   | `src/app/(app)/e/[slug]/actions.ts` | `setEventInterestAction` | `requireOnboarded` |
-  | `src/app/admin/actions.ts` | 6 actions | `requireAdmin` |
+  | `src/app/admin/actions.ts` | 7 actions | `requireAdmin` |
+  | `src/app/actions/safety.ts` | `blockAction`, `reportAction`, `unblockAction` | `requireOnboarded`; 20 reports and blocks per user per day |
   | `src/app/(focus)/r/[token]/actions.ts` | `respondFromToken`, `pauseFromToken` | signed token |
   | `src/app/(focus)/r/[token]/unsubscribe/route.ts` | `POST` | signed pause token; `GET` changes nothing |
   | `src/app/join/route.ts` | `GET` | public; records a click and redirects (sanitized `next`) |
@@ -40,6 +41,7 @@ Audit for P1-18, done 2026-10-14 against commit `ee97818` plus the P1-18 changes
   | `GET /matches`, `POST /matches/<id>/answer` | `requireApiMember`; match membership checked |
   | `GET /matches/<id>`, `POST /matches/<id>/hackathons`, `POST /matches/<id>/team` | `requireApiMember`; revealed-match membership checked, a 404 otherwise |
   | `POST /teams/<id>/members` | `requireApiMember`; team membership and a mutual match with the invitee |
+  | `POST /reports`, `GET /blocks`, `PUT /blocks/<id>`, `DELETE /blocks/<id>` | `requireApiMember`; 20 reports and blocks per user per day; a caller only ever sees and removes their own blocks |
 
 - [x] **Every input is validated with zod** before use: all actions above parse their input, and so do the token payloads (`verifyToken` checks shape as well as signature).
 - [x] **Admin pages are hidden:** `requireAdmin` in `src/app/admin/layout.tsx`, every admin page and every admin action; non-admins get a 404.
@@ -48,6 +50,7 @@ Audit for P1-18, done 2026-10-14 against commit `ee97818` plus the P1-18 changes
 
 ## Privacy
 
+- [x] **Blocks and reports are server-only** (added 2026-11-11): no grants to `anon` or `authenticated` (DB tests check this), so nobody can read who blocked or reported them. A block hides each person from the other everywhere members see each other: the deck, the board, person pages, event-page avatars, the matches list and its badge, the pair page and "Your hackathons". The reverse direction looks the same as the person having left the pool. Report emails to admins carry the display name ("Maya P."), the reason and the note, never an address.
 - [x] **Public SQL functions never return emails or an idea's full text.** `public_board_ideas`, `public_board_people`, `public_idea` and `public_person` return display names ("Maya P."), summaries, tags and pitches only (DB tests assert the column lists).
 - [x] **Pages don't leak it either.** E2E tests scan the logged-out board, idea, person and event pages for `@cornell.edu` addresses and for seeded `raw_text`; the idea page sends the full text only to its owner and to people with a revealed match on it.
 - [x] **Contact details appear only after mutual interest:** the mutual email and the pair page (`/matches/[id]`, a 404 for anyone outside the revealed match). Inbound-interest and intro emails carry name, summary and pitch, never an address.

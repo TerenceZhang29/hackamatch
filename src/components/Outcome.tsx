@@ -4,6 +4,8 @@ const MESSAGES: Record<string, { text: string; tone: "neutral" | "success" | "da
   sent: { text: "Sent", tone: "neutral" },
   passed: { text: "Passed", tone: "neutral" },
   matched: { text: "It's a match! Check your email.", tone: "success" },
+  blocked: { text: "Blocked. You won't see each other again.", tone: "neutral" },
+  reported: { text: "Reported and blocked. Thank you.", tone: "neutral" },
   limit: { text: "That's 15 today. Back tomorrow.", tone: "danger" },
   unavailable: { text: "No longer available.", tone: "danger" },
   self: { text: "That's you!", tone: "danger" },
@@ -13,7 +15,7 @@ const MESSAGES: Record<string, { text: string; tone: "neutral" | "success" | "da
 
 type Params = Record<string, string | string[] | undefined>;
 
-/** One short line after an Interested / Pass redirect (`?sent=1`, `?error=limit`, …). */
+/** One short line after an Interested / Pass, report or block redirect (`?sent=1`, `?error=limit`, …). */
 export function Outcome({ params }: { params: Params }) {
   const error = typeof params.error === "string" ? params.error : null;
   const key = error
@@ -24,7 +26,11 @@ export function Outcome({ params }: { params: Params }) {
         ? "sent"
         : params.passed
           ? "passed"
-          : null;
+          : params.reported
+            ? "reported"
+            : params.blocked
+              ? "blocked"
+              : null;
   const message = key ? MESSAGES[key] : null;
   if (!message) return null;
   return <Notice tone={message.tone}>{message.text}</Notice>;

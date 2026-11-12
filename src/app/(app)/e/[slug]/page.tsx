@@ -20,7 +20,7 @@ import { getConfig } from "@/lib/config";
 import { detailsFromRow } from "@/lib/event-details";
 import { displayLabel } from "@/lib/taxonomy/labels";
 import { localDateString } from "@/lib/time";
-import { listBoardPeople } from "@/server/board";
+import { eventFaces } from "@/server/board";
 import {
   addEventInterests,
   countEventInterest,
@@ -76,9 +76,7 @@ export default async function EventPage({
     countEventInterest(event.id),
     member ? getEventPool(user!.id, event.id) : Promise.resolve(null),
     // A few faces for members; who's going is for members only.
-    member
-      ? listBoardPeople({ event: slug, domain: null, skill: null }, 3, [user!.id])
-      : Promise.resolve(null),
+    member ? eventFaces(user!.id, slug) : Promise.resolve(null),
     member ? eventGoingStats([event.id]) : Promise.resolve(null),
     member ? eventTopSkills(event.id) : Promise.resolve([]),
   ]);
@@ -198,9 +196,9 @@ export default async function EventPage({
               Who&apos;s going on HackaMatch
             </h2>
             <p className="flex items-center gap-3">
-              {faces?.rows.length ? (
+              {faces?.length ? (
                 <span aria-hidden="true" className="flex -space-x-1.5">
-                  {faces.rows.map((person) => (
+                  {faces.map((person) => (
                     <span key={person.user_id} className="rounded-full ring-2 ring-bg">
                       <Avatar name={person.display_name} size={32} />
                     </span>

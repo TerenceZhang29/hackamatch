@@ -28,7 +28,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { displayLabel } from "@/lib/taxonomy/labels";
 import { RELATED_DOMAINS, skillGroup, slugsOf } from "@/lib/taxonomy/skills";
 import { localDateString } from "@/lib/time";
-import { demoUserIds, getPublicPerson, listBoardPeople, type BoardPerson } from "./board";
+import { demoUserIds, eventFaces, getPublicPerson, type BoardPerson } from "./board";
 import { deckDetailsFor, nextDeckCards, type DeckDetails } from "./deck";
 import {
   countEventInterest,
@@ -171,7 +171,7 @@ export async function personPageView(
   personId: string,
 ): Promise<ApiPersonPage | null> {
   if (viewerId === personId) return null;
-  const person = await getPublicPerson(personId);
+  const person = await getPublicPerson(personId, viewerId);
   if (!person) return null;
   const [details, match] = await Promise.all([
     deckDetailsFor(viewerId, [personId]),
@@ -242,9 +242,7 @@ export async function eventView(memberId: string | null, slug: string): Promise<
   const [goingCount, pool, faces, stats] = await Promise.all([
     countEventInterest(event.id),
     memberId ? getEventPool(memberId, event.id) : Promise.resolve(null),
-    memberId
-      ? listBoardPeople({ event: slug, domain: null, skill: null }, 3, [memberId])
-      : Promise.resolve(null),
+    memberId ? eventFaces(memberId, slug) : Promise.resolve(null),
     memberId ? eventGoingStats([event.id]) : Promise.resolve(null),
   ]);
   // Counts only, and only from 5 people, so they can't point at anyone.
@@ -303,7 +301,7 @@ export async function eventView(memberId: string | null, slug: string): Promise<
     detailsUpdatedAt: event.details_updated_at,
     goingCount,
     needTeamCount: memberId ? (stats?.get(event.id)?.needTeam ?? 0) : null,
-    faces: faces?.rows.map((person) => person.display_name) ?? [],
+    faces: faces?.map((person) => person.display_name) ?? [],
     topSkills: topSkills.map((row) => ({ skill: tag(row.skill), people: row.people })),
     pool,
   };

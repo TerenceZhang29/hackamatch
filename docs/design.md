@@ -74,6 +74,12 @@ There are two kinds of card, one subject each. They're used on Discover, the boa
 - **Visitors** get Events and Sign in. People who haven't finished onboarding get "Finish joining".
 - Detail pages (pair, event, idea, person, post an idea) have a ← icon link with a label. Other pages rely on the tabs.
 
+## Report and block (2026-11-11)
+- `ReportBlock`: a closed `<details>` titled "Report or block", under a person's card and at the foot of the pair page. Inside, one line and **Block**, then a reason, an optional note and **Report and block** (the `danger` button).
+- Both end on `/matches` with one line: "Blocked. You won't see each other again." or "Reported and blocked. Thank you."
+- `/me` lists "Blocked people" with **Unblock**, only when there are any.
+- `LegalLinks` ("Terms · Privacy") sits under the landing page's button and at the foot of `/me`.
+
 ## Copy rules
 1. At most one short line of helper text per section. Prefer a label, a chip or an icon over a sentence.
 2. Outcomes are one line (`src/components/Outcome.tsx`): "Sent", "Passed", "It's a match! Check your email.", "That's 15 today. Back tomorrow."

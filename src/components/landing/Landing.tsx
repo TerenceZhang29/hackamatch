@@ -1,5 +1,6 @@
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
+import { LegalLinks } from "@/components/LegalLinks";
 import { HackathonTicker, type TickerEvent } from "./HackathonTicker";
 
 /**
@@ -32,6 +33,7 @@ export function Landing({ hackathons }: { hackathons: readonly TickerEvent[] }) 
         Match Now
         <ArrowRight aria-hidden="true" className="size-5" strokeWidth={2.25} />
       </Link>
+      <LegalLinks />
     </section>
   );
 }

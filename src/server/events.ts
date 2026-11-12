@@ -3,6 +3,7 @@ import { getConfig } from "@/lib/config";
 import { createServiceClient } from "@/lib/supabase/service";
 import { localDateString } from "@/lib/time";
 import { firstName } from "./matches";
+import { blockedIdsFor } from "./safety";
 import type { DetailsRow } from "@/lib/event-details";
 import type { Tables } from "@/types/db";
 
@@ -214,6 +215,7 @@ export async function listEventMatches(userId: string, eventId: string): Promise
     .order("revealed_at");
   if (error) throw new Error(`listEventMatches: ${error.message}`);
   if (matches.length === 0) return [];
+  const blocked = new Set(await blockedIdsFor(userId));
 
   const { data: votes, error: votesError } = await supabase
     .from("match_event_votes")
@@ -225,7 +227,9 @@ export async function listEventMatches(userId: string, eventId: string): Promise
     );
   if (votesError) throw new Error(`listEventMatches: ${votesError.message}`);
   const both = matches.filter(
-    (m) => new Set(votes.filter((v) => v.match_id === m.id).map((v) => v.user_id)).size === 2,
+    (m) =>
+      !blocked.has(m.user_a === userId ? m.user_b : m.user_a) &&
+      new Set(votes.filter((v) => v.match_id === m.id).map((v) => v.user_id)).size === 2,
   );
   if (both.length === 0) return [];
 
@@ -354,12 +358,13 @@ export interface MyHackathons {
 
 /**
  * Every upcoming event the user is involved in (tagged, on a team, or matched
- * for it), soonest first, plus their side-project teams. A fixed handful of
- * queries however many events or matches there are.
+ * for it), soonest first, plus their side-project teams. Matches with anyone
+ * blocked either way are left out. A fixed handful of queries however many
+ * events or matches there are.
  */
 export async function listMyEvents(userId: string): Promise<MyHackathons> {
   const supabase = createServiceClient();
-  const [interests, matches, memberships] = await Promise.all([
+  const [interests, allMatches, memberships, blockedIds] = await Promise.all([
     supabase
       .from("event_interests")
       .select("event_id, left_pool_at, prompted_matches")
@@ -371,12 +376,15 @@ export async function listMyEvents(userId: string): Promise<MyHackathons> {
       .not("revealed_at", "is", null)
       .order("revealed_at"),
     supabase.from("team_members").select("team_id, teams(id, event_id)").eq("user_id", userId),
+    blockedIdsFor(userId),
   ]);
-  for (const result of [interests, matches, memberships]) {
+  for (const result of [interests, allMatches, memberships]) {
     if (result.error) throw new Error(`listMyEvents: ${result.error.message}`);
   }
   const otherOf = (m: { user_a: string; user_b: string }) =>
     m.user_a === userId ? m.user_b : m.user_a;
+  const blocked = new Set(blockedIds);
+  const matches = { data: allMatches.data!.filter((m) => !blocked.has(otherOf(m))) };
   const matchIdWith = new Map(matches.data!.map((m) => [otherOf(m), m.id]));
   const teams = memberships
     .data!.map((row) => row.teams)

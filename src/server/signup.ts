@@ -70,6 +70,8 @@ export async function completeSignup(userId: string, answers: SignupAnswers): Pr
       // require one until the second migration drops that check; "both"
       // matches every filter.
       role: "both",
+      // Joining is agreeing to the terms shown on the last step (/terms).
+      terms_accepted_at: new Date().toISOString(),
     })
     .eq("id", userId);
   if (userError) throw new Error(`completeSignup: ${userError.message}`);

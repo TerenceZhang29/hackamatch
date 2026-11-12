@@ -5,6 +5,7 @@ import type { z } from "zod";
 import { apiError, isUuid, readBody } from "@/lib/api/http";
 import {
   authVerifyInput,
+  blocksSchema,
   deckAnswerSchema,
   deckSchema,
   deckUndoSchema,
@@ -22,6 +23,7 @@ import {
   taxonomySchema,
   teamUpSchema,
 } from "@/lib/api/schemas";
+import { REPORT_REASON_LABELS, REPORT_REASONS, reportInput } from "@/lib/safety";
 import { answersSchema } from "@/lib/signup";
 import { taxonomyView } from "@/server/api-views";
 
@@ -33,6 +35,7 @@ const FIXTURES = path.resolve(import.meta.dirname, "../../ios/Fixtures");
  * the sample is updated.
  */
 const SAMPLES: Record<string, z.ZodType> = {
+  "blocks.json": blocksSchema,
   "deck-answer-match.json": deckAnswerSchema,
   "deck-answer-pass.json": deckAnswerSchema,
   "deck-undo.json": deckUndoSchema,
@@ -151,6 +154,26 @@ describe("request handling", () => {
     expect(await response.json()).toEqual({
       error: { code: "refused", message: "Use your @cornell.edu email" },
     });
+  });
+
+  it("takes a report with a known reason and an optional note", () => {
+    const userId = "00000000-0000-4000-8000-000000000002";
+    expect(reportInput.parse({ userId, reason: "spam" })).toEqual({
+      userId,
+      reason: "spam",
+      note: null,
+    });
+    expect(reportInput.parse({ userId, reason: "other", note: "  Rude messages  " }).note).toBe(
+      "Rude messages",
+    );
+    expect(reportInput.parse({ userId, reason: "fake", note: "  " }).note).toBeNull();
+    expect(reportInput.safeParse({ userId, reason: "boring" }).error?.issues[0]?.message).toBe(
+      "Pick a reason",
+    );
+    expect(reportInput.safeParse({ userId, reason: "spam", note: "x".repeat(1001) }).success).toBe(
+      false,
+    );
+    expect(Object.keys(REPORT_REASON_LABELS)).toEqual([...REPORT_REASONS]);
   });
 
   it("recognises ids", () => {

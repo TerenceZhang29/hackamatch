@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowLeft, Check, CircleHelp, MailCheck, Plus, Search } from "lucide-react";
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { FieldError, labelClass } from "@/components/ui/Field";
 import {
@@ -596,6 +597,17 @@ export function SignupFlow({
       <button type="submit" disabled={pending} className={primaryButton}>
         {pending ? "Sending…" : "Join HackaMatch"}
       </button>
+      <p className="text-center text-[13px] text-muted">
+        By joining you agree to the{" "}
+        <Link href="/terms" target="_blank" className="underline">
+          Terms
+        </Link>{" "}
+        and{" "}
+        <Link href="/privacy" target="_blank" className="underline">
+          Privacy policy
+        </Link>
+        .
+      </p>
     </form>
   );
 }

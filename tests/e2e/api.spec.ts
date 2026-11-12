@@ -1,6 +1,7 @@
 import { expect, test, type APIRequestContext, type APIResponse } from "@playwright/test";
 import type { z } from "zod";
 import {
+  blocksSchema,
   deckAnswerSchema,
   deckSchema,
   deckUndoSchema,
@@ -418,4 +419,71 @@ test("a member marks an event as going and changes their profile", async ({ requ
     "unauthorized",
   );
   expect(await getUserRow(me.email)).toBeNull();
+});
+
+test("a block hides two members from each other, and a report also blocks", async ({ request }) => {
+  const [a, b] = await Promise.all([member(request, "Eve Api"), member(request, "Finn Api")]);
+  const blockUrl = `${API}/blocks/${b.id}`;
+
+  const blocked = await body(await request.put(blockUrl, { headers: a.headers }), blocksSchema);
+  expect(blocked).toEqual({ blocked: [{ id: b.id, displayName: "Finn A." }] });
+  // It works both ways, and nobody can see who blocked them.
+  for (const [viewer, other] of [
+    [a, b],
+    [b, a],
+  ] as const) {
+    expect(
+      await errorCode(
+        await request.get(`${API}/people/${other.id}`, { headers: viewer.headers }),
+        404,
+      ),
+    ).toBe("not_found");
+    const deck = await body(
+      await request.get(`${API}/deck`, { headers: viewer.headers }),
+      deckSchema,
+    );
+    expect(deck.cards.some((card) => card.id === other.id)).toBe(false);
+    expect(
+      await errorCode(
+        await request.post(`${API}/deck/answer`, {
+          headers: viewer.headers,
+          data: { userId: other.id, response: "interested" },
+        }),
+        409,
+      ),
+    ).toBe("unavailable");
+  }
+  expect(
+    await body(await request.get(`${API}/blocks`, { headers: b.headers }), blocksSchema),
+  ).toEqual({
+    blocked: [],
+  });
+
+  // Unblocking brings them back; you can't block yourself or nobody.
+  expect(await body(await request.delete(blockUrl, { headers: a.headers }), blocksSchema)).toEqual({
+    blocked: [],
+  });
+  await body(await request.get(`${API}/people/${b.id}`, { headers: a.headers }), personPageSchema);
+  for (const id of [a.id, crypto.randomUUID()]) {
+    expect(
+      await errorCode(await request.put(`${API}/blocks/${id}`, { headers: a.headers }), 404),
+    ).toBe("not_found");
+  }
+  expect(await errorCode(await request.put(blockUrl), 401)).toBe("unauthorized");
+
+  // A report needs a known reason, records it, and blocks.
+  const report = (data: unknown) => request.post(`${API}/reports`, { headers: a.headers, data });
+  expect(await errorCode(await report({ userId: b.id, reason: "boring" }), 400)).toBe(
+    "bad_request",
+  );
+  expect(await errorCode(await report({ userId: a.id, reason: "spam" }), 404)).toBe("not_found");
+  await body(await report({ userId: b.id, reason: "spam", note: "Selling a course." }), okSchema);
+  expect(
+    await query(`select reason, note, status from public.reports where reporter_id = $1`, [a.id]),
+  ).toEqual([{ reason: "spam", note: "Selling a course.", status: "open" }]);
+  expect(
+    await body(await request.get(`${API}/blocks`, { headers: a.headers }), blocksSchema),
+  ).toEqual({
+    blocked: [{ id: b.id, displayName: "Finn A." }],
+  });
 });

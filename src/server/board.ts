@@ -6,23 +6,28 @@ import { localDateString } from "@/lib/time";
 import { createServiceClient } from "@/lib/supabase/service";
 import type { Database } from "@/types/db";
 import { passedCards } from "./card-passes";
+import { blockedIdsFor, isBlockedPair } from "./safety";
 
 /** Public board reads, through the security-definer SQL functions that expose only safe columns. */
 
 export type BoardPerson = Database["public"]["Functions"]["public_board_people"]["Returns"][number];
 
 /**
- * Users a signed-in viewer should not see on the board: themselves and
- * everyone they already have a match with (whatever either side answered).
+ * Users a signed-in viewer should not see on the board: themselves,
+ * everyone they already have a match with (whatever either side answered),
+ * and anyone blocked either way.
  */
 export async function excludedUserIds(viewerId: string | null): Promise<string[]> {
   if (!viewerId) return [];
-  const { data, error } = await createServiceClient()
-    .from("matches")
-    .select("user_a, user_b")
-    .or(`user_a.eq.${viewerId},user_b.eq.${viewerId}`);
+  const [{ data, error }, blocked] = await Promise.all([
+    createServiceClient()
+      .from("matches")
+      .select("user_a, user_b")
+      .or(`user_a.eq.${viewerId},user_b.eq.${viewerId}`),
+    blockedIdsFor(viewerId),
+  ]);
   if (error) throw new Error(`excludedUserIds: ${error.message}`);
-  return [viewerId, ...data.map((m) => (m.user_a === viewerId ? m.user_b : m.user_a))];
+  return [viewerId, ...data.map((m) => (m.user_a === viewerId ? m.user_b : m.user_a)), ...blocked];
 }
 
 /**
@@ -56,11 +61,28 @@ export async function listBoardPeople(
   return { rows: data.slice(0, limit), hasMore: data.length > limit };
 }
 
-/** One person's public card, or null when they are not in the pool. */
-export async function getPublicPerson(userId: string): Promise<BoardPerson | null> {
+/**
+ * One person's public card, or null when they are not in the pool. With a
+ * `viewerId`, also null when either has blocked the other.
+ */
+export async function getPublicPerson(
+  userId: string,
+  viewerId: string | null = null,
+): Promise<BoardPerson | null> {
+  if (viewerId && (await isBlockedPair(viewerId, userId))) return null;
   const { data, error } = await createServiceClient().rpc("public_person", { p_id: userId });
   if (error) throw new Error(`getPublicPerson: ${error.message}`);
   return data[0] ?? null;
+}
+
+/**
+ * A few people going to an event, for the avatars on its page: never the
+ * viewer, and nobody blocked either way.
+ */
+export async function eventFaces(viewerId: string, eventSlug: string): Promise<BoardPerson[]> {
+  const blocked = await blockedIdsFor(viewerId);
+  const filters = { event: eventSlug, domain: null, skill: null };
+  return (await listBoardPeople(filters, 3, [viewerId, ...blocked])).rows;
 }
 
 /**

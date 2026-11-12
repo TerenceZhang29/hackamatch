@@ -6,26 +6,35 @@ import { parsePassToken } from "@/lib/deck";
 import { listBoardPeople, type BoardPerson } from "./board";
 import { passedCards, removeCardPass } from "./card-passes";
 import { undoPass } from "./matches";
+import { blockedIdsFor } from "./safety";
 
 /** How many cards to look ahead; also the most the "N left" count shows before "+". */
 export const DECK_LOOKAHEAD = 100;
 
 /**
- * Who the deck leaves out: the viewer, people they've already answered, and
- * revealed matches. Unlike the board, people still waiting on the viewer's
- * answer stay in, so answering their card makes the match.
+ * Who the deck leaves out: the viewer, people they've already answered,
+ * revealed matches, and anyone blocked either way. Unlike the board, people
+ * still waiting on the viewer's answer stay in, so answering their card makes
+ * the match.
  */
 export async function deckExcludedUserIds(viewerId: string): Promise<string[]> {
-  const { data, error } = await createServiceClient()
-    .from("matches")
-    .select("user_a, user_b, a_response, b_response, revealed_at")
-    .or(`user_a.eq.${viewerId},user_b.eq.${viewerId}`);
+  const [{ data, error }, blocked] = await Promise.all([
+    createServiceClient()
+      .from("matches")
+      .select("user_a, user_b, a_response, b_response, revealed_at")
+      .or(`user_a.eq.${viewerId},user_b.eq.${viewerId}`),
+    blockedIdsFor(viewerId),
+  ]);
   if (error) throw new Error(`deckExcludedUserIds: ${error.message}`);
   const answered = data.filter((m) => {
     const mine = m.user_a === viewerId ? m.a_response : m.b_response;
     return m.revealed_at !== null || mine !== "pending";
   });
-  return [viewerId, ...answered.map((m) => (m.user_a === viewerId ? m.user_b : m.user_a))];
+  return [
+    viewerId,
+    ...answered.map((m) => (m.user_a === viewerId ? m.user_b : m.user_a)),
+    ...blocked,
+  ];
 }
 
 /**

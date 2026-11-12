@@ -17,7 +17,7 @@ import type { EmailProvider } from "@/lib/notify/types";
  */
 
 export type NotificationKind =
-  "digest" | "curated_digest" | "weekly" | "inbound_interest" | "mutual" | "event_nudge";
+  "digest" | "curated_digest" | "weekly" | "inbound_interest" | "mutual" | "event_nudge" | "report";
 
 /** A development-only secret, so local links work without configuring one. Never used in production. */
 const DEV_TOKEN_SECRET = "hackamatch-local-development-token-secret";

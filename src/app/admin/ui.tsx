@@ -25,6 +25,9 @@ export function AdminShell({ title, children }: { title: string; children: React
         <Link href="/admin/matches" className="underline">
           Matches
         </Link>
+        <Link href="/admin/reports" className="underline">
+          Reports
+        </Link>
         <Link href="/admin/pilot" className="underline">
           Pilot access
         </Link>

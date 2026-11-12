@@ -55,7 +55,7 @@ No change for web users. Nothing is on production: the hosted email templates an
   | `GET /matches`, `GET /matches/:id`, `POST /matches/:id/answer` | Matches and the pair page |
   | `POST /matches/:id/hackathons`, `POST /matches/:id/team`, `POST /teams/:id/members` | pick a hackathon, "We teamed up", add a teammate |
 
-  Still to come: `PUT /devices` (phase 5) and `POST /reports`, `PUT /blocks/:userId` (phase 2).
+  Still to come: `PUT /devices` (phase 5). Report and block arrived in phase 2.
 - **One contract for both sides** (`src/lib/api/schemas.ts`):
   - responses are strict objects, missing values are `null`, and tags carry their label, so the app needs no copy of the taxonomy;
   - errors are `{ error: { code, message } }` with an HTTP status; the codes are listed in `src/lib/api/http.ts`;
@@ -69,14 +69,34 @@ No change for web users. Nothing is on production: the hosted email templates an
 1. Add the `{{ .Token }}` line to the two hosted email templates, and check the hosted OTP length is 6.
 2. Merge and deploy. No migration.
 
-### 2. Server and web: what App Review requires
-- **Report and block.**
-  - Migration: `reports` (reporter, reported, reason, note, status) and `blocks` (blocker, blocked), both server-only.
-  - A blocked pair never see each other in the deck, events or matches.
-  - `/admin/reports` lists reports; a new report emails the admin. Apple expects action within 24 hours.
-  - The same two actions go on the web person card.
-- **`/privacy` and `/terms`** pages. The terms must say abusive content isn't tolerated, and sign-up must show agreement to them. The owner should read both before they go live.
-- **Review account.** See Decisions.
+### 2. Server and web: what App Review requires: built 2026-11-11, not committed or deployed
+- **Report and block** (`src/server/safety.ts`, migration `20261111000000_reports_blocks.sql`).
+  - `blocks` and `reports` are server-only tables. Reasons: harassment, inappropriate content, spam, fake profile, something else, with an optional note.
+  - **A block works both ways.** Neither person sees the other in the deck, the board, person pages, event-page avatars, the matches list and badge, the pair page or "Your hackathons", whoever blocked. Answering a blocked person's card says "not available", the same as someone who left the pool.
+  - **A report also blocks**, and emails every admin (`Report` template, logged as kind `report`).
+  - **Web:** "Report or block" under a person's card (`/people/<id>`) and at the foot of the pair page; "Blocked people" with Unblock on `/me`. Plain forms, so they work without JavaScript.
+  - **Admin:** `/admin/reports` lists open reports oldest first, then resolved ones, with Pause account and Resolve. The admin home shows the open count.
+  - **API:** `POST /reports`, `GET /blocks`, `PUT /blocks/:id`, `DELETE /blocks/:id`.
+  - **Limit:** 20 reports and blocks per member per day.
+- **`/terms` and `/privacy`**, linked from the landing page, `/me` and sign-up's last step ("By joining you agree to the Terms and Privacy policy"). `users.terms_accepted_at` records the moment of joining; it is null for accounts from before the terms.
+- **Tests:** database (`reports-blocks`), unit (report input, the report email, the `blocks.json` sample), browser (`safety.spec.ts`, the API spec, and axe on `/terms`, `/privacy` and `/admin/reports`).
+
+**Not covered:**
+- The web deck has no report button on the card itself; it is on the person's page. The iOS card will have it in a menu.
+- An admin can still make a manual match between two people who blocked each other; neither would see it.
+- An admin whose own notifications are off gets no report email.
+
+**Assumed in the legal pages, for the owner to confirm before they go live:**
+- members must be at least 18;
+- the contact address is `hello@hackamatch.com`, and someone reads it;
+- the pages don't name who runs HackaMatch;
+- the companies listed are Supabase, Vercel, Resend, Voyage AI and Anthropic.
+
+They are plain-language drafts, not legal advice.
+
+**To put on production (each needs the owner's approval):**
+1. Back up, then apply the migration (`supabase db push`, after a dry run lists exactly it).
+2. Merge and deploy.
 
 ### 3. App: skeleton, sign-in, Discover (about 1 week)
 - `ios/HackaMatch.xcodeproj`: SwiftUI, iPhone only, no third-party packages (URLSession and Keychain).

@@ -1,6 +1,7 @@
 import "server-only";
 import { after } from "next/server";
 import { addCardPass } from "./card-passes";
+import { blockedIdsFor, isBlockedPair } from "./safety";
 import { createElement } from "react";
 import { track } from "@/lib/analytics";
 import { getConfig } from "@/lib/config";
@@ -54,7 +55,7 @@ export async function getMatch(matchId: string): Promise<Match | null> {
 /**
  * Records a user's answer on a match (answers can be changed) and reveals the
  * match if both are now interested. Returns null when the user is not in the
- * match.
+ * match, or when either person has blocked the other.
  */
 export async function recordResponse(
   matchId: string,
@@ -64,6 +65,7 @@ export async function recordResponse(
   const match = await getMatch(matchId);
   const side = match ? sideOf(match, userId) : null;
   if (!match || !side) return null;
+  if (await isBlockedPair(match.user_a, match.user_b)) return null;
 
   const now = new Date().toISOString();
   const update =
@@ -322,6 +324,8 @@ export async function answerFromBoard(
   const resolved = await resolveTarget(target);
   if (!resolved) return { ok: false, error: "unavailable" };
   if (resolved.userId === actorId) return { ok: false, error: "self" };
+  // Blocked either way: the same answer as someone who has left the pool.
+  if (await isBlockedPair(actorId, resolved.userId)) return { ok: false, error: "unavailable" };
 
   // Pass on a card hides that card only: the person's other cards stay, and
   // nothing is recorded on the pair (P1-23). Waiting and one-click Pass,
@@ -422,7 +426,7 @@ const NEW_FOR_MS = 24 * 60 * 60 * 1000;
 
 /**
  * A user's matches, grouped for /matches. Matches they passed on are left
- * out. The other person's answer is never part of the result unless the match
+ * out, and so are matches with anyone blocked either way. The other person's answer is never part of the result unless the match
  * is revealed (when it is "interested" by definition).
  */
 export async function listMatchesForUser(userId: string): Promise<MatchListItem[]> {
@@ -434,7 +438,9 @@ export async function listMatchesForUser(userId: string): Promise<MatchListItem[
     .order("created_at", { ascending: false });
   if (error) throw new Error(`listMatchesForUser: ${error.message}`);
 
+  const blocked = new Set(await blockedIdsFor(userId));
   const visible = matches.filter((m) => {
+    if (blocked.has(otherUserId(m, userId))) return false;
     const mine = sideOf(m, userId) === "a" ? m.a_response : m.b_response;
     return m.revealed_at !== null || mine !== "pass";
   });
@@ -526,20 +532,24 @@ export async function undoPass(matchId: string, viewerId: string): Promise<boole
 /** How many matches are waiting on the user's answer (for the Matches tab's badge). */
 export async function countWaiting(userId: string): Promise<number> {
   const supabase = createServiceClient();
-  const [a, b] = await Promise.all([
+  const [a, b, blocked] = await Promise.all([
     supabase
       .from("matches")
-      .select("id", { count: "exact", head: true })
+      .select("user_b")
       .eq("user_a", userId)
       .eq("a_response", "pending")
       .is("revealed_at", null),
     supabase
       .from("matches")
-      .select("id", { count: "exact", head: true })
+      .select("user_a")
       .eq("user_b", userId)
       .eq("b_response", "pending")
       .is("revealed_at", null),
+    blockedIdsFor(userId),
   ]);
   if (a.error || b.error) throw new Error(`countWaiting: ${(a.error ?? b.error)!.message}`);
-  return (a.count ?? 0) + (b.count ?? 0);
+  // Matches with anyone blocked either way aren't listed, so they aren't counted.
+  const hidden = new Set(blocked);
+  const others = [...a.data.map((m) => m.user_b), ...b.data.map((m) => m.user_a)];
+  return others.filter((id) => !hidden.has(id)).length;
 }

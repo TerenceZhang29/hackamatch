@@ -7,6 +7,7 @@ import { CardActions, type Viewer } from "@/components/CardActions";
 import { Outcome } from "@/components/Outcome";
 import { PairStatus } from "@/components/PairStatus";
 import { PersonCard } from "@/components/PersonCard";
+import { ReportBlock } from "@/components/ReportBlock";
 import { getUser } from "@/lib/auth";
 import { MEMBER_LIST } from "@/lib/board";
 import { sharedFirst } from "@/lib/deck";
@@ -28,7 +29,8 @@ export default async function PersonPage({
   const user = await getUser();
   if (user?.id === id) redirect("/me");
 
-  const person = await getPublicPerson(id);
+  // A 404 too when either person has blocked the other.
+  const person = await getPublicPerson(id, user?.id ?? null);
   if (!person) notFound();
   const viewer: Viewer = !user ? "anon" : user.onboarded_at ? "onboarded" : "not-onboarded";
   // Where someone is going is for members only.
@@ -74,6 +76,7 @@ export default async function PersonPage({
           />
         }
       />
+      {viewer === "onboarded" ? <ReportBlock userId={id} name={person.display_name} /> : null}
     </main>
   );
 }

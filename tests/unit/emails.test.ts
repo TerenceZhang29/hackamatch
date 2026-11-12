@@ -5,6 +5,7 @@ import { displayName } from "@/lib/display-name";
 import { createResendProvider } from "@/lib/notify/resend";
 import { InboundInterest, inboundInterestSubject } from "@/lib/notify/templates/InboundInterest";
 import { Mutual, mutualSubject } from "@/lib/notify/templates/Mutual";
+import { Report, reportSubject } from "@/lib/notify/templates/Report";
 
 vi.mock("@/lib/config", () => ({ getConfig: () => ({ LLM_PROVIDER: "fake" }) }));
 
@@ -124,5 +125,31 @@ describe("writeCoffeeChat", () => {
     expect(message).toBe(coffeeChatTemplate(facts));
     expect(message).toContain("15-minute coffee at Cornell Tech");
     expect(message.split(/\s+/).length).toBeLessThanOrEqual(50);
+  });
+});
+
+describe("Report email", () => {
+  const props = {
+    reportedName: "Maya P.",
+    reason: "Harassment or bullying",
+    note: "Kept messaging after I said no.",
+    reviewUrl: "https://app.test/admin/reports",
+    pauseUrl: "https://app.test/r/pause",
+  };
+
+  it("tells an admin who was reported and why, with the review link and no addresses", async () => {
+    const html = await render(createElement(Report, props));
+    expect(html).toContain("Maya P. was reported");
+    expect(html).toContain("Harassment or bullying");
+    expect(html).toContain("Kept messaging after I said no.");
+    expect(html).toContain('href="https://app.test/admin/reports"');
+    expect(html).not.toContain("@cornell.edu");
+    expect(reportSubject(props)).toBe("New report: Maya P.");
+  });
+
+  it("leaves the note out when there is none", async () => {
+    const html = await render(createElement(Report, { ...props, note: null }));
+    expect(html).not.toContain("blockquote");
+    expect(html).toContain("Review reports");
   });
 });

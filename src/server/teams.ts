@@ -6,6 +6,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { localDateString } from "@/lib/time";
 import { markGoingWithTeam } from "./events";
 import { firstName, getMatch, getPairMatch, otherUserId, sideOf } from "./matches";
+import { isBlockedPair } from "./safety";
 
 /**
  * The shared page of a revealed match: both people, the idea, upcoming
@@ -55,6 +56,8 @@ export interface PairPage {
 async function revealedMatchFor(matchId: string, viewerId: string) {
   const match = await getMatch(matchId);
   if (!match || !match.revealed_at || !sideOf(match, viewerId)) return null;
+  // A block closes the pair page for both, whoever blocked.
+  if (await isBlockedPair(match.user_a, match.user_b)) return null;
   return match;
 }
 

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 import { KeepMatchingPrompt } from "@/components/EventPool";
+import { ReportBlock } from "@/components/ReportBlock";
 import { Avatar } from "@/components/ui/Avatar";
 import { buttonClass } from "@/components/ui/Button";
 import { Chip, TagList } from "@/components/ui/Chip";
@@ -244,6 +245,8 @@ export default async function PairPage({
           </div>
         ))}
       </Section>
+
+      <ReportBlock userId={other.id} name={other.firstName} />
     </main>
   );
 }

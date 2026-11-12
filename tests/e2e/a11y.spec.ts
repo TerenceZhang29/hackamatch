@@ -61,6 +61,8 @@ test("public pages", async ({ page }) => {
     ["/signup", "sign-up step 1"],
     ["/e/cornell-tech-fall-hack", "event"],
     ["/events", "events"],
+    ["/terms", "terms"],
+    ["/privacy", "privacy"],
     ["/people/00000000-0000-4000-a000-000000000201", "person"],
   ] as const) {
     await page.goto(path);
@@ -87,6 +89,8 @@ test("sign-up, every step", async ({ page }) => {
 });
 
 test("member pages", async ({ page }) => {
+  // Ten pages, each scanned: more than the default 30 seconds on a busy machine.
+  test.slow();
   const email = newEmail();
   await signIn(page, email);
   await onboard(page);
@@ -147,7 +151,24 @@ test("admin pages", async ({ page }) => {
   await onboard(page);
   await expect(page).toHaveURL("/");
   await query(`update public.users set is_admin = true where cornell_email = $1`, [email]);
-  for (const path of ["/admin", "/admin/users", "/admin/events", "/admin/matches"]) {
+  // A report, so /admin/reports renders its table.
+  const [admin] = await query<{ id: string }>(
+    `select id from public.users where cornell_email = $1`,
+    [email],
+  );
+  const reported = await createUser(newEmail(), { name: "Reported Person" });
+  await query(
+    `insert into public.reports (reporter_id, reported_id, reason, note)
+     values ($1, $2, 'spam', 'Advertising a paid course.')`,
+    [admin!.id, reported],
+  );
+  for (const path of [
+    "/admin",
+    "/admin/users",
+    "/admin/events",
+    "/admin/matches",
+    "/admin/reports",
+  ]) {
     await page.goto(path);
     await expectAccessible(page, path);
   }

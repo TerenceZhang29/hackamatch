@@ -88,6 +88,54 @@ export type Database = {
         };
         Relationships: [];
       };
+      blocks: {
+        Row: {
+          blocked_id: string;
+          blocker_id: string;
+          created_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          blocked_id: string;
+          blocker_id: string;
+          created_at?: string;
+        };
+        Update: {
+          blocked_id?: string;
+          blocker_id?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "blocks_blocked_id_fkey";
+            columns: ["blocked_id"];
+            isOneToOne: false;
+            referencedRelation: "active_pool";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "blocks_blocked_id_fkey";
+            columns: ["blocked_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "blocks_blocker_id_fkey";
+            columns: ["blocker_id"];
+            isOneToOne: false;
+            referencedRelation: "active_pool";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "blocks_blocker_id_fkey";
+            columns: ["blocker_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       card_passes: {
         Row: {
           created_at: string;
@@ -751,6 +799,86 @@ export type Database = {
         };
         Relationships: [];
       };
+      reports: {
+        Row: {
+          created_at: string;
+          id: string;
+          note: string | null;
+          reason: Database["public"]["Enums"]["report_reason"];
+          reported_id: string;
+          reporter_id: string | null;
+          resolved_at: string | null;
+          resolved_by: string | null;
+          status: Database["public"]["Enums"]["report_status"];
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          id?: string;
+          note?: string | null;
+          reason: Database["public"]["Enums"]["report_reason"];
+          reported_id: string;
+          reporter_id?: string | null;
+          resolved_at?: string | null;
+          resolved_by?: string | null;
+          status?: Database["public"]["Enums"]["report_status"];
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          note?: string | null;
+          reason?: Database["public"]["Enums"]["report_reason"];
+          reported_id?: string;
+          reporter_id?: string | null;
+          resolved_at?: string | null;
+          resolved_by?: string | null;
+          status?: Database["public"]["Enums"]["report_status"];
+        };
+        Relationships: [
+          {
+            foreignKeyName: "reports_reported_id_fkey";
+            columns: ["reported_id"];
+            isOneToOne: false;
+            referencedRelation: "active_pool";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "reports_reported_id_fkey";
+            columns: ["reported_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "reports_reporter_id_fkey";
+            columns: ["reporter_id"];
+            isOneToOne: false;
+            referencedRelation: "active_pool";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "reports_reporter_id_fkey";
+            columns: ["reporter_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "reports_resolved_by_fkey";
+            columns: ["resolved_by"];
+            isOneToOne: false;
+            referencedRelation: "active_pool";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "reports_resolved_by_fkey";
+            columns: ["resolved_by"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       team_members: {
         Row: {
           joined_at: string;
@@ -877,6 +1005,7 @@ export type Database = {
           phone_e164: string | null;
           raw_bio: string | null;
           role: Database["public"]["Enums"]["user_role"] | null;
+          terms_accepted_at: string | null;
           updated_at: string;
         };
         ComputedFields: never;
@@ -900,6 +1029,7 @@ export type Database = {
           phone_e164?: string | null;
           raw_bio?: string | null;
           role?: Database["public"]["Enums"]["user_role"] | null;
+          terms_accepted_at?: string | null;
           updated_at?: string;
         };
         Update: {
@@ -922,6 +1052,7 @@ export type Database = {
           phone_e164?: string | null;
           raw_bio?: string | null;
           role?: Database["public"]["Enums"]["user_role"] | null;
+          terms_accepted_at?: string | null;
           updated_at?: string;
         };
         Relationships: [];
@@ -1088,6 +1219,8 @@ export type Database = {
       match_response: "pending" | "interested" | "pass";
       match_source: "admin" | "board" | "nightly" | "curated";
       notify_channel: "email" | "sms" | "slack" | "none";
+      report_reason: "harassment" | "inappropriate" | "spam" | "fake" | "other";
+      report_status: "open" | "resolved";
       user_role: "idea" | "builder" | "both";
     };
     CompositeTypes: {
@@ -1213,6 +1346,8 @@ export const Constants = {
       match_response: ["pending", "interested", "pass"],
       match_source: ["admin", "board", "nightly", "curated"],
       notify_channel: ["email", "sms", "slack", "none"],
+      report_reason: ["harassment", "inappropriate", "spam", "fake", "other"],
+      report_status: ["open", "resolved"],
       user_role: ["idea", "builder", "both"],
     },
   },

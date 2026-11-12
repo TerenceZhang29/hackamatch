@@ -22,6 +22,7 @@ import { createAdminMatch, findUserIdByEmail, saveEvent, setOrganizer } from "@/
 import { parseNetIds } from "@/lib/pilot";
 import { addPilotNetIds, removePilotNetId, setPilotOnly } from "@/server/pilot";
 import { setPausedUntil } from "@/server/profiles";
+import { setReportResolved } from "@/server/safety";
 
 const form = (data: FormData) => Object.fromEntries(data);
 const optional = z
@@ -47,6 +48,18 @@ export async function setUserPause(data: FormData) {
     .parse(form(data));
   await setPausedUntil(userId, pausedUntilFor(choice));
   revalidatePath("/admin/users");
+  revalidatePath("/admin/reports");
+}
+
+/** Marks a report as dealt with, or opens it again. */
+export async function resolveReportAction(data: FormData) {
+  const admin = await requireAdmin();
+  const { reportId, resolved } = z
+    .object({ reportId: z.guid(), resolved: z.enum(["true", "false"]) })
+    .parse(form(data));
+  await setReportResolved(reportId, admin.id, resolved === "true");
+  revalidatePath("/admin/reports");
+  revalidatePath("/admin");
 }
 
 const eventSchema = z

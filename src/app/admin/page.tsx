@@ -1,14 +1,15 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { adminCounts } from "@/server/admin";
+import { countOpenReports } from "@/server/safety";
 import { AdminShell } from "./ui";
 
 export default async function AdminHome() {
   await requireAdmin("/admin");
-  const counts = await adminCounts();
+  const [counts, openReports] = await Promise.all([adminCounts(), countOpenReports()]);
   return (
     <AdminShell title="Admin">
-      <dl className="grid grid-cols-2 gap-4 sm:grid-cols-5">
+      <dl className="grid grid-cols-2 gap-4 sm:grid-cols-6">
         {(
           [
             ["Users", counts.users, "/admin/users"],
@@ -16,6 +17,7 @@ export default async function AdminHome() {
             ["Matches", counts.matches, "/admin/matches"],
             ["Teams", counts.teams, "/admin/matches"],
             ["Demo profiles", counts.demo, "/admin/users"],
+            ["Open reports", openReports, "/admin/reports"],
           ] as const
         ).map(([label, value, href]) => (
           <div
