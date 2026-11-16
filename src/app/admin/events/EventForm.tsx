@@ -1,4 +1,5 @@
 import type { AdminEvent } from "@/server/admin";
+import type { EventSuggestion } from "@/server/event-suggestions";
 import {
   ADMISSION_LABELS,
   ADMISSIONS,
@@ -11,6 +12,7 @@ import {
   PERKS,
   detailsFromRow,
   detailsToForm,
+  type DetailFormValues,
 } from "@/lib/event-details";
 import { EVENT_NAME_MAX } from "@/lib/event-name";
 import { displayLabel } from "@/lib/taxonomy/labels";
@@ -18,6 +20,7 @@ import { slugsOf } from "@/lib/taxonomy/skills";
 import { saveEventAction } from "../actions";
 import { button, input } from "../ui";
 import { AutofillPanel } from "./AutofillPanel";
+import { OutlineFields } from "./OutlineFields";
 
 function Field({
   label,
@@ -62,25 +65,71 @@ function Choice<T extends string>({
   );
 }
 
-/** Create or edit an event. A plain form; validation errors come back in the URL. */
+/**
+ * Create or edit an event. A plain form; validation errors come back in the
+ * URL. A new event can start from a weekly suggestion
+ * (docs/plans/event-discovery.md): its fields are filled from the listing
+ * and the drafted page, and outlined until the admin edits them.
+ */
 export function EventForm({
   event,
   organizerEmail,
+  suggestion,
 }: {
   event?: AdminEvent;
   organizerEmail?: string | null;
+  suggestion?: EventSuggestion;
 }) {
-  const details = detailsToForm(event ? detailsFromRow(event) : EMPTY_DETAILS);
+  const draft = suggestion?.draft ?? {};
+  const empty = detailsToForm(EMPTY_DETAILS);
+  const details: DetailFormValues = event
+    ? detailsToForm(detailsFromRow(event))
+    : {
+        ...empty,
+        ...Object.fromEntries(Object.entries(draft).filter(([name]) => name in empty)),
+        format: draft.format ?? suggestion?.format ?? "",
+      };
+  // The basics: the listing's name, link and dates, the rest from the draft.
+  const basics = {
+    name: event?.name ?? suggestion?.name,
+    url: event?.url ?? suggestion?.url ?? "",
+    startDate: event?.start_date ?? suggestion?.startDate,
+    endDate: event?.end_date ?? suggestion?.endDate,
+    description: event?.description ?? draft.description ?? "",
+    timeLabel: event?.time_label ?? draft.timeLabel ?? "",
+    host: event?.host ?? draft.host ?? "",
+    venue: event?.venue ?? draft.venue ?? suggestion?.venue ?? "",
+  };
+  const domains: string[] = event?.domains ?? draft.domains ?? [];
+  const filled = suggestion
+    ? [
+        ...new Set([
+          "name",
+          "url",
+          "startDate",
+          "endDate",
+          ...Object.keys(draft).filter((name) => name !== "perks" && name !== "domains"),
+          ...(basics.venue ? ["venue"] : []),
+          ...(details.format ? ["format"] : []),
+        ]),
+      ]
+    : [];
   return (
     <form action={saveEventAction} className="grid max-w-2xl gap-3 sm:grid-cols-2">
       <input type="hidden" name="eventId" value={event?.id ?? ""} />
+      {suggestion ? (
+        <>
+          <input type="hidden" name="suggestionId" value={suggestion.id} />
+          <OutlineFields names={filled} />
+        </>
+      ) : null}
       <label className="flex flex-col gap-1 text-sm sm:col-span-2">
         Name
         <input
           name="name"
           required
           maxLength={EVENT_NAME_MAX}
-          defaultValue={event?.name}
+          defaultValue={basics.name}
           className={input}
         />
         <span className="text-xs text-neutral-500">
@@ -93,7 +142,7 @@ export function EventForm({
           name="startDate"
           type="date"
           required
-          defaultValue={event?.start_date}
+          defaultValue={basics.startDate}
           className={input}
         />
       </label>
@@ -103,7 +152,7 @@ export function EventForm({
           name="endDate"
           type="date"
           required
-          defaultValue={event?.end_date}
+          defaultValue={basics.endDate}
           className={input}
         />
       </label>
@@ -133,16 +182,11 @@ export function EventForm({
       </label>
       <label className="flex flex-col gap-1 text-sm sm:col-span-2">
         Website (optional)
-        <input name="url" type="url" defaultValue={event?.url ?? ""} className={input} />
+        <input name="url" type="url" defaultValue={basics.url} className={input} />
       </label>
       <label className="flex flex-col gap-1 text-sm sm:col-span-2">
         Description (optional)
-        <textarea
-          name="description"
-          rows={3}
-          defaultValue={event?.description ?? ""}
-          className={input}
-        />
+        <textarea name="description" rows={3} defaultValue={basics.description} className={input} />
       </label>
       <label className="flex flex-col gap-1 text-sm">
         Time (optional)
@@ -150,17 +194,17 @@ export function EventForm({
           name="timeLabel"
           maxLength={60}
           placeholder="9:00 AM – 5:00 PM"
-          defaultValue={event?.time_label ?? ""}
+          defaultValue={basics.timeLabel}
           className={input}
         />
       </label>
       <label className="flex flex-col gap-1 text-sm">
         Host (optional)
-        <input name="host" maxLength={120} defaultValue={event?.host ?? ""} className={input} />
+        <input name="host" maxLength={120} defaultValue={basics.host} className={input} />
       </label>
       <label className="flex flex-col gap-1 text-sm sm:col-span-2">
         Venue (optional)
-        <input name="venue" maxLength={120} defaultValue={event?.venue ?? ""} className={input} />
+        <input name="venue" maxLength={120} defaultValue={basics.venue} className={input} />
       </label>
       <fieldset className="flex flex-col gap-1 text-sm sm:col-span-2">
         <legend>Areas (shown as tags on the event page)</legend>
@@ -171,7 +215,7 @@ export function EventForm({
                 type="checkbox"
                 name="domains"
                 value={slug}
-                defaultChecked={event?.domains.includes(slug)}
+                defaultChecked={domains.includes(slug)}
               />
               {displayLabel(slug)}
             </label>

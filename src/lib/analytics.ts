@@ -19,6 +19,7 @@ export const ANALYTICS_EVENTS = [
   "digest_link_clicked",
   "paused",
   "event_autofilled",
+  "events_discovered",
 ] as const;
 
 export type AnalyticsEvent = (typeof ANALYTICS_EVENTS)[number];

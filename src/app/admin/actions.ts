@@ -23,6 +23,7 @@ import { parseNetIds } from "@/lib/pilot";
 import { addPilotNetIds, removePilotNetId, setPilotOnly } from "@/server/pilot";
 import { setPausedUntil } from "@/server/profiles";
 import { setReportResolved } from "@/server/safety";
+import { reviewSuggestion } from "@/server/event-suggestions";
 
 const form = (data: FormData) => Object.fromEntries(data);
 const optional = z
@@ -105,12 +106,17 @@ const eventSchema = z
 
 /** Creates or updates an event. Errors come back in the URL, so the form needs no JavaScript. */
 export async function saveEventAction(data: FormData) {
-  await requireAdmin();
+  const admin = await requireAdmin();
+  // A new event made from a weekly suggestion (docs/plans/event-discovery.md).
+  const suggestionId = z.guid().safeParse(data.get("suggestionId")).data ?? null;
+  data.delete("suggestionId");
   const parsed = eventSchema.safeParse({ ...form(data), domains: data.getAll("domains") });
   const back =
     typeof data.get("eventId") === "string" && data.get("eventId")
       ? `/admin/events/${data.get("eventId")}`
-      : "/admin/events";
+      : suggestionId
+        ? `/admin/events?suggestion=${suggestionId}`
+        : "/admin/events";
   if (!parsed.success) {
     redirect(
       `${back}?error=${encodeURIComponent(parsed.error.issues[0]?.message ?? "Check the form")}`,
@@ -129,9 +135,20 @@ export async function saveEventAction(data: FormData) {
     { ...input, organizerEmail, organizerId, details: details.details },
     eventId,
   );
+  if (suggestionId && !eventId) {
+    await reviewSuggestion(suggestionId, admin.id, { status: "approved", eventId: saved.id });
+  }
   revalidatePath("/admin/events");
   revalidatePath("/");
   redirect(`/admin/events?saved=${saved.slug}`);
+}
+
+/** Dismisses a weekly suggestion; later runs skip it (docs/plans/event-discovery.md). */
+export async function dismissSuggestionAction(data: FormData) {
+  const admin = await requireAdmin();
+  const { suggestionId } = z.object({ suggestionId: z.guid() }).parse(form(data));
+  await reviewSuggestion(suggestionId, admin.id, { status: "dismissed" });
+  revalidatePath("/admin/events");
 }
 
 const matchSchema = z.object({

@@ -1,79 +1,83 @@
 # Plan: find new hackathons every week
 
-Requested by the owner on 2026-11-16. Status: **planned; nothing is built.**
+Requested by the owner on 2026-11-16. Status: **built and tested locally (2026-11-16); not yet on production.** Still needed: the owner's approval for the production migration, for the push to `main` that turns on the schedule, and (optional) for one real run with Claude.
 
 Production had one upcoming hackathon on 2026-11-16 ("Test Hackathon", Nov 21–22). The list should renew itself: a weekly job finds new hackathons and drafts them, and the admin approves each one before it shows. The app and the website already read events from the server, so approved events reach installed apps with no app update.
 
 ## Decisions (owner, 2026-11-16)
 1. **Review mode.** The job only drafts. Nothing appears in the app or on the site until an admin presses Save, the same rule as "Fill from event site" (P1-25, decision 2).
-2. **Sources:** to start, these three, each checked before it's relied on:
-   - MLH's season list;
-   - Devpost, filtered to New York;
-   - Luma's NYC tech calendar.
-
-   More can be added later (club or Cornell Tech pages) as a list in code, not a setting.
+2. **Sources:** MLH, Devpost and Luma. More can be added later (club or Cornell Tech pages) as a list in code, not a setting.
 3. **When:** Mondays, 8 AM New York time. Vercel schedules in UTC, so `0 13 * * 1`: 8 AM in winter, 9 AM in summer.
 4. **How:** Vercel Cron calling an endpoint in the app, not a scheduled Claude agent in the cloud. It's cheaper per run, and the code that writes to production is the reviewed app code.
 
+## What the build found, and changed (2026-11-16)
+- **The lists are data, so no model reads them.** MLH embeds its events as JSON in the page, Devpost has a JSON API, and Luma's pages carry schema.org data. The plan's listing call to Claude was dropped: the lists are read in code (`src/lib/event-sources.ts`), which is free, exact and tested on saved pages. Claude is used only to draft each new hackathon from its own page.
+- **Sources as built:**
+  - **MLH**: `mlh.com/seasons/<season>/events`, every page (`?upcoming_page=N`, at most 5). MLH is worldwide, so it keeps online events and in-person ones in New York, New Jersey or Connecticut, and drops high-school-only ones. The season follows the date (seasons start in July).
+  - **Devpost**: its API, searched for "new york". The search is loose (an Ontario event showed up), so the admin dismisses strays. Devpost's event pages refuse automated readers (403), and the job doesn't get around that. Devpost suggestions arrive with the host and US-dollar prize total from the API, marked "Page not read".
+  - **Luma**: `luma.com/nyc`, keeping events named as hackathons. The plan's `luma.com/nyc-tech` turned out to be one coworking space's calendar, and Luma's hackathon category builds its list with JavaScript, so neither could be used. The NYC page lists about 20 popular events, mostly not hackathons: expect few from Luma.
+- **Dates** are the ones the sources show (MLH lists "2027-02-27T01:11:11Z" as Feb 27).
+- **First dry run (2026-11-16)** found 5: RAMHACK Mini (Fordham, Nov 18), NSH @RPI (Jan 30–31), HackHERS (New Brunswick, Feb 27–28), WiCHacks (Rochester, Feb 27–28) and BearHacks (Ontario, Apr 23–25). DeveloperWeek New York (May 31) was past the 6-month window.
+
 ## How it works
-1. **Trigger:** Vercel Cron calls `GET /api/cron/discover-events` with `Authorization: Bearer ${CRON_SECRET}`, which Vercel sends itself. Anything else gets a 401.
-2. **Read the sources:** each page goes through `fetchEventPageText` (`src/server/event-page.ts`), which already has the SSRF guard, timeout, size cap and checked redirects. A source that fails is logged and skipped; the others carry on.
-3. **List the hackathons:** Claude Haiku (`LLM_MODEL_FAST`) reads each source's text and returns a list of `{ name, startDate, endDate, url, venue }` (a new prompt with a version, as in `docs/PROMPT_TUNING.md`). The fake provider gets a rule for it, so tests need no key.
-4. **Keep only new, upcoming ones:** dropped are:
-   - ones already ended or more than 6 months away;
-   - ones already an event, or already suggested (same link, or same name and start date, compared loosely);
-   - ones the admin dismissed before.
-5. **Draft each:** for each new one, the existing `draftEventFromText` (`src/server/event-autofill.ts`) reads its own page and fills in the details. At most 15 drafts a run, to cap the model calls.
-6. **Store for review:** new table `event_suggestions` (see Data), status `new`.
-7. **Tell the admins:** one email to each admin when a run finds anything: "4 new hackathons to review", linking to `/admin/events`. Logged in `notification_log` as a new kind, `event_suggestions`. No email when there's nothing new.
-8. **Review in `/admin/events`:** a "Suggested" section above the list. Each row has the name, dates, place, source and link:
-   - **Review** opens the new-event form already filled in from the draft, with the filled fields outlined as with "Fill from event site". **Save** creates the event and marks the suggestion `approved`.
+1. **Trigger:** Vercel Cron calls `GET /api/cron/discover-events` with `Authorization: Bearer ${CRON_SECRET}`, which Vercel sends itself. Anything else gets a 401. `?dry=1` reads the sources and lists what's new without drafting, storing or emailing.
+2. **Read the sources** through `fetchPublicPage` (`src/server/event-page.ts`): the SSRF guard, timeout, size cap and checked redirects of "Fill from event site". A source that fails is logged and skipped; the others carry on.
+3. **Keep only new, upcoming ones:** dropped are:
+   - ones already ended or starting more than 6 months (183 days) out;
+   - ones already an event, or already suggested in any status, including dismissed (same link, or a similar name on the same start date: whole words, ignoring years and "hackathon");
+   - repeats across sources.
+4. **Draft each:** `draftEventFromText` reads the hackathon's own page and fills the event form. At most 15 model calls a run, three at a time, and none started after 200 seconds. A page that can't be read (blocked, or built with JavaScript) gets no call; the suggestion keeps what the list gave.
+5. **Store for review** in `event_suggestions`, status `new`.
+6. **Tell the admins:** one email to each admin when a run stores anything ("5 new hackathons to review"), linking to `/admin/events#suggested`. Logged in `notification_log` as `event_suggestions`. No email when there's nothing new.
+7. **Review in `/admin/events`:** a "Suggested" section above the list, with name (linked to its page), dates, place, source, and "Page not read" when it applies.
+   - **Review** fills the new-event form from the suggestion, outlining the filled fields as "Fill from event site" does. **Create event** saves it and marks the suggestion `approved`, linked to the event.
    - **Dismiss** marks it `dismissed`; later runs skip it.
 
-   Suggestions for events that have already ended drop out of the list.
-9. **Past events already disappear on their own:** every list shows only events that haven't ended, so nothing needs removing.
+   Suggestions whose event has ended drop out of the list.
+8. **Logged:** each run records an `events_discovered` analytics event: counts per source, model calls and tokens, time taken.
 
 ## Data
-One migration, `<date>_event_suggestions.sql`. Server-only (no grants), like `reports`.
+Migration `20261117000000_event_suggestions.sql`. Server-only (no grants), like `reports`.
 
 | Column | Notes |
 |---|---|
 | `id` | uuid |
 | `source` | `mlh`, `devpost` or `luma` |
-| `name`, `start_date`, `end_date`, `url`, `venue` | from the listing |
-| `draft` | jsonb: the `EventDetails` draft from the event's page, or null if that page couldn't be read |
+| `name`, `start_date`, `end_date`, `url`, `venue`, `format` | from the listing |
+| `url_key` | the link without scheme, `www.`, query or trailing slash; unique, so a page is suggested once |
+| `draft` | jsonb: the event form's values |
+| `page_read` | whether `draft` came from the event's own page, or only from the list |
 | `status` | `new`, `approved` or `dismissed` |
-| `event_id` | the event made from it, once approved |
+| `event_id` | the event made from it (set null if that event is deleted) |
 | `found_at`, `reviewed_at`, `reviewed_by` | |
 
-Unique on the normalized link, so a run can't add the same one twice. Plus `notification_log`'s kind check gains `event_suggestions`.
+`notification_log`'s kind check gains `event_suggestions`.
 
 ## Files
 - `vercel.json`: `"crons": [{ "path": "/api/cron/discover-events", "schedule": "0 13 * * 1" }]`.
-- `src/app/api/cron/discover-events/route.ts`: checks `CRON_SECRET`, calls the job, returns counts. `maxDuration = 300`.
-- `src/server/event-discovery.ts`: the job (sources, listing, dedupe, drafting, storing, the email).
-- `src/lib/llm/prompts.ts`: the listing prompt; `src/lib/llm/fake.ts`: its fake.
+- `src/app/api/cron/discover-events/route.ts`: checks `CRON_SECRET`, runs the job, returns counts. `maxDuration = 300`.
+- `src/lib/event-sources.ts`: the source parsers and the which-are-new rules (pure).
+- `src/server/event-discovery.ts`: the job. `src/server/event-suggestions.ts`: the table and the email.
 - `src/lib/notify/templates/EventSuggestions.tsx`: the email.
-- `src/app/admin/events/`: the Suggested section, Review and Dismiss.
-- `scripts/discover-events.ts`: runs the job once by hand (`pnpm discover:events`), locally against the fake model, or for real with approval.
+- `src/app/admin/events/`: the Suggested section, Review (`EventForm` with a suggestion, `OutlineFields`) and Dismiss.
+- `scripts/discover-events.ts`: `pnpm discover:events [--dry]` runs the job once, against the local database only. It sends no email (emails render only inside Next.js).
 
 ## Tests
-- **Unit:** the dedupe (links, loose names, dates), the 6-month window, the listing parser with saved copies of each source page (`tests/fixtures/sources/`), the email.
-- **Database:** `event_suggestions` is server-only; the unique link; approving links the event.
-- **API:** the cron endpoint refuses a missing or wrong secret, and a run with the fake model and saved pages stores the right suggestions, skips known and dismissed ones, and emails the admin once.
-- **Browser:** an admin reviews a suggestion into an event, and dismisses another.
+- **Unit** (`tests/unit/event-discovery.test.ts`, 30 tests): each parser on saved, trimmed pages (`tests/fixtures/sources/`), MLH paging and filters, Devpost date formats, links and names compared loosely, the window, a whole run with fake network and storage (a source failing, known ones skipped, the 15-call cap, a dry run), and the email.
+- **Database** (`tests/db/event-suggestions.test.ts`): server-only, one per page, the checks, the approved link, the email kind.
+- **Browser** (`tests/e2e/event-discovery.spec.ts`): the route refuses a missing or wrong secret; an admin reviews a suggestion into an event; an admin dismisses one; ended ones aren't listed.
+- **Local runs:** a dry run and a full run with the fake model against the live sources, and the route called with the secret (`?dry=1`).
 
 ## Cost
-- **Vercel Cron:** included in Vercel's plans, and weekly is within every plan's limits. Not yet checked against the project's own plan.
-- **Claude Haiku:** one listing call per source and one draft per new hackathon, at most about 18 calls a run. The last real check was 6 calls for about $0.009, so expect a few cents a week. Each run logs its token counts, like `event_autofilled`.
-- **Building and testing:** local only, with the fake model and saved pages: free.
+- **Vercel Cron:** one run a week. Cron jobs are on every Vercel plan; not yet checked against the project's own plan's limits.
+- **Claude Haiku:** one call per new hackathon whose page can be read, at most 15 a run. The last real "Fill from event site" check was about $0.0015 a call, so a few cents a week at most; the first week's run would have made 1 call. Each run logs its token counts.
+- **Building and testing:** local only, with the fake model: free.
 
-## Needs the owner's approval when reached
-- A real run against the three sources, to check the listing prompt before it's trusted (a few cents).
-- The production migration (backup, dry run, apply).
-- The push to `main` that turns on the schedule.
+## Needs the owner's approval
+1. **Production migration** `20261117000000_event_suggestions.sql`: backup, dry run, apply.
+2. **Push to `main`:** deploys the code and turns on the Monday schedule. The first run is the next Monday, 8 AM.
+3. **Optional, a real run with Claude first** (locally, `LLM_PROVIDER=anthropic pnpm discover:events`, about 1 call this week, under a cent), to see a real draft before the schedule does it. Otherwise the first Monday run is the check.
 
 ## Open questions
-1. **Can the sources be read?** Some sites block automated reading or build their lists with JavaScript, which this fetcher can't run. Each is checked on the first real run; a source that can't be read is dropped or replaced (a site's own feed or API, if it has one).
-2. **How far ahead?** Proposed: 6 months.
-3. **Online events?** Proposed: keep them, marked online, since students can join from anywhere.
+1. **Near New York:** in-person MLH events count as near when they're in NY, NJ or CT, so Rochester and Troy come through. Tighten it (to a list of cities, or a distance) if dismissing them gets tedious.
+2. **More sources:** Luma adds little. Candidates: Cornell Tech and NYU/Columbia club calendars, Eventbrite's NYC hackathon search.

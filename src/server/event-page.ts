@@ -59,7 +59,7 @@ export function isPrivateAddress(address: string): boolean {
   return true;
 }
 
-type Resolve = (host: string) => Promise<string[]>;
+export type Resolve = (host: string) => Promise<string[]>;
 
 const resolveAll: Resolve = async (host) =>
   (await lookup(host, { all: true, verbatim: true })).map((entry) => entry.address);
@@ -99,12 +99,18 @@ async function readCapped(response: Response): Promise<string> {
   return new TextDecoder().decode(Buffer.concat(chunks));
 }
 
-/** Downloads the page at `rawUrl` (following up to 3 checked redirects) and returns its text. */
-export async function fetchEventPageText(
+/**
+ * Downloads `rawUrl` (following up to 3 checked redirects) and returns its
+ * body, at most MAX_BYTES, if its content type matches `types`. The SSRF
+ * guard above applies to every hop.
+ */
+export async function fetchPublicPage(
   rawUrl: string,
   deps: { fetch?: typeof fetch; resolve?: Resolve } = {},
-): Promise<{ url: string; text: string }> {
+  options: { accept?: string; types?: RegExp } = {},
+): Promise<{ url: string; body: string; type: string }> {
   const doFetch = deps.fetch ?? fetch;
+  const types = options.types ?? /text\/html|text\/plain|application\/xhtml/;
   let url: URL;
   try {
     url = new URL(rawUrl.trim());
@@ -119,7 +125,10 @@ export async function fetchEventPageText(
       response = await doFetch(url, {
         redirect: "manual",
         signal,
-        headers: { accept: "text/html, text/plain;q=0.9", "user-agent": "HackaMatch event import" },
+        headers: {
+          accept: options.accept ?? "text/html, text/plain;q=0.9",
+          "user-agent": "HackaMatch event import",
+        },
       });
     } catch {
       throw new EventPageError(
@@ -134,13 +143,19 @@ export async function fetchEventPageText(
     }
     if (!response.ok) throw new EventPageError(`The site answered ${response.status}`);
     const type = response.headers.get("content-type") ?? "";
-    if (!/text\/html|text\/plain|application\/xhtml/.test(type)) {
-      throw new EventPageError("That link isn't a web page");
-    }
-    const body = await readCapped(response);
-    const text = type.includes("text/plain") ? body : htmlToText(body);
-    return { url: url.toString(), text: text.slice(0, MAX_TEXT_CHARS) };
+    if (!types.test(type)) throw new EventPageError("That link isn't a web page");
+    return { url: url.toString(), body: await readCapped(response), type };
   }
+}
+
+/** Downloads the page at `rawUrl` (following up to 3 checked redirects) and returns its text. */
+export async function fetchEventPageText(
+  rawUrl: string,
+  deps: { fetch?: typeof fetch; resolve?: Resolve } = {},
+): Promise<{ url: string; text: string }> {
+  const page = await fetchPublicPage(rawUrl, deps);
+  const text = page.type.includes("text/plain") ? page.body : htmlToText(page.body);
+  return { url: page.url, text: text.slice(0, MAX_TEXT_CHARS) };
 }
 
 const ENTITIES: Record<string, string> = {

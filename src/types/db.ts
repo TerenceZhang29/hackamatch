@@ -220,6 +220,86 @@ export type Database = {
           },
         ];
       };
+      event_suggestions: {
+        Row: {
+          draft: Json | null;
+          end_date: string;
+          event_id: string | null;
+          format: Database["public"]["Enums"]["event_format"] | null;
+          found_at: string;
+          id: string;
+          name: string;
+          page_read: boolean;
+          reviewed_at: string | null;
+          reviewed_by: string | null;
+          source: string;
+          start_date: string;
+          status: string;
+          url: string;
+          url_key: string;
+          venue: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          draft?: Json | null;
+          end_date: string;
+          event_id?: string | null;
+          format?: Database["public"]["Enums"]["event_format"] | null;
+          found_at?: string;
+          id?: string;
+          name: string;
+          page_read?: boolean;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+          source: string;
+          start_date: string;
+          status?: string;
+          url: string;
+          url_key: string;
+          venue?: string | null;
+        };
+        Update: {
+          draft?: Json | null;
+          end_date?: string;
+          event_id?: string | null;
+          format?: Database["public"]["Enums"]["event_format"] | null;
+          found_at?: string;
+          id?: string;
+          name?: string;
+          page_read?: boolean;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+          source?: string;
+          start_date?: string;
+          status?: string;
+          url?: string;
+          url_key?: string;
+          venue?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "event_suggestions_event_id_fkey";
+            columns: ["event_id"];
+            isOneToOne: false;
+            referencedRelation: "events";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "event_suggestions_reviewed_by_fkey";
+            columns: ["reviewed_by"];
+            isOneToOne: false;
+            referencedRelation: "active_pool";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "event_suggestions_reviewed_by_fkey";
+            columns: ["reviewed_by"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       events: {
         Row: {
           admission: Database["public"]["Enums"]["event_admission"] | null;
