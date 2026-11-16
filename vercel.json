@@ -9,10 +9,12 @@
       "main": true
     }
   },
-  "crons": [
-    {
+  "schedules": {
+    "discover-events": {
+      "schedule": "0 8 * * 1",
+      "timezone": "America/New_York",
       "path": "/api/cron/discover-events",
-      "schedule": "0 13 * * 1"
+      "requestMethod": "GET"
     }
-  ]
+  }
 }

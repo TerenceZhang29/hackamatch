@@ -83,7 +83,7 @@ Placeholders used below:
    | `RESEND_API_KEY` | From step 1.5 | Yes |
    | `EMAIL_FROM` | From step 1.6 | Yes |
    | `RESPONSE_TOKEN_SECRET` | `openssl rand -hex 32`; signs one-click email links | Yes |
-   | `CRON_SECRET` | `openssl rand -hex 32`; Vercel Cron sends it to `/api/cron/discover-events` (Mondays, `vercel.json`) | Yes |
+   | `CRON_SECRET` | `openssl rand -hex 32`; the Vercel Schedule `discover-events` sends it to `/api/cron/discover-events` (Mondays, `vercel.json`) | Yes |
    | `LOGIN_RATE_LIMIT_PER_IP` | `20`; raise if a shared campus IP causes refusals | No (default) |
    | `GITHUB_TOKEN` | Optional; raises GitHub's rate limit for imports | No |
    | `SHOW_EXISTING_TEAMS` | `false` | No (default) |

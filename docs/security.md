@@ -45,7 +45,7 @@ Audit for P1-18, done 2026-10-14 against commit `ee97818` plus the P1-18 changes
   | `DELETE /devices/<token>` | `requireApiUser`; only the caller's own token |
   | `POST /reports`, `GET /blocks`, `PUT /blocks/<id>`, `DELETE /blocks/<id>` | `requireApiMember`; 20 reports and blocks per user per day; a caller only ever sees and removes their own blocks |
 
-- [x] **The cron route needs the cron secret** (added 2026-11-16): `GET /api/cron/discover-events` answers 401 unless `Authorization: Bearer ${CRON_SECRET}` matches (compared in constant time; e2e tested). Vercel Cron sends it. It only stores suggestions for admins; it never creates an event.
+- [x] **The cron route needs the cron secret** (added 2026-11-16): `GET /api/cron/discover-events` answers 401 unless `Authorization: Bearer ${CRON_SECRET}` matches (compared in constant time; e2e tested). The Vercel Schedule sends it. It only stores suggestions for admins; it never creates an event.
 - [x] **Every input is validated with zod** before use: all actions above parse their input, and so do the token payloads (`verifyToken` checks shape as well as signature).
 - [x] **Admin pages are hidden:** `requireAdmin` in `src/app/admin/layout.tsx`, every admin page and every admin action; non-admins get a 404.
 - [x] **The service-role client is confined.** ESLint (`eslint.config.mjs`) only allows importing it from `src/server/**`, `src/app/admin/**`, `src/app/(focus)/r/**`, `src/app/api/cron/**`, `src/lib/analytics.ts`, `scripts/**` and `tests/**`. Current importers: the `src/server` services, `src/app/(focus)/r/[token]/page.tsx`, `src/app/admin/events/[id]/page.tsx` and `src/lib/analytics.ts`.

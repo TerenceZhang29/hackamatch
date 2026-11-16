@@ -7,10 +7,11 @@ Production had one upcoming hackathon on 2026-11-16 ("Test Hackathon", Nov 21–
 ## Decisions (owner, 2026-11-16)
 1. **Review mode.** The job only drafts. Nothing appears in the app or on the site until an admin presses Save, the same rule as "Fill from event site" (P1-25, decision 2).
 2. **Sources:** MLH, Devpost and Luma. More can be added later (club or Cornell Tech pages) as a list in code, not a setting.
-3. **When:** Mondays, 8 AM New York time. Vercel schedules in UTC, so `0 13 * * 1`: 8 AM in winter, 9 AM in summer.
-4. **How:** Vercel Cron calling an endpoint in the app, not a scheduled Claude agent in the cloud. It's cheaper per run, and the code that writes to production is the reviewed app code.
+3. **When:** Mondays, 8 AM New York time (`0 8 * * 1` in `America/New_York`, so it stays 8 AM through daylight saving).
+4. **How:** a Vercel Schedule calling an endpoint in the app, not a scheduled Claude agent in the cloud. It's cheaper per run, and the code that writes to production is the reviewed app code.
 
 ## What the build found, and changed (2026-11-16)
+- **Vercel Schedules, not Cron Jobs.** Vercel marks Cron Jobs as legacy, replaced by Schedules (public beta, all plans). The job is a path schedule in `vercel.json` with `requestMethod: "GET"`, called the same way (`Authorization: Bearer ${CRON_SECRET}`). Schedules take a time zone, can be run or paused from the dashboard (**Schedules → discover-events → Run Schedule**) without a redeploy, and keep a run history. They start within a jitter window (up to 15 minutes on Hobby) and may deliver a run more than once; the job is safe to repeat: a page is stored once (`url_key`), and only newly stored suggestions are emailed.
 - **The lists are data, so no model reads them.** MLH embeds its events as JSON in the page, Devpost has a JSON API, and Luma's pages carry schema.org data. The plan's listing call to Claude was dropped: the lists are read in code (`src/lib/event-sources.ts`), which is free, exact and tested on saved pages. Claude is used only to draft each new hackathon from its own page.
 - **Sources as built:**
   - **MLH**: `mlh.com/seasons/<season>/events`, every page (`?upcoming_page=N`, at most 5). MLH is worldwide, so it keeps online events and in-person ones in New York, New Jersey or Connecticut, and drops high-school-only ones. The season follows the date (seasons start in July).
@@ -20,7 +21,7 @@ Production had one upcoming hackathon on 2026-11-16 ("Test Hackathon", Nov 21–
 - **First dry run (2026-11-16)** found 5: RAMHACK Mini (Fordham, Nov 18), NSH @RPI (Jan 30–31), HackHERS (New Brunswick, Feb 27–28), WiCHacks (Rochester, Feb 27–28) and BearHacks (Ontario, Apr 23–25). DeveloperWeek New York (May 31) was past the 6-month window.
 
 ## How it works
-1. **Trigger:** Vercel Cron calls `GET /api/cron/discover-events` with `Authorization: Bearer ${CRON_SECRET}`, which Vercel sends itself. Anything else gets a 401. `?dry=1` reads the sources and lists what's new without drafting, storing or emailing.
+1. **Trigger:** the Vercel Schedule `discover-events` calls `GET /api/cron/discover-events` with `Authorization: Bearer ${CRON_SECRET}`, which Vercel sends itself. Anything else gets a 401. `?dry=1` reads the sources and lists what's new without drafting, storing or emailing.
 2. **Read the sources** through `fetchPublicPage` (`src/server/event-page.ts`): the SSRF guard, timeout, size cap and checked redirects of "Fill from event site". A source that fails is logged and skipped; the others carry on.
 3. **Keep only new, upcoming ones:** dropped are:
    - ones already ended or starting more than 6 months (183 days) out;
@@ -54,7 +55,7 @@ Migration `20261117000000_event_suggestions.sql`. Server-only (no grants), like 
 `notification_log`'s kind check gains `event_suggestions`.
 
 ## Files
-- `vercel.json`: `"crons": [{ "path": "/api/cron/discover-events", "schedule": "0 13 * * 1" }]`.
+- `vercel.json`: `"schedules": { "discover-events": { "schedule": "0 8 * * 1", "timezone": "America/New_York", "path": "/api/cron/discover-events", "requestMethod": "GET" } }`.
 - `src/app/api/cron/discover-events/route.ts`: checks `CRON_SECRET`, runs the job, returns counts. `maxDuration = 300`.
 - `src/lib/event-sources.ts`: the source parsers and the which-are-new rules (pure).
 - `src/server/event-discovery.ts`: the job. `src/server/event-suggestions.ts`: the table and the email.
@@ -69,7 +70,7 @@ Migration `20261117000000_event_suggestions.sql`. Server-only (no grants), like 
 - **Local runs:** a dry run and a full run with the fake model against the live sources, and the route called with the secret (`?dry=1`).
 
 ## Cost
-- **Vercel Cron:** one run a week. Cron jobs are on every Vercel plan; not yet checked against the project's own plan's limits.
+- **Vercel Schedules:** one run a week. Schedules are on every plan (Hobby allows up to one run every 15 minutes); not yet checked against the plan's pricing while in beta.
 - **Claude Haiku:** one call per new hackathon whose page can be read, at most 15 a run. The last real "Fill from event site" check was about $0.0015 a call, so a few cents a week at most; the first week's run would have made 1 call. Each run logs its token counts.
 - **Building and testing:** local only, with the fake model: free.
 

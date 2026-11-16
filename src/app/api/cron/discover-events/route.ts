@@ -4,7 +4,7 @@ import { discoverEvents } from "@/server/event-discovery";
 
 /**
  * The weekly hackathon discovery job (docs/plans/event-discovery.md), called
- * by Vercel Cron on Mondays (vercel.json). Vercel sends
+ * by the Vercel Schedule `discover-events` on Mondays (vercel.json). Vercel sends
  * `Authorization: Bearer ${CRON_SECRET}`; anything else gets a 401. It only
  * stores suggestions for an admin to review; it never creates an event.
  */
