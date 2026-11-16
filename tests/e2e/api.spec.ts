@@ -617,3 +617,29 @@ test("the emailed link signs in to the app too, once", async ({ request }) => {
     await errorCode(await request.post(`${API}/auth/verify`, { data: { tokenHash } }), 401),
   ).toBe("invalid_code");
 });
+
+test("App Store review signs in with the fixed code, and is never emailed", async ({ request }) => {
+  const email = "review-001@cornell.edu";
+  created.push(email);
+  const before = await countMail(email);
+  await body(await request.post(`${API}/auth/request`, { data: { email } }), okSchema);
+  expect(
+    await errorCode(
+      await request.post(`${API}/auth/verify`, { data: { email, code: "135799" } }),
+      401,
+    ),
+  ).toBe("invalid_code");
+  // The code works every time: reviewers sign in more than once.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const session = await body(
+      await request.post(`${API}/auth/verify`, { data: { email, code: "246810" } }),
+      sessionSchema,
+    );
+    const me = await body(
+      await request.get(`${API}/me`, { headers: bearer(session.accessToken) }),
+      meSchema,
+    );
+    expect(me.email).toBe(email);
+  }
+  expect(await countMail(email)).toBe(before);
+});

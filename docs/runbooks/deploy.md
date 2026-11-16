@@ -91,6 +91,8 @@ Placeholders used below:
    | `APNS_PRIVATE_KEY` | The `.p8` file's whole contents, `-----BEGIN PRIVATE KEY-----` included; mark it Sensitive | For push |
    | `APNS_TEAM_ID` | `5B89U2CMF9` | No (default) |
    | `APNS_BUNDLE_ID` | `com.hackamatch.app` | No (default) |
+   | `REVIEW_CODE` | 6 to 10 digits, for App Store review's sign-in as `REVIEW_EMAIL`; mark it Sensitive | For TestFlight and App Store review |
+   | `REVIEW_EMAIL` | `review-001@cornell.edu` | No (default) |
    | `PUSH_PROVIDER` | `apns`, once both APNs values are set | No (production default: `apns` when `APNS_PRIVATE_KEY` is set, else `none`) |
 
    - `NEXT_PUBLIC_*` values are built into the pages: changing one needs a redeploy.

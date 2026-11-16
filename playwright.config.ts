@@ -43,6 +43,8 @@ export default defineConfig({
       CRON_SECRET: process.env.CRON_SECRET || "e2e-cron-secret",
       // Every e2e request comes from one IP; the per-IP sign-in limit would stop the suite.
       LOGIN_RATE_LIMIT_PER_IP: "100000",
+      // The App Store review sign-in (tests/e2e/api.spec.ts). Test-only.
+      REVIEW_CODE: process.env.REVIEW_CODE || "246810",
     },
   },
 });

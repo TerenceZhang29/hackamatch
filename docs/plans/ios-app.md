@@ -151,10 +151,24 @@ They are plain-language drafts, not legal advice.
 2. Push to `main`. With no APNs values yet, production sends no pushes and nothing else changes; `/.well-known/apple-app-site-association` goes live.
 3. The owner adds `APNS_KEY_ID` and `APNS_PRIVATE_KEY` in Vercel (Production only, Sensitive), then redeploys.
 
-### 6. TestFlight (about 1 week of testing)
-- Internal testers get builds at once. External testers (up to 10,000, by link) need a short beta review first.
-- Pilot students install from a TestFlight link. Builds expire after 90 days.
-- Fix what the pilot finds.
+### 6. TestFlight: build ready 2026-11-16, not uploaded
+- **Building:** `ios/scripts/testflight.sh` archives with the team's account in Xcode (`-allowProvisioningUpdates` made the distribution certificate and profile), numbering each build by the time (`YYYYMMDD.HHMM`); `--upload` sends it to App Store Connect with `ios/Config/ExportOptions.plist`. Checked locally: the App Store export is signed with the team's store profile, with production push and the links entitlement.
+- **Privacy manifest:** `ios/HackaMatch/PrivacyInfo.xcprivacy`: name, email, user id, profile content and product interaction, all linked to the account, none for tracking; `UserDefaults` (reason CA92.1). The App Store privacy answers in phase 7 must match it and `/privacy`.
+- **Export compliance:** `ITSAppUsesNonExemptEncryption` is false (HTTPS only), so uploads don't ask.
+- **Review account** (decision 3): `review-001@cornell.edu` signs in with `REVIEW_CODE` instead of an emailed code, and is never emailed (`src/server/api-auth.ts`, `src/server/notify.ts`). The account is made on its first sign-in. Off while `REVIEW_CODE` is unset. Apple's beta review needs it before external testers can install.
+- **Testers:**
+  - **Internal** (people on the App Store Connect team, up to 100): each build at once, no review.
+  - **External** (pilot students, by public link, up to 10,000): after Beta App Review of the first build, which needs the test information and the review sign-in.
+  - Builds expire after 90 days.
+
+**Owner's steps:**
+1. Approve the first upload (`ios/scripts/testflight.sh --upload`).
+2. App Store Connect → TestFlight → Internal Testing: a group with yourself; install TestFlight on your phone and try it, including a push and a hackamatch.com link.
+3. For pilot students:
+   - set `REVIEW_CODE` in Vercel (Production only, Sensitive) and redeploy;
+   - add `review-001` in `/admin/pilot` while the gate is on;
+   - fill in Test Information: beta description, feedback email, and the review sign-in (`review-001@cornell.edu` and the code), with the note that the code goes in the app's code screen;
+   - add an External Testing group, submit the build for Beta App Review, then turn on the public link.
 
 ### 7. App Store
 - Listing: name, subtitle, description, keywords, screenshots, a 1024 px icon, support URL, privacy policy URL.

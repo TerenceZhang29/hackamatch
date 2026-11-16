@@ -62,6 +62,19 @@ const envSchema = z
     APNS_PRIVATE_KEY: optionalString,
     APNS_BUNDLE_ID: z.string().default("com.hackamatch.app"),
 
+    /**
+     * App Store review (docs/plans/ios-app.md, decision 3): this address signs
+     * in to the app with REVIEW_CODE instead of an emailed code, and is never
+     * emailed. Off while REVIEW_CODE is unset.
+     */
+    REVIEW_EMAIL: z.string().default("review-001@cornell.edu"),
+    REVIEW_CODE: optionalString.pipe(
+      z
+        .string()
+        .regex(/^\d{6,10}$/, "REVIEW_CODE must be 6 to 10 digits")
+        .optional(),
+    ),
+
     RESPONSE_TOKEN_SECRET: optionalString,
     CRON_SECRET: optionalString,
 

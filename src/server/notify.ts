@@ -108,7 +108,9 @@ export async function send(options: {
     user.cornell_email,
     settings?.allowed_email_domains ?? config.ALLOWED_EMAIL_DOMAINS,
   );
-  const suppressed = user.is_demo ? "demo" : allowed ? null : "domain";
+  // The App Store review account's address has no inbox: never email it.
+  const review = user.cornell_email === config.REVIEW_EMAIL.trim().toLowerCase();
+  const suppressed = user.is_demo ? "demo" : review ? "review" : allowed ? null : "domain";
 
   const localDate = localDateString(config.APP_TIMEZONE);
   const skip = user.notify_channel === "none" || suppressed !== null;

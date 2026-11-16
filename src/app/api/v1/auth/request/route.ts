@@ -2,6 +2,7 @@ import { z } from "zod";
 import { normalizeEmail } from "@/lib/auth-helpers";
 import { apiError, apiJson, readBody } from "@/lib/api/http";
 import { authRequestInput, okSchema } from "@/lib/api/schemas";
+import { isReviewAccount } from "@/server/api-auth";
 import { DOMAIN_ERROR, sendMagicLink } from "@/server/magic-link";
 
 const emailSchema = z.string().transform(normalizeEmail).pipe(z.email().max(254));
@@ -16,6 +17,8 @@ export async function POST(request: Request) {
   if (!body.ok) return body.response;
   const email = emailSchema.safeParse(body.data.email);
   if (!email.success) return apiError("refused", DOMAIN_ERROR);
+  // App Store review types its fixed code instead: nothing is emailed.
+  if (isReviewAccount(email.data)) return apiJson(okSchema, { ok: true });
 
   const sent = await sendMagicLink(email.data, null, "app");
   return sent.ok ? apiJson(okSchema, { ok: true }) : apiError("refused", sent.message);

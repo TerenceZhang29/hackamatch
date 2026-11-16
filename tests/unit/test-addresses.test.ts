@@ -5,10 +5,10 @@ import { describe, expect, it } from "vitest";
 
 /**
  * Test and seed accounts must use a `<use case>-<digits>` NetID (`ut-001`,
- * `db-201`, `e2e-…`, `seed-101`, `dev-001`, `p0-001`, `ios-…`). Real Cornell NetIDs are
+ * `db-201`, `e2e-…`, `seed-101`, `dev-001`, `p0-001`, `ios-…`, `review-001`). Real Cornell NetIDs are
  * letters then digits, so these can never reach a real student's inbox.
  */
-const ALLOWED = /^(ut|db|e2e|seed|dev|p0|ios)-\d+$/i;
+const ALLOWED = /^(ut|db|e2e|seed|dev|p0|ios|review)-\d+$/i;
 const ROOT = process.cwd();
 const SCAN = [
   "tests",

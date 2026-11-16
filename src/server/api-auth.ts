@@ -1,4 +1,6 @@
 import "server-only";
+import { timingSafeEqual } from "node:crypto";
+import { getConfig } from "@/lib/config";
 import type { Session } from "@supabase/supabase-js";
 import { track } from "@/lib/analytics";
 import { anonClient } from "@/lib/api/auth";
@@ -30,6 +32,7 @@ export type VerifyResult =
  */
 export async function verifyEmailCode(email: string, code: string): Promise<VerifyResult> {
   if (!(await allow(LIMITS.verifyCode, email))) return { ok: false, error: "rate_limited" };
+  if (isReviewAccount(email)) return reviewSignIn(email, code);
 
   const { data, error } = await anonClient().auth.verifyOtp({ email, token: code, type: "email" });
   if (error || !data.session || !data.user) {
@@ -40,7 +43,7 @@ export async function verifyEmailCode(email: string, code: string): Promise<Veri
 }
 
 /** What every app sign-in records, then the session to hand back. */
-async function signedIn(userId: string, session: Session, via: "code" | "link") {
+async function signedIn(userId: string, session: Session, via: "code" | "link" | "review") {
   await track("magic_link_clicked", { via: `app-${via}` }, userId);
   // Start the onboarding clock on the first sign-in only, as the web's confirm step does.
   const { error } = await createServiceClient()
@@ -50,6 +53,56 @@ async function signedIn(userId: string, session: Session, via: "code" | "link") 
     .is("onboarding_started_at", null);
   if (error) console.error("app sign-in: onboarding clock", error.message);
   return toApiSession(session);
+}
+
+/** Whether this address is App Store review's (only while REVIEW_CODE is set). */
+export function isReviewAccount(email: string): boolean {
+  const { REVIEW_EMAIL, REVIEW_CODE } = getConfig();
+  return Boolean(REVIEW_CODE) && email === REVIEW_EMAIL.trim().toLowerCase();
+}
+
+/**
+ * App Store review signs in with the fixed REVIEW_CODE: Apple's reviewers
+ * can't read a Cornell inbox. The account is made on its first sign-in (the
+ * pilot list must include it while the gate is on), then signed in through a
+ * link that is generated and used here, never emailed.
+ */
+async function reviewSignIn(email: string, code: string): Promise<VerifyResult> {
+  const expected = Buffer.from(getConfig().REVIEW_CODE ?? "");
+  const given = Buffer.from(code);
+  if (expected.length !== given.length || !timingSafeEqual(expected, given)) {
+    return { ok: false, error: "invalid_code" };
+  }
+  const admin = createServiceClient();
+  const { data: user } = await admin
+    .from("users")
+    .select("id")
+    .eq("cornell_email", email)
+    .maybeSingle();
+  if (!user) {
+    const { error } = await admin.auth.admin.createUser({ email, email_confirm: true });
+    if (error) {
+      console.error("review sign-in: creating the account failed", error.message);
+      return { ok: false, error: "invalid_code" };
+    }
+  }
+  const { data: link, error: linkError } = await admin.auth.admin.generateLink({
+    type: "magiclink",
+    email,
+  });
+  if (linkError || !link.properties?.hashed_token) {
+    console.error("review sign-in: link failed", linkError?.message);
+    return { ok: false, error: "invalid_code" };
+  }
+  const { data, error } = await anonClient().auth.verifyOtp({
+    token_hash: link.properties.hashed_token,
+    type: "email",
+  });
+  if (error || !data.session || !data.user) {
+    console.error("review sign-in: verify failed", error?.message);
+    return { ok: false, error: "invalid_code" };
+  }
+  return { ok: true, session: await signedIn(data.user.id, data.session, "review") };
 }
 
 /**

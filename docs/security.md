@@ -29,7 +29,7 @@ Audit for P1-18, done 2026-10-14 against commit `ee97818` plus the P1-18 changes
   | Route (under `/api/v1`) | Check |
   | --- | --- |
   | `POST /auth/request` | public; `sendMagicLink`: domain allow-list, per-address and per-IP limits, pilot list |
-  | `POST /auth/verify` | public; Supabase code verification, 10 guesses per address per hour; or the emailed link's single-use token |
+  | `POST /auth/verify` | public; Supabase code verification, 10 guesses per address per hour; or the emailed link's single-use token; `REVIEW_EMAIL` only with `REVIEW_CODE` (constant-time compare, same guess limit), and only while it is set |
   | `POST /auth/refresh` | public; the refresh token is the proof |
   | `POST /auth/signout` | ends the session of a token that still verifies |
   | `GET /taxonomy` | public; no user data |
