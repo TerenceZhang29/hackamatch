@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The members' four tabs, as on the web, with one-line notices over all of them.
+/// The members' four tabs, as on the web.
 struct MainTabView: View {
     @Environment(AppModel.self) private var app
 
@@ -11,7 +11,7 @@ struct MainTabView: View {
                 NavigationStack { DiscoverView() }
             }
             Tab("Events", systemImage: "calendar", value: AppModel.Tab.events) {
-                NavigationStack { EventsView() }
+                EventsView()
             }
             Tab("Matches", systemImage: "bubble.left.and.bubble.right", value: AppModel.Tab.matches) {
                 MatchesView()
@@ -21,15 +21,5 @@ struct MainTabView: View {
                 NavigationStack { MeView() }
             }
         }
-        .overlay(alignment: .top) {
-            if let flash = app.flashMessage {
-                NoticeBanner(text: flash.text, isError: flash.isError)
-                    .padding(.horizontal, 16)
-                    .padding(.top, 4)
-                    .transition(.move(edge: .top).combined(with: .opacity))
-                    .accessibilityAddTraits(.updatesFrequently)
-            }
-        }
-        .animation(.default, value: app.flashMessage?.text)
     }
 }

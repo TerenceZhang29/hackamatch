@@ -18,7 +18,18 @@ import {
   taxonomySchema,
   teamUpSchema,
 } from "@/lib/api/schemas";
-import { countMail, deleteUser, getSignInCode, getUserRow, query, uniqueEmail } from "./helpers";
+import {
+  countMail,
+  deleteUser,
+  eventually,
+  getMagicLink,
+  getSignInCode,
+  getUserRow,
+  query,
+  readOutbox,
+  readPushOutbox,
+  uniqueEmail,
+} from "./helpers";
 
 /**
  * The iOS app's JSON API (docs/plans/ios-app.md), called the way the app
@@ -486,4 +497,123 @@ test("a block hides two members from each other, and a report also blocks", asyn
   ).toEqual({
     blocked: [{ id: b.id, displayName: "Finn A." }],
   });
+});
+
+test("a phone with the app gets interest by push instead of email, and a match by both", async ({
+  request,
+}) => {
+  const [a, b] = await Promise.all([member(request, "Gil Api"), member(request, "Hana Api")]);
+  const phone = [...crypto.getRandomValues(new Uint8Array(32))]
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+
+  const register = (headers: Record<string, string> | undefined, data: unknown) =>
+    request.put(`${API}/devices`, { headers, data });
+  expect(
+    await errorCode(await register(undefined, { token: phone, environment: "sandbox" }), 401),
+  ).toBe("unauthorized");
+  expect(
+    await errorCode(await register(b.headers, { token: "nope", environment: "sandbox" }), 400),
+  ).toBe("bad_request");
+  await body(await register(b.headers, { token: phone, environment: "sandbox" }), okSchema);
+  // Registering again is fine.
+  await body(await register(b.headers, { token: phone, environment: "sandbox" }), okSchema);
+
+  // Interest: a push with Interested and Pass, and no email.
+  const sent = await body(
+    await request.post(`${API}/deck/answer`, {
+      headers: a.headers,
+      data: { userId: b.id, response: "interested" },
+    }),
+    deckAnswerSchema,
+  );
+  const [interest] = await eventually(
+    () => readPushOutbox(phone),
+    (pushes) => pushes.length === 1,
+  );
+  expect(interest).toMatchObject({
+    environment: "sandbox",
+    payload: {
+      kind: "inbound_interest",
+      matchId: sent.matchId,
+      aps: {
+        alert: { title: "Gil wants to build with you" },
+        category: "MATCH_INTEREST",
+        badge: 1,
+      },
+    },
+  });
+  expect(JSON.stringify(interest)).not.toContain(a.email);
+  expect((await readOutbox(b.email)).filter((mail) => mail.subject.includes("interested"))).toEqual(
+    [],
+  );
+
+  // Interested from the notification makes the match: a push to the phone, emails to both.
+  await body(
+    await request.post(`${API}/matches/${sent.matchId}/answer`, {
+      headers: b.headers,
+      data: { response: "interested" },
+    }),
+    matchAnswerSchema,
+  );
+  const pushes = await eventually(
+    () => readPushOutbox(phone),
+    (list) => list.length === 2,
+  );
+  expect(pushes[1]!.payload).toMatchObject({
+    kind: "mutual",
+    matchId: sent.matchId,
+    aps: { alert: { title: "It's a match!" }, badge: 0 },
+  });
+  expect(pushes[1]!.payload.aps).not.toHaveProperty("category");
+  await eventually(
+    async () => [...(await readOutbox(a.email)), ...(await readOutbox(b.email))],
+    (mail) => mail.filter((m) => m.subject.startsWith("It's a match")).length === 2,
+  );
+  const logged = await query<{ channel: string; kind: string; status: string }>(
+    `select channel, kind, status from public.notification_log
+     where user_id = $1 and channel = 'push' order by created_at`,
+    [b.id],
+  );
+  expect(logged).toEqual([
+    { channel: "push", kind: "inbound_interest", status: "sent" },
+    { channel: "push", kind: "mutual", status: "sent" },
+  ]);
+
+  // Signing out of the app forgets the phone.
+  await body(await request.delete(`${API}/devices/${phone}`, { headers: b.headers }), okSchema);
+  expect(await query(`select 1 from public.push_devices where token = $1`, [phone])).toEqual([]);
+});
+
+test("hackamatch.com tells iOS which links open the app", async ({ request }) => {
+  const response = await request.get("/.well-known/apple-app-site-association", {
+    maxRedirects: 0,
+  });
+  expect(response.status()).toBe(200);
+  expect(response.headers()["content-type"]).toContain("application/json");
+  const { applinks } = await response.json();
+  expect(applinks.details[0].appIDs).toEqual(["5B89U2CMF9.com.hackamatch.app"]);
+  const paths = applinks.details[0].components.map((c: { "/": string }) => c["/"]);
+  expect(paths).toEqual(["/auth/confirm", "/e/*", "/matches", "/matches/*"]);
+  // Only sign-in links the app asked for; the one-click /r/ links stay on the web.
+  expect(applinks.details[0].components[0]["?"]).toEqual({ via: "app" });
+});
+
+test("the emailed link signs in to the app too, once", async ({ request }) => {
+  const email = uniqueEmail();
+  created.push(email);
+  const before = await countMail(email);
+  await body(await request.post(`${API}/auth/request`, { data: { email } }), okSchema);
+  const link = new URL(await getMagicLink(email, { after: before }));
+  // The app asked, so the link carries via=app and opens the app when it's installed.
+  expect(link.searchParams.get("via")).toBe("app");
+  const tokenHash = link.searchParams.get("token_hash")!;
+  const session = await body(
+    await request.post(`${API}/auth/verify`, { data: { tokenHash } }),
+    sessionSchema,
+  );
+  await body(await request.get(`${API}/me`, { headers: bearer(session.accessToken) }), meSchema);
+  expect(
+    await errorCode(await request.post(`${API}/auth/verify`, { data: { tokenHash } }), 401),
+  ).toBe("invalid_code");
 });

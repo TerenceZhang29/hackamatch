@@ -12,6 +12,8 @@ import { z } from "zod";
 const LLM_PROVIDERS = ["anthropic", "gemini", "fake"] as const;
 const EMBEDDINGS_PROVIDERS = ["voyage", "fake"] as const;
 const EMAIL_PROVIDERS = ["resend", "fake"] as const;
+/** `none` sends no pushes (production until the APNs key is set). */
+const PUSH_PROVIDERS = ["apns", "fake", "none"] as const;
 
 const optionalString = z
   .string()
@@ -53,6 +55,13 @@ const envSchema = z
     RESEND_API_KEY: optionalString,
     EMAIL_FROM: optionalString,
 
+    PUSH_PROVIDER: z.enum(PUSH_PROVIDERS).optional(),
+    APNS_KEY_ID: optionalString,
+    APNS_TEAM_ID: z.string().default("5B89U2CMF9"),
+    /** The .p8 key's contents; newlines may be written as \n. */
+    APNS_PRIVATE_KEY: optionalString,
+    APNS_BUNDLE_ID: z.string().default("com.hackamatch.app"),
+
     RESPONSE_TOKEN_SECRET: optionalString,
     CRON_SECRET: optionalString,
 
@@ -69,6 +78,9 @@ const envSchema = z
       LLM_PROVIDER: env.LLM_PROVIDER ?? (isProd ? "anthropic" : "fake"),
       EMBEDDINGS_PROVIDER: env.EMBEDDINGS_PROVIDER ?? (isProd ? "voyage" : "fake"),
       EMAIL_PROVIDER: env.EMAIL_PROVIDER ?? (isProd ? "resend" : "fake"),
+      // Production sends real pushes once the key is set, and none before.
+      PUSH_PROVIDER:
+        env.PUSH_PROVIDER ?? (isProd ? (env.APNS_PRIVATE_KEY ? "apns" : "none") : "fake"),
     } as const;
   })
   .superRefine((env, ctx) => {
@@ -87,6 +99,8 @@ const envSchema = z
     );
     requireIf(env.EMAIL_PROVIDER === "resend", "RESEND_API_KEY", "when EMAIL_PROVIDER=resend");
     requireIf(env.EMAIL_PROVIDER === "resend", "EMAIL_FROM", "when EMAIL_PROVIDER=resend");
+    requireIf(env.PUSH_PROVIDER === "apns", "APNS_KEY_ID", "when PUSH_PROVIDER=apns");
+    requireIf(env.PUSH_PROVIDER === "apns", "APNS_PRIVATE_KEY", "when PUSH_PROVIDER=apns");
 
     const isProd = env.NODE_ENV === "production";
     requireIf(isProd, "RESPONSE_TOKEN_SECRET", "in production");

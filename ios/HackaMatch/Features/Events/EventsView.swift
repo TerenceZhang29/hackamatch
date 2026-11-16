@@ -9,11 +9,26 @@ struct EventsView: View {
     @State private var events: [EventListItem] = []
     @State private var loaded = false
     @State private var error: String?
+    @State private var path = NavigationPath()
 
     private var mine: [EventListItem] { events.filter(\.going) }
     private var others: [EventListItem] { events.filter { !$0.going } }
 
     var body: some View {
+        NavigationStack(path: $path) { list }
+            .onChange(of: app.openEventSlug) { _, slug in openRequested(slug) }
+            .onAppear { openRequested(app.openEventSlug) }
+    }
+
+    /// A link to an event page that opened the app.
+    private func openRequested(_ slug: String?) {
+        guard let slug else { return }
+        app.openEventSlug = nil
+        path = NavigationPath()
+        path.append(EventRoute(slug: slug))
+    }
+
+    private var list: some View {
         List {
             if let error, events.isEmpty {
                 ContentUnavailableView {

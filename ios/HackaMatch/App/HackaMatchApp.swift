@@ -2,13 +2,15 @@ import SwiftUI
 
 @main
 struct HackaMatchApp: App {
-    @State private var app = AppModel()
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var delegate
 
     var body: some Scene {
         WindowGroup {
             RootView()
-                .environment(app)
+                .environment(delegate.app)
                 .tint(Theme.accent)
+                // Universal links: event pages, matches, and the app's own sign-in links.
+                .onOpenURL { url in Task { await delegate.app.open(url) } }
         }
     }
 }
@@ -31,6 +33,15 @@ struct RootView: View {
             }
         }
         .task { await app.start() }
+        .overlay(alignment: .top) {
+            if let flash = app.flashMessage {
+                NoticeBanner(text: flash.text, isError: flash.isError)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 4)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+        .animation(.default, value: app.flashMessage?.text)
     }
 }
 

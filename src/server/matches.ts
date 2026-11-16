@@ -7,6 +7,7 @@ import { track } from "@/lib/analytics";
 import { getConfig } from "@/lib/config";
 import { writeCoffeeChat } from "@/lib/llm/coffee-chat";
 import { pauseUrl, responseUrl, send } from "@/server/notify";
+import { pushTo } from "@/server/push";
 import {
   InboundInterest,
   inboundInterestSubject,
@@ -179,7 +180,11 @@ export async function involvesDemo(match: Pick<Match, "user_a" | "user_b">): Pro
   return data.length > 0;
 }
 
-/** Emails both people their match's contact details and a suggested first message. */
+/**
+ * Tells both people about their match: a push to their phones (when they
+ * have the app) and the email with contact details and a suggested first
+ * message (always, since it carries the details).
+ */
 async function sendMutualEmails(match: Match) {
   // No email (and no AI-written message) for anything involving a demo profile.
   if (await involvesDemo(match)) return;
@@ -195,6 +200,11 @@ async function sendMutualEmails(match: Match) {
     const recipient = people.get(recipientId);
     const other = people.get(otherId);
     if (!recipient || !other) continue;
+    await pushTo(
+      recipientId,
+      { kind: "mutual", matchId: match.id, otherName: other.name },
+      await countWaiting(recipientId),
+    );
     const coffeeChat = await writeCoffeeChat({
       senderName: recipient.name,
       recipientName: other.name,
@@ -220,7 +230,9 @@ async function sendMutualEmails(match: Match) {
 
 /**
  * Tells `recipientId` that someone is interested (or, for admin-made matches,
- * that we suggest they meet), with one-click Interested / Pass links.
+ * that we suggest they meet). By push, with Interested and Pass on the
+ * notification, when they have the app; otherwise by email, with one-click
+ * Interested / Pass links (docs/plans/ios-app.md, open question 1).
  */
 export async function sendInboundInterest(
   match: Match,
@@ -233,6 +245,13 @@ export async function sendInboundInterest(
   const people = await loadPeople([otherId]);
   const other = people.get(otherId);
   if (!other) return "failed" as const;
+
+  const pushed = await pushTo(
+    recipientId,
+    { kind: "inbound_interest", variant, matchId: match.id, otherName: other.name },
+    await countWaiting(recipientId),
+  );
+  if (pushed === "sent") return "sent" as const;
 
   const props: InboundInterestProps = {
     variant,

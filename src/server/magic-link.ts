@@ -19,6 +19,8 @@ export const DOMAIN_ERROR = "Use your @cornell.edu email";
 export async function sendMagicLink(
   email: string,
   next: string | null,
+  /** "app": the iOS app asked, so the link opens the app when it's installed. */
+  via: "web" | "app" = "web",
 ): Promise<{ ok: true } | { ok: false; message: string }> {
   const config = getConfig();
   const supabase = await createClient();
@@ -52,6 +54,7 @@ export async function sendMagicLink(
   // `&token_hash=…` to this URL (see supabase/templates).
   const confirm = new URL("/auth/confirm", config.APP_URL);
   confirm.searchParams.set("next", next ?? "");
+  if (via === "app") confirm.searchParams.set("via", "app");
 
   const { error } = await supabase.auth.signInWithOtp({
     email,

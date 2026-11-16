@@ -151,6 +151,7 @@ struct SignupFlowView: View {
         do {
             if model.asksEmail {
                 try await app.api.requestCode(email: model.normalizedEmail)
+                app.awaitingAnswers = model.answers
                 codeSentTo = model.normalizedEmail
             } else {
                 try await app.join(model.answers)

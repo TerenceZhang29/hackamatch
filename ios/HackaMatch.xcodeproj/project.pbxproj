@@ -24,7 +24,9 @@
 		80107650657D2D0E1AD112D5 /* HackaMatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7165826A2934C80BD198B4F /* HackaMatchApp.swift */; };
 		837DF073017293A111C6F91D /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A99239DCE9EA3CE7E70E70F /* MainTabView.swift */; };
 		91FC858424268AD6115F100C /* DeckModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFF9DA05CAC9AF43E509454C /* DeckModel.swift */; };
+		A0A351D6F9A56FA40FED3EA4 /* DeepLinkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F8B1B159D5BE18315314F49 /* DeepLinkTests.swift */; };
 		A967FD6F2BDD45615AB8FA2E /* FixtureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09DD109E391BDC87C1F6399A /* FixtureTests.swift */; };
+		AA5BB24C58E5F9D979CD4714 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F38DAD7DE41B62B0C922F6AA /* AppDelegate.swift */; };
 		B4E3F64F0199394C2FD6953D /* FormatTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D046772BBABA4691347919D /* FormatTests.swift */; };
 		B4F1FB87C1723DAE176A40DF /* MeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7C7CD78B5205341F06E4851 /* MeView.swift */; };
 		C3CBF70E34F6907892BB84DC /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 778033C14685D46FFFC60C8C /* Theme.swift */; };
@@ -35,6 +37,7 @@
 		D357B0297D485E7F8324F7A3 /* LandingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBE1B68FAE6B36EFD4B0FE48 /* LandingView.swift */; };
 		D948A1368530AB1886FEE642 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 85EED3DE2D36C1159E1344D0 /* Assets.xcassets */; };
 		D9CE1CCC103099D7E961759E /* SessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A9FD15DFBE3D1A284FDBA1D /* SessionStore.swift */; };
+		DA70CAF910F7EC6E9569DF2C /* DeepLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF5A8C0B99438DE9986F7DF7 /* DeepLink.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -64,6 +67,7 @@
 		3D046772BBABA4691347919D /* FormatTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormatTests.swift; sourceTree = "<group>"; };
 		4A99239DCE9EA3CE7E70E70F /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		5EA057B1C53AEC4BBEBD1FF8 /* PairView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairView.swift; sourceTree = "<group>"; };
+		5F8B1B159D5BE18315314F49 /* DeepLinkTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepLinkTests.swift; sourceTree = "<group>"; };
 		70B15958A05CF8E149118B89 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
 		778033C14685D46FFFC60C8C /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		79BC33BC53276910DC576EE9 /* SignupModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignupModel.swift; sourceTree = "<group>"; };
@@ -81,9 +85,11 @@
 		B13F809942687497785BA439 /* Endpoints.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Endpoints.swift; sourceTree = "<group>"; };
 		C8F7FA59FA815711342BA43E /* HackaMatchTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = HackaMatchTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CBE1B68FAE6B36EFD4B0FE48 /* LandingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LandingView.swift; sourceTree = "<group>"; };
+		CF5A8C0B99438DE9986F7DF7 /* DeepLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepLink.swift; sourceTree = "<group>"; };
 		CFEBBD58C5D6E8E2DF8A416F /* PersonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonView.swift; sourceTree = "<group>"; };
 		D69BA44B95613A5989A8CC0F /* ProfileSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSheet.swift; sourceTree = "<group>"; };
 		E38FE499AD1DCCAC07B8F633 /* SignupUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignupUITests.swift; sourceTree = "<group>"; };
+		F38DAD7DE41B62B0C922F6AA /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		F546CA75190D577E9DD52EBB /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
 		FFF9DA05CAC9AF43E509454C /* DeckModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeckModel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -178,6 +184,7 @@
 			isa = PBXGroup;
 			children = (
 				17B0A7C11D20549D9F42F413 /* DeckModelTests.swift */,
+				5F8B1B159D5BE18315314F49 /* DeepLinkTests.swift */,
 				09DD109E391BDC87C1F6399A /* FixtureTests.swift */,
 				3D046772BBABA4691347919D /* FormatTests.swift */,
 			);
@@ -220,7 +227,9 @@
 		C9B5BC961E6A79F1C08BDCFA /* App */ = {
 			isa = PBXGroup;
 			children = (
+				F38DAD7DE41B62B0C922F6AA /* AppDelegate.swift */,
 				F546CA75190D577E9DD52EBB /* AppModel.swift */,
+				CF5A8C0B99438DE9986F7DF7 /* DeepLink.swift */,
 				A7165826A2934C80BD198B4F /* HackaMatchApp.swift */,
 			);
 			path = App;
@@ -371,10 +380,12 @@
 			buildActionMask = 2147483647;
 			files = (
 				150447BCF773776C17651C10 /* APIClient.swift in Sources */,
+				AA5BB24C58E5F9D979CD4714 /* AppDelegate.swift in Sources */,
 				2715110B49D02F3EFD2DD202 /* AppModel.swift in Sources */,
 				5389E69589737B92F551448C /* CodeEntryView.swift in Sources */,
 				53411F758ECEDA6E96B099CE /* Components.swift in Sources */,
 				91FC858424268AD6115F100C /* DeckModel.swift in Sources */,
+				DA70CAF910F7EC6E9569DF2C /* DeepLink.swift in Sources */,
 				4CF91027A645B354E0880895 /* DiscoverView.swift in Sources */,
 				CD14B4C6B546BE6DD32F094A /* Endpoints.swift in Sources */,
 				55C6177E76E2A1D69EDCD591 /* EventDetailView.swift in Sources */,
@@ -401,6 +412,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				21BD16A40521762CAB85B511 /* DeckModelTests.swift in Sources */,
+				A0A351D6F9A56FA40FED3EA4 /* DeepLinkTests.swift in Sources */,
 				A967FD6F2BDD45615AB8FA2E /* FixtureTests.swift in Sources */,
 				B4E3F64F0199394C2FD6953D /* FormatTests.swift in Sources */,
 			);
@@ -636,6 +648,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Config/HackaMatch.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				HM_API_BASE_URL = "https://hackamatch.com";
@@ -655,6 +668,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Config/HackaMatch.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				HM_API_BASE_URL = "http://localhost:3000";

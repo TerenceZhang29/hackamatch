@@ -34,13 +34,17 @@ export const okSchema = obj({ ok: z.literal(true) });
 // Sign-in -------------------------------------------------------------------
 
 export const authRequestInput = z.object({ email: z.string().max(254) });
-export const authVerifyInput = z.object({
-  email: z.string().max(254),
-  code: z
-    .string()
-    .trim()
-    .regex(/^\d{6,10}$/),
-});
+/** The emailed code, or the token from the emailed link when it opened the app. */
+export const authVerifyInput = z.union([
+  z.object({
+    email: z.string().max(254),
+    code: z
+      .string()
+      .trim()
+      .regex(/^\d{6,10}$/),
+  }),
+  z.object({ tokenHash: z.string().min(1).max(512) }),
+]);
 export const authRefreshInput = z.object({ refreshToken: z.string().min(1).max(2048) });
 
 export const sessionSchema = obj({
@@ -380,3 +384,14 @@ export const blocksSchema = obj({
   blocked: z.array(obj({ id, displayName: z.string() })),
 });
 export type ApiBlocks = z.infer<typeof blocksSchema>;
+
+// Push ----------------------------------------------------------------------
+
+/** An APNs device token, as the app sends it: lowercase hex. */
+export const DEVICE_TOKEN = /^[0-9a-f]{64,200}$/;
+
+export const deviceInput = z.object({
+  token: z.string().regex(DEVICE_TOKEN),
+  /** sandbox for builds run from Xcode; production for TestFlight and the App Store. */
+  environment: z.enum(["sandbox", "production"]),
+});

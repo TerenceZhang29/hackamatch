@@ -129,6 +129,7 @@ private struct DeckScreen: View {
         Task {
             await model.answer(response)
             if model.match != nil { await app.refreshMe() }
+            if response == .interested { await app.askForPushIfNeeded() }
         }
     }
 }

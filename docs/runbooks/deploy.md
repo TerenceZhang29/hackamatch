@@ -87,10 +87,16 @@ Placeholders used below:
    | `LOGIN_RATE_LIMIT_PER_IP` | `20`; raise if a shared campus IP causes refusals | No (default) |
    | `GITHUB_TOKEN` | Optional; raises GitHub's rate limit for imports | No |
    | `SHOW_EXISTING_TEAMS` | `false` | No (default) |
+   | `APNS_KEY_ID` | The APNs key's ID (Apple Developer → Keys) | For push |
+   | `APNS_PRIVATE_KEY` | The `.p8` file's whole contents, `-----BEGIN PRIVATE KEY-----` included; mark it Sensitive | For push |
+   | `APNS_TEAM_ID` | `5B89U2CMF9` | No (default) |
+   | `APNS_BUNDLE_ID` | `com.hackamatch.app` | No (default) |
+   | `PUSH_PROVIDER` | `apns`, once both APNs values are set | No (production default: `apns` when `APNS_PRIVATE_KEY` is set, else `none`) |
 
    - `NEXT_PUBLIC_*` values are built into the pages: changing one needs a redeploy.
    - Changing `RESPONSE_TOKEN_SECRET` breaks every one-click link already emailed. Set it once.
    - Do not set `GEMINI_*` unless switching provider; Gemini has not been tested on the current prompt.
+   - Without the APNs values, production sends no pushes and the app's members get emails as before.
 
 3. [ ] Preview deployments, per the owner's decision:
    - **No previews at first** (the owner's decision, 2026-10-14): `vercel.json` sets `git.deploymentEnabled` to `false` for every branch except `main`, so a branch push or pull request never builds. Nothing to change in the dashboard. Also scope every variable to **Production** only, so a manual preview deploy would fail at boot instead of running against production.

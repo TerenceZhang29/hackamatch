@@ -31,10 +31,19 @@ targets:
         HMAPIBaseURL: $(HM_API_BASE_URL)
         ITSAppUsesNonExemptEncryption: false
         UILaunchScreen: {}
+        # Pushes can wake the app to answer Interested or Pass from the notification.
+        UIBackgroundModes: [remote-notification]
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         # Lets Debug builds reach http://localhost:3000; https everywhere else.
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
+    # Push and universal links; both capabilities are on the App ID (phase 0).
+    # Xcode sets aps-environment to production when it signs for TestFlight.
+    entitlements:
+      path: Config/HackaMatch.entitlements
+      properties:
+        aps-environment: development
+        com.apple.developer.associated-domains: ["applinks:hackamatch.com"]
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.hackamatch.app

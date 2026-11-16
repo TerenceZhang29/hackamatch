@@ -42,6 +42,13 @@ SQL
 curl -sf -o /dev/null http://localhost:3000/api/v1/taxonomy \
   || { echo "Start the web app first: LOGIN_RATE_LIMIT_PER_IP=100000 pnpm dev" >&2; exit 1; }
 
+# A fresh install, so the notification prompt shows as it does for a new student.
+simulator="${SIMULATOR:-iPhone 17}"
+udid=$(xcrun simctl list devices available | grep -m1 "    $simulator (" | grep -oE '[0-9A-F-]{36}')
+xcrun simctl boot "$udid" 2>/dev/null || true
+xcrun simctl uninstall "$udid" com.hackamatch.app
+
 xcodebuild test -project HackaMatch.xcodeproj -scheme HackaMatchUITests \
-  -destination "platform=iOS Simulator,name=${SIMULATOR:-iPhone 17}" \
-  -collect-test-diagnostics never CODE_SIGNING_ALLOWED=NO -quiet
+  -destination "id=$udid" \
+  -collect-test-diagnostics never \
+  CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER= -quiet

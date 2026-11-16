@@ -1,4 +1,5 @@
 import SwiftUI
+import UserNotifications
 
 /**
  The Me tab, like the web's `/me`: name, areas and skills, hackathons,
@@ -12,6 +13,9 @@ struct MeView: View {
     @State private var editingTags = false
     @State private var deleting = false
     @State private var busyEvent: String?
+    @State private var pushStatus: UNAuthorizationStatus?
+    @Environment(\.openURL) private var openURL
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         List {
@@ -75,6 +79,7 @@ struct MeView: View {
                 }
 
                 Section {
+                    pushRow
                     if let pause = me.pause {
                         Label(pause.label, systemImage: "pause.circle").foregroundStyle(Theme.ink)
                     }
@@ -86,7 +91,9 @@ struct MeView: View {
                 } header: {
                     Text("Notifications")
                 } footer: {
-                    Text("Emails go to \(me.email). Paused, you're out of the pool and get no matches.")
+                    Text(
+                        "Emails go to \(me.email). With notifications on, someone's interest comes to this phone instead. Paused, you're out of the pool and get no matches."
+                    )
                 }
 
                 if !blocked.isEmpty {
@@ -117,12 +124,47 @@ struct MeView: View {
         .navigationTitle("Me")
         .task { await load() }
         .refreshable { await load() }
+        // Back from Settings: the switch there may have changed.
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { Task { await loadPushStatus() } }
+        }
         .sheet(isPresented: $editingName) { NameEditor() }
         .sheet(isPresented: $editingTags) { TagsEditor() }
         .sheet(isPresented: $deleting) { DeleteAccountSheet() }
     }
 
+    @ViewBuilder private var pushRow: some View {
+        switch pushStatus {
+        case .authorized, .provisional, .ephemeral:
+            Label("Phone notifications are on", systemImage: "bell.badge")
+                .foregroundStyle(Theme.ink)
+        case .denied:
+            HStack {
+                Label("Phone notifications are off", systemImage: "bell.slash")
+                    .foregroundStyle(Theme.ink)
+                Spacer()
+                Button("Settings") {
+                    if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
+                }
+            }
+        case .notDetermined:
+            Button("Turn on phone notifications") {
+                Task {
+                    await app.askForPushIfNeeded()
+                    await loadPushStatus()
+                }
+            }
+        default:
+            EmptyView()
+        }
+    }
+
+    private func loadPushStatus() async {
+        pushStatus = await UNUserNotificationCenter.current().notificationSettings().authorizationStatus
+    }
+
     private func load() async {
+        await loadPushStatus()
         await app.refreshMe()
         async let upcoming = app.api.events()
         async let blockedList = app.api.blocked()

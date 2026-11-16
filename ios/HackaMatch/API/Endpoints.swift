@@ -26,6 +26,11 @@ nonisolated private struct GoingBody: Encodable, Sendable {
     let choice: PoolChoice
     let confirmed: Bool
 }
+nonisolated private struct DeviceBody: Encodable, Sendable {
+    let token: String
+    let environment: String
+}
+nonisolated private struct LinkBody: Encodable, Sendable { let tokenHash: String }
 nonisolated private struct MatchAnswerBody: Encodable, Sendable { let response: DeckResponse }
 nonisolated private struct VoteBody: Encodable, Sendable {
     let eventId: String
@@ -58,6 +63,30 @@ nonisolated private struct MePatch: Encodable, Sendable {
 }
 
 extension APIClient {
+    // MARK: Push and links
+
+    /// Keeps this phone's push token for the member. Builds run from Xcode get sandbox tokens.
+    func registerDevice(token: String) async throws {
+        #if DEBUG
+            let environment = "sandbox"
+        #else
+            let environment = "production"
+        #endif
+        let _: OK = try await request(.put, "/devices", body: DeviceBody(token: token, environment: environment))
+    }
+
+    func unregisterDevice(token: String) async throws {
+        let _: OK = try await request(.delete, "/devices/\(token)")
+    }
+
+    /// Signs in with the emailed link's token, when the link opened the app.
+    func verify(tokenHash: String) async throws -> APISession {
+        let session: APISession = try await request(
+            .post, "/auth/verify", body: LinkBody(tokenHash: tokenHash), authenticated: false)
+        setSession(session)
+        return session
+    }
+
     // MARK: Events
 
     func event(slug: String) async throws -> EventDetail {

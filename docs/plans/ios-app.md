@@ -128,13 +128,28 @@ They are plain-language drafts, not legal advice.
 - **Across tabs:** "It's a match!" opens the new match; one-line notices show over every tab; the Matches badge follows the waiting count.
 - **Tests:** 27 unit tests (adds money, dates and team sizes, and the side-project body). The UI test now covers the whole journey: sign-up, the deck, going to a hackathon, Discover narrowed to it, a mutual match with a demo profile the script adds, the pair page, teaming up, the Matches list, Me, and deleting the account.
 
-### 5. Push and links (3 to 4 days)
-- **Push.**
-  - Migration: `push_devices` (user, token, sandbox or production).
-  - `src/lib/notify/apns.ts`, with a fake provider like email has. `send` in `src/server/notify.ts` chooses the channel and still writes `notification_log`.
-  - Kinds: inbound interest (with Interested and Pass buttons), mutual match, event nudge. The Matches tab count becomes the app badge.
-  - The app asks for permission after the first Interested, not at launch.
-- **Universal links.** Serve `/.well-known/apple-app-site-association` so `/e/<slug>`, `/matches/<id>` and `/auth/confirm` open the app when it's installed. `/r/<token>` stays on the web, since it works without signing in.
+### 5. Push and links: built 2026-11-16, not on production
+- **Devices:** migration `20261116000000_push_devices.sql` adds `push_devices` (token, user, sandbox or production; server-only) and a `push` channel for `notification_log`. `PUT /api/v1/devices` keeps a phone's token; `DELETE /api/v1/devices/:token` forgets it when the app signs out; deleting the account removes them all.
+- **Sending** (`src/lib/notify/push.ts`, `src/server/push.ts`): APNs over HTTP/2 with token auth (an ES256 JWT from the `.p8` key, renewed every 40 minutes), or a fake that writes to `.tmp/push-outbox`. Tokens Apple calls gone are deleted. Every push is logged. `PUSH_PROVIDER` is `fake` locally, and in production `apns` once `APNS_PRIVATE_KEY` is set, `none` before.
+- **What goes by push** (open question 1, the proposed default):
+  - someone's interest: a push with Interested and Pass on it, **instead of** the email, when the person has the app; the email otherwise;
+  - a mutual match: a push **and** the email, which carries the contact details;
+  - the badge is the waiting count.
+- **The app:**
+  - asks to allow notifications after the first Interested, never at launch;
+  - registers its token on each start once allowed;
+  - Interested and Pass answer from the notification without opening the app, after Face ID;
+  - tapping a match opens its pair page, an interest the Matches tab;
+  - Me shows whether notifications are on, with Turn on, or Settings when they were refused.
+- **Universal links:** `/.well-known/apple-app-site-association` sends event pages, `/matches` and matches to the app, and sign-in links the app asked for (`via=app` on the link). Those links sign in in the app (`POST /auth/verify` with the link's token), finishing sign-up with the answers on the phone. Web sign-in links and `/r/` stay on the web.
+- **Tests:** unit (payloads, the JWT against its public key, config), database (`push-devices`), API (a registered phone gets interest by push and no email, a match by push and email, both logged; the links file; signing in with the link once), and in the app 31 unit tests (links, notifications) and the UI test, which allows notifications and registers the phone (with a stand-in token: a simulator signed without a provisioning profile gets none from Apple).
+
+**Not checked yet:** a real push from Apple to a phone. That needs the key in Vercel and the app on a phone signed with the team's profile (TestFlight, phase 6).
+
+**To put on production (each needs the owner's approval):**
+1. Back up, dry-run, then apply migration `20261116000000_push_devices.sql`.
+2. Push to `main`. With no APNs values yet, production sends no pushes and nothing else changes; `/.well-known/apple-app-site-association` goes live.
+3. The owner adds `APNS_KEY_ID` and `APNS_PRIVATE_KEY` in Vercel (Production only, Sensitive), then redeploys.
 
 ### 6. TestFlight (about 1 week of testing)
 - Internal testers get builds at once. External testers (up to 10,000, by link) need a short beta review first.

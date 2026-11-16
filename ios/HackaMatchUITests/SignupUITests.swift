@@ -15,7 +15,7 @@ final class SignupUITests: XCTestCase {
     @MainActor
     func testNewStudentSignsUpMatchesTeamsUpAndDeletesTheirAccount() async throws {
         let app = XCUIApplication()
-        app.launchArguments = ["-reset-session"]
+        app.launchArguments = ["-reset-session", "-fake-push-token"]
         app.launch()
 
         app.buttons["Match Now"].tap()
@@ -88,6 +88,10 @@ final class SignupUITests: XCTestCase {
             XCTAssertTrue(card.waitForExistence(timeout: 10), "the demo profile should be in the deck")
         }
         app.buttons["Interested"].tap()
+        // The first Interested asks to allow notifications (not at launch).
+        let allow = XCUIApplication(bundleIdentifier: "com.apple.springboard").buttons["Allow"]
+        XCTAssertTrue(allow.waitForExistence(timeout: 10), "the app should ask to allow notifications")
+        allow.tap()
         XCTAssertTrue(app.staticTexts["It's a match!"].waitForExistence(timeout: 10))
         app.buttons["Open your match"].tap()
 
@@ -106,6 +110,7 @@ final class SignupUITests: XCTestCase {
         // Me: the name from sign-up, then delete the account, which ends at the landing page.
         app.tabBars.buttons["Me"].tap()
         XCTAssertTrue(app.staticTexts["Shown as Ios"].waitForExistence(timeout: 10))
+        tap(app.staticTexts["Phone notifications are on"])
         snapshot(app, "9-me")
         tap(app.buttons["Delete account"])
         let confirm = app.textFields["Type delete"]

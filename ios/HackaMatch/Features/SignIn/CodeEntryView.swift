@@ -22,7 +22,7 @@ struct CodeEntryView: View {
                 Text("Check your email")
                     .font(.largeTitle.bold())
                     .accessibilityAddTraits(.isHeader)
-                Text("We sent a 6-digit code to \(email).")
+                Text("We sent a 6-digit code to \(email). Or tap the link in the email.")
                     .foregroundStyle(Theme.muted)
             }
 
@@ -154,6 +154,7 @@ struct SignInView: View {
         defer { working = false }
         do {
             try await app.api.requestCode(email: address)
+            app.awaitingAnswers = nil
             sentTo = address
         } catch {
             self.error = (error as? APIError)?.message ?? APIError.unexpected.message

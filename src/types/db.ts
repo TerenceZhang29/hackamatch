@@ -780,6 +780,46 @@ export type Database = {
           },
         ];
       };
+      push_devices: {
+        Row: {
+          created_at: string;
+          environment: string;
+          token: string;
+          updated_at: string;
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          environment: string;
+          token: string;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          environment?: string;
+          token?: string;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "push_devices_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "active_pool";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "push_devices_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       rate_limits: {
         Row: {
           count: number;
@@ -1218,7 +1258,7 @@ export type Database = {
       idea_status: "open" | "filled" | "archived" | "draft";
       match_response: "pending" | "interested" | "pass";
       match_source: "admin" | "board" | "nightly" | "curated";
-      notify_channel: "email" | "sms" | "slack" | "none";
+      notify_channel: "email" | "sms" | "slack" | "none" | "push";
       report_reason: "harassment" | "inappropriate" | "spam" | "fake" | "other";
       report_status: "open" | "resolved";
       user_role: "idea" | "builder" | "both";
@@ -1345,7 +1385,7 @@ export const Constants = {
       idea_status: ["open", "filled", "archived", "draft"],
       match_response: ["pending", "interested", "pass"],
       match_source: ["admin", "board", "nightly", "curated"],
-      notify_channel: ["email", "sms", "slack", "none"],
+      notify_channel: ["email", "sms", "slack", "none", "push"],
       report_reason: ["harassment", "inappropriate", "spam", "fake", "other"],
       report_status: ["open", "resolved"],
       user_role: ["idea", "builder", "both"],

@@ -5,6 +5,7 @@ import type { z } from "zod";
 import { apiError, isUuid, readBody } from "@/lib/api/http";
 import {
   authVerifyInput,
+  deviceInput,
   blocksSchema,
   deckAnswerSchema,
   deckSchema,
@@ -128,11 +129,28 @@ describe("request handling", () => {
     }
   });
 
-  it("accepts sign-in codes as digits only", () => {
+  it("accepts sign-in codes as digits only, or the emailed link's token", () => {
     const email = "ut-001@cornell.edu";
-    expect(authVerifyInput.safeParse({ email, code: " 123456 " }).data?.code).toBe("123456");
+    expect(authVerifyInput.safeParse({ email, code: " 123456 " }).data).toEqual({
+      email,
+      code: "123456",
+    });
     expect(authVerifyInput.safeParse({ email, code: "12345" }).success).toBe(false);
     expect(authVerifyInput.safeParse({ email, code: "12345a" }).success).toBe(false);
+    expect(authVerifyInput.safeParse({ tokenHash: "pkce_abc" }).data).toEqual({
+      tokenHash: "pkce_abc",
+    });
+    expect(authVerifyInput.safeParse({ tokenHash: "" }).success).toBe(false);
+  });
+
+  it("takes push tokens as lowercase hex, for one of the two APNs servers", () => {
+    const token = "a".repeat(64);
+    expect(deviceInput.safeParse({ token, environment: "sandbox" }).success).toBe(true);
+    expect(deviceInput.safeParse({ token, environment: "staging" }).success).toBe(false);
+    expect(
+      deviceInput.safeParse({ token: "A".repeat(64), environment: "production" }).success,
+    ).toBe(false);
+    expect(deviceInput.safeParse({ token: "ab", environment: "production" }).success).toBe(false);
   });
 
   it("gives each error its status, and never lets responses be cached", async () => {

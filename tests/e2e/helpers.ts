@@ -217,6 +217,30 @@ export async function readOutbox(email: string): Promise<OutboxEmail[]> {
   return emails.filter((e) => e.to === email);
 }
 
+/** Pushes the fake provider wrote to `.tmp/push-outbox` for one device token, oldest first. */
+export async function readPushOutbox(token: string): Promise<
+  {
+    token: string;
+    environment: string;
+    payload: {
+      aps: { alert: { title: string; body: string }; badge: number; category?: string };
+    } & {
+      kind: string;
+      matchId: string;
+    };
+  }[]
+> {
+  const { readdir, readFile } = await import("node:fs/promises");
+  const dir = `${process.cwd()}/.tmp/push-outbox`;
+  const files = (await readdir(dir).catch(() => [] as string[]))
+    .filter((f) => f.endsWith(".json"))
+    .sort();
+  const pushes = await Promise.all(
+    files.map(async (f) => JSON.parse(await readFile(`${dir}/${f}`, "utf8"))),
+  );
+  return pushes.filter((p) => p.token === token);
+}
+
 /** The secret the e2e web server signs one-click links with (see playwright.config.ts). */
 export const E2E_TOKEN_SECRET =
   process.env.RESPONSE_TOKEN_SECRET || "e2e-response-token-secret-not-for-production";

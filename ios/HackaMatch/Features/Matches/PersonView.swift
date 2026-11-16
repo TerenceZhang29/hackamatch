@@ -126,7 +126,7 @@ struct PersonView: View {
             }
             await load()
             await app.refreshMe()
-            if response == .pass { dismiss() }
+            if response == .pass { dismiss() } else { await app.askForPushIfNeeded() }
         } catch {
             app.flash((error as? APIError)?.message ?? APIError.unexpected.message)
         }

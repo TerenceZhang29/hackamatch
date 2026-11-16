@@ -17,6 +17,6 @@ export async function POST(request: Request) {
   const email = emailSchema.safeParse(body.data.email);
   if (!email.success) return apiError("refused", DOMAIN_ERROR);
 
-  const sent = await sendMagicLink(email.data, null);
+  const sent = await sendMagicLink(email.data, null, "app");
   return sent.ok ? apiJson(okSchema, { ok: true }) : apiError("refused", sent.message);
 }

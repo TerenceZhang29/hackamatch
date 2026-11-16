@@ -36,18 +36,36 @@ export async function verifyEmailCode(email: string, code: string): Promise<Veri
     if (error) console.error("Code verification failed", error.code, error.message);
     return { ok: false, error: "invalid_code" };
   }
-  const userId = data.user.id;
-  await track("magic_link_clicked", { via: "code" }, userId);
+  return { ok: true, session: await signedIn(data.user.id, data.session, "code") };
+}
 
+/** What every app sign-in records, then the session to hand back. */
+async function signedIn(userId: string, session: Session, via: "code" | "link") {
+  await track("magic_link_clicked", { via: `app-${via}` }, userId);
   // Start the onboarding clock on the first sign-in only, as the web's confirm step does.
-  const { error: clockError } = await createServiceClient()
+  const { error } = await createServiceClient()
     .from("users")
     .update({ onboarding_started_at: new Date().toISOString() })
     .eq("id", userId)
     .is("onboarding_started_at", null);
-  if (clockError) console.error("verifyEmailCode: onboarding clock", clockError.message);
+  if (error) console.error("app sign-in: onboarding clock", error.message);
+  return toApiSession(session);
+}
 
-  return { ok: true, session: toApiSession(data.session) };
+/**
+ * The same sign-in from the emailed link, when it opened the app (a
+ * universal link). The token is long and single-use, so it needs no guess limit.
+ */
+export async function verifyEmailLink(tokenHash: string): Promise<VerifyResult> {
+  const { data, error } = await anonClient().auth.verifyOtp({
+    token_hash: tokenHash,
+    type: "email",
+  });
+  if (error || !data.session || !data.user) {
+    if (error) console.error("Link verification failed", error.code, error.message);
+    return { ok: false, error: "invalid_code" };
+  }
+  return { ok: true, session: await signedIn(data.user.id, data.session, "link") };
 }
 
 /** A fresh session from a refresh token, or null when it is unknown, used or revoked. */
